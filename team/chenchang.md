@@ -1,0 +1,2 @@
+This is Chenchang Wang, it is my third year in CS.
+For this project, I’m looking forward to developing a 3D Pong-inspired game that emphasizes responsiveness and visual clarity. I’m especially interested in experimenting with camera systems, realistic ball physics, and enhancing the player experience through lighting effects, audio cues, and clean UI design. If time permits, I’d also like to explore optional extensions such as alternate camera perspectives, power-ups, or a more advanced AI opponent for solo gameplay.
