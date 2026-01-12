@@ -1,7 +1,7 @@
 # 3D Pong
 
 ## Description
-A web-based multiplayer variant ofthe  classic game of pong, brought to the third dimension.
+A web-based multiplayer variant of the classic game of pong, brought to the third dimension.
 
 ## Members
 | Name | GitHub ID |
