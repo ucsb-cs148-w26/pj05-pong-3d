@@ -5,12 +5,27 @@
 		"format": "prettier --write ."
 	},
 	"dependencies": {
-		"express": "5.1.0"
+		"express": "^5.2.1",
+		"ws": "^8.19.0"
 	},
 	"devDependencies": {
 		"@types/express": "5.0.0",
 		"@types/node": "20.11.17",
 		"prettier": "3.8.0",
 		"typescript": "5.8.3"
-	}
+	},
+	"version": "1.0.0",
+	"description": "A web-based multiplayer variant of the classic game of pong, brought to the third dimension.",
+	"main": "index.js",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ucsb-cs148-w26/pj05-pong-3d.git"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "ISC",
+	"bugs": {
+		"url": "https://github.com/ucsb-cs148-w26/pj05-pong-3d/issues"
+	},
+	"homepage": "https://github.com/ucsb-cs148-w26/pj05-pong-3d#readme"
 }
