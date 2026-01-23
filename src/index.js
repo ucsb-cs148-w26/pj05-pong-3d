@@ -154,7 +154,6 @@ server.on('upgrade', (req, socket, head) => {
 	});
 });
 
-
 wss.on('connection', (ws, req) => {
 	const url = new URL(req.url, 'http://localhost');
 	const clientId = url.searchParams.get('clientId') || String(nextClientId++);
@@ -199,7 +198,10 @@ wss.on('connection', (ws, req) => {
 			return;
 		}
 
-		safeSend(ws, { type: 'error', message: `Unknown message type: ${msg.type}` });
+		safeSend(ws, {
+			type: 'error',
+			message: `Unknown message type: ${msg.type}`
+		});
 	});
 
 	ws.on('close', () => {
