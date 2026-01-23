@@ -83,48 +83,6 @@ app.get('/api/lobbies/:lobbyId', (req, res) => {
 	});
 });
 
-app.post('/api/lobbies/:lobbyId/chat', (req, res) => {
-	const clientId = getClientId(req, res);
-	const lobbyId = req.params.lobbyId;
-	const text = (req.body?.text || '').toString();
-
-	const lobby = lobbyState.lobbies.get(lobbyId);
-	if (!lobby) {
-		res.status(404).json({ ok: false, message: 'Lobby not found' });
-		return;
-	}
-	if (!lobby.members.has(clientId)) {
-		res.status(403).json({ ok: false, message: 'Not a member of that lobby' });
-		return;
-	}
-	if (!text.trim()) {
-		res.status(400).json({ ok: false, message: 'Empty message' });
-		return;
-	}
-
-	if (!lobby.chat) lobby.chat = [];
-	const msg = { clientId, text, ts: Date.now() };
-	lobby.chat.push(msg);
-	if (lobby.chat.length > 50) lobby.chat.shift();
-
-	res.json({ ok: true });
-});
-
-app.get('/api/lobbies/:lobbyId/chat', (req, res) => {
-	const lobbyId = req.params.lobbyId;
-	const lobby = lobbyState.lobbies.get(lobbyId);
-
-	if (!lobby) {
-		res.status(404).json({ ok: false, message: 'Lobby not found' });
-		return;
-	}
-
-	const since = Number(req.query.since || 0);
-	const chat = (lobby.chat || []).filter((m) => m.ts > since);
-
-	res.json({ ok: true, chat });
-});
-
 app.get('/', (_req, res) => {
 	res.redirect('index.html');
 });
