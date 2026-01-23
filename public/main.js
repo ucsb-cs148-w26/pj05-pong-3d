@@ -1,8 +1,10 @@
 import * as THREE from 'three';
 import PongSocketClient from './socket.js';
+import { initChat } from './chat.js';
 
 const socket = new PongSocketClient();
 socket.connect();
+initChat(socket);
 
 /* --------------------
    Core Setup
@@ -74,8 +76,15 @@ let ballVelocity = new THREE.Vector3(0.04, 0.03, -0.08);
    Input
 -------------------- */
 const keys = {};
-window.addEventListener('keydown', (e) => (keys[e.key.toLowerCase()] = true));
-window.addEventListener('keyup', (e) => (keys[e.key.toLowerCase()] = false));
+window.addEventListener('keydown', (e) => {
+	if (document.activeElement.tagName === 'INPUT') return; // chat
+	keys[e.key.toLowerCase()] = true;
+});
+
+window.addEventListener('keyup', (e) => {
+	if (document.activeElement.tagName === 'INPUT') return; // chat
+	keys[e.key.toLowerCase()] = false;
+});
 
 /* --------------------
    Paddle Clamp

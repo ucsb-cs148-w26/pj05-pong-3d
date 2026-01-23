@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import LobbyState from './lobby/lobbyState.js';
 import PongSocketServer from './socket.js';
+import chatHandler from './chat.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -130,5 +131,6 @@ app.get('/', (_req, res) => {
 
 const server = app.listen(PORT);
 const socket = new PongSocketServer(server, '/ws');
+socket.addHandler(chatHandler);
 
 export default app;

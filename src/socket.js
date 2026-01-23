@@ -4,9 +4,10 @@ import { WebSocketServer } from 'ws';
  * How to use:
  * - Construct with HTTP server instance (see index.js) and path to websocket
  *   (e.g., /ws) (must start with /)
- * - Listen for messages with addHandler(func). The callback should take three
- *   arguments: ws, msg, respond. msg is a JSON object with mandatory field
- *   called "type".respond is a function that takes a JSON object to send back
+ * - Listen for messages with addHandler(func). The callback should take four
+ *   arguments: socket, clientId, ws, msg, respond. socket is this server.
+ *   clientId is the client's ID. msg is a JSON object with mandatory field
+ *   called "type". respond is a function that takes a JSON object to send back
  *   to the client.
  *   - The handler function should return true to stop the handler chain. If it
  *     does not return anything, subsequent handlers will be called.
@@ -15,6 +16,7 @@ import { WebSocketServer } from 'ws';
 export default class PongSocketServer {
 	#wss = null;
 	#wsByClientId = new Map();
+	#nextClientId = 1;
 
 	#handlers = [];
 
@@ -38,7 +40,7 @@ export default class PongSocketServer {
 
 		this.#wss.on('connection', (ws, req) => {
 			const url = new URL(req.url, 'http://localhost');
-			const clientId = url.searchParams.get('clientId');
+			const clientId = url.searchParams.get('clientId') || this.#nextClientId++;
 
 			this.#wsByClientId.set(clientId, ws);
 
@@ -66,7 +68,9 @@ export default class PongSocketServer {
 				let handled = false;
 
 				for (const handler of this.#handlers) {
-					if (handler(ws, msg, (res) => this.#safeSend(ws, res))) {
+					if (
+						handler(this, clientId, ws, msg, (res) => this.#safeSend(ws, res))
+					) {
 						handled = true;
 						break;
 					}
@@ -86,6 +90,14 @@ export default class PongSocketServer {
 		});
 	}
 
+	broadcast(obj) {
+		this.#wss.clients.forEach((ws) => {
+			if (ws.readyState === WebSocket.OPEN) {
+				ws.send(JSON.stringify(obj));
+			}
+		});
+	}
+
 	addHandler(func) {
 		this.#handlers.push(func);
 	}
@@ -95,7 +107,7 @@ export default class PongSocketServer {
 		ws.send(JSON.stringify(obj));
 	}
 
-	#baseMessageHandler(ws, msg, respond) {
+	#baseMessageHandler(socket, clientId, ws, msg, respond) {
 		if (msg.type === 'ping') {
 			respond({ type: 'pong', ts: Date.now() });
 			return true;

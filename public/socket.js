@@ -79,8 +79,7 @@ export default class PongSocketClient {
 	}
 
 	#getUrl() {
-		let clientId = localStorage.getItem(CLIENT_ID_KEY) || '';
-
+		const clientId = localStorage.getItem(CLIENT_ID_KEY);
 		const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
 		const url = new URL(`${scheme}://${location.host}/ws`);
 		if (clientId) url.searchParams.set('clientId', clientId);
