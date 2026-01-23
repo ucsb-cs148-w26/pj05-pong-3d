@@ -1,4 +1,13 @@
 import * as THREE from 'three';
+import { AnimatedScene } from './game/animatedScene.js';
+
+let playingAnimation = true;
+if (playingAnimation) {
+	const animatedScene = new AnimatedScene();
+	window.addEventListener('resize', () => {
+		animatedScene.onWindowResize();
+	});
+}
 
 /* --------------------
    Core Setup
