@@ -1,10 +1,19 @@
 import * as THREE from 'three';
+import { AnimatedScene } from './game/animatedScene.js';
 import PongSocketClient from './socket.js';
 import { initChat } from './chat.js';
 
 const socket = new PongSocketClient();
 socket.connect();
 initChat(socket);
+
+let playingAnimation = true;
+if (playingAnimation) {
+	const animatedScene = new AnimatedScene();
+	window.addEventListener('resize', () => {
+		animatedScene.onWindowResize();
+	});
+}
 
 /* --------------------
    Core Setup
