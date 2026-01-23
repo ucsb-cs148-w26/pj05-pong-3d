@@ -12,7 +12,8 @@
 		"@types/express": "5.0.0",
 		"@types/node": "20.11.17",
 		"prettier": "3.8.0",
-		"typescript": "5.8.3"
+		"typescript": "5.8.3",
+		"vercel": "^50.4.8"
 	},
 	"version": "1.0.0",
 	"description": "A web-based multiplayer variant of the classic game of pong, brought to the third dimension.",

@@ -126,10 +126,6 @@ app.get('/', (_req, res) => {
 	res.redirect('index.html');
 });
 
-app.get('/hello', (_req, res) => {
-	res.send('hello world from express');
-});
-
 const wsByClientId = new Map();
 
 function safeSend(ws, obj) {
