@@ -9,8 +9,6 @@ if (playingAnimation) {
 	});
 }
 
-
-
 /* --------------------
    Core Setup
 -------------------- */
@@ -248,4 +246,3 @@ window.addEventListener('keydown', (e) => {
 		send({ type: 'ping' });
 	}
 });
-
