@@ -1,134 +1,162 @@
-
 // Basic vector class, holds N floats
 export class Vector {
-    
-    constructor( dimension = 0 ) {
-        this.data = new Float32Array(dimension);
-    }
+	constructor(dimension = 0) {
+		this.data = new Float32Array(dimension);
+	}
 
-    get( idx ) { return this.data[idx]; }
-    set( idx, value ) { this.data[idx] = value; }
+	get(idx) {
+		return this.data[idx];
+	}
+	set(idx, value) {
+		this.data[idx] = value;
+	}
 
-    zero() { for ( let i = 0; i < this.data.length; i++ ) this.data[i] = 0.0; }
+	zero() {
+		for (let i = 0; i < this.data.length; i++) this.data[i] = 0.0;
+	}
 
-    norm() {
-        let acc = 0.0;
-        for ( let i = 0; i < this.data.length; i++ ) acc += this.data[i] * this.data[i];
-        return Math.sqrt( acc );
-    }
+	norm() {
+		let acc = 0.0;
+		for (let i = 0; i < this.data.length; i++)
+			acc += this.data[i] * this.data[i];
+		return Math.sqrt(acc);
+	}
 
-    normalize() {
-        return this.scale( 1 / this.norm() );
-    }
+	normalize() {
+		return this.scale(1 / this.norm());
+	}
 
-    load( idx, vec ) {
-        for ( let i = 0; i < vec.data.length; ++i ) this.data[idx + i] = vec.data[i];
-    }
+	load(idx, vec) {
+		for (let i = 0; i < vec.data.length; ++i) this.data[idx + i] = vec.data[i];
+	}
 
-    slice( idx, len ) {
-        const ret = new Vector(len);
-        for ( let i = 0; i < ret.data.length; i++ ) ret.data[i] = this.data[idx + i];
-        return ret;
-    }
+	slice(idx, len) {
+		const ret = new Vector(len);
+		for (let i = 0; i < ret.data.length; i++) ret.data[i] = this.data[idx + i];
+		return ret;
+	}
 
-    get dim() { return this.data.length; }
+	get dim() {
+		return this.data.length;
+	}
 
-    addVec( other ) {
-        if ( other.data.length !== this.data.length ) throw new Error( " dimension need to match to add vectors " );
-        
-        for ( let i = 0; i < other.data.length; i++ ) this.data[i] += other.data[i];
+	addVec(other) {
+		if (other.data.length !== this.data.length)
+			throw new Error(' dimension need to match to add vectors ');
 
-        return this;
-    }
+		for (let i = 0; i < other.data.length; i++) this.data[i] += other.data[i];
 
-    subVec( other ) {
-        if ( other.data.length !== this.data.length ) throw new Error( " dimension need to match to sub vectors " );
-        
-        for ( let i = 0; i < other.data.length; i++ ) this.data[i] -= other.data[i];
+		return this;
+	}
 
-        return this;
-    }
+	subVec(other) {
+		if (other.data.length !== this.data.length)
+			throw new Error(' dimension need to match to sub vectors ');
 
-    scale( scalar ) {
-        for (let i = 0; i < this.dim; i++) this.data[i] *= scalar;
+		for (let i = 0; i < other.data.length; i++) this.data[i] -= other.data[i];
 
-        return this;
-    }
+		return this;
+	}
 
-    clone() {
-        const ret = new Vector(this.dim);
+	scale(scalar) {
+		for (let i = 0; i < this.dim; i++) this.data[i] *= scalar;
 
-        for (let i = 0; i < this.dim; i++) ret.data[i] = this.data[i];
-        
-        return ret;
-    }
+		return this;
+	}
 
-    [Symbol.iterator]() {
-        return this.data[Symbol.iterator]();
-    }
-    
-    values() {
-        return this.data.values();
-    }
+	clone() {
+		const ret = new Vector(this.dim);
 
-    entries() {
-        return this.data.entries();
-    }
+		for (let i = 0; i < this.dim; i++) ret.data[i] = this.data[i];
 
-    static dot( a, b ) {
-        if ( a.dim !== b.dim ) throw new Error(" dot product requires vectors of equal dim ");
-        let acc = 0.0;
-        for ( let i = 0; i < a.dim; i++ ) acc += a.get(i) * b.get(i);
-        return acc;
-    }
+		return ret;
+	}
 
+	[Symbol.iterator]() {
+		return this.data[Symbol.iterator]();
+	}
+
+	values() {
+		return this.data.values();
+	}
+
+	entries() {
+		return this.data.entries();
+	}
+
+	static dot(a, b) {
+		if (a.dim !== b.dim)
+			throw new Error(' dot product requires vectors of equal dim ');
+		let acc = 0.0;
+		for (let i = 0; i < a.dim; i++) acc += a.get(i) * b.get(i);
+		return acc;
+	}
 }
 
 export class Vec3 extends Vector {
+	constructor(x = 0, y = 0, z = 0) {
+		super(3);
+		this.data[0] = x;
+		this.data[1] = y;
+		this.data[2] = z;
+	}
 
-    constructor(x = 0, y = 0, z = 0) {
-        super(3);
-        this.data[0] = x;
-        this.data[1] = y;
-        this.data[2] = z;
+	get x() {
+		return this.data[0];
+	}
+	get y() {
+		return this.data[1];
+	}
+	get z() {
+		return this.data[2];
+	}
 
-    }
+	set x(value) {
+		this.data[0] = value;
+	}
+	set y(value) {
+		this.data[1] = value;
+	}
+	set z(value) {
+		this.data[2] = value;
+	}
 
-    get x() { return this.data[0]; }
-    get y() { return this.data[1]; }
-    get z() { return this.data[2]; }
+	static fromVector(vec) {
+		assert(vec.dim === 3);
+		return new Vec3(vec.data[0], vec.data[1], vec.data[2]);
+	}
 
-    set x(value) { this.data[0] = value; }
-    set y(value) { this.data[1] = value; }
-    set z(value) { this.data[2] = value; }
+	assign(x = 0, y = 0, z = 0) {
+		this.x = x;
+		this.y = y;
+		this.z = z;
+	}
 
-    static fromVector( vec ) {
-        assert( vec.dim === 3 );
-        return new Vec3(vec.data[0], vec.data[1], vec.data[2]);
-    }
+	clone() {
+		return new Vec3(this.x, this.y, this.z);
+	}
 
-    assign(x = 0, y = 0, z = 0) {
-        this.x = x;
-        this.y = y;
-        this.z = z;
-    }
+	add(x, y, z) {
+		this.x += x;
+		this.y += y;
+		this.z += z;
+		return this;
+	}
+	sub(x, y, z) {
+		this.x -= x;
+		this.y -= y;
+		this.z -= z;
+		return this;
+	}
 
-    clone() { return new Vec3(this.x, this.y, this.z); }
+	static cross(a, b) {
+		let x = a.y * b.z - a.z * b.y;
+		let y = a.z * b.x - a.x * b.z;
+		let z = a.x * b.y - a.y * b.x;
 
-    add(x, y, z) { this.x += x; this.y += y; this.z += z; return this; }
-    sub(x, y, z) { this.x -= x; this.y -= y; this.z -= z; return this; }
-
-    static cross(a, b) {
-        let x = a.y * b.z - a.z * b.y;
-        let y = a.z * b.x - a.x * b.z;
-        let z = a.x * b.y - a.y * b.x;
-
-        return new Vec3(x, y, z);
-    }
-
+		return new Vec3(x, y, z);
+	}
 }
-
-
 
 export const ZERO = new Vec3();
 export const RIGHT = new Vec3(1);
