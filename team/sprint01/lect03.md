@@ -12,3 +12,4 @@ Discussion:
 - Jehmiah: Hello world is mostly working, but will get it deployed soon. No blockers.
 - Bobby: Downloaded vercel. Learned and researched throughly on how to use vercel. Will finish the hello world soon. Have a great vision for this project so looking forward to share these ideas.
 - Terry: Installed all necessary tools. Will finish hello world before Friday.
+- Dennis: Finished hello world and made it rotating. No blockers, looking forward to talk about sprint planning next time.

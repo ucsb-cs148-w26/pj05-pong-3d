@@ -124,3 +124,116 @@ function animate() {
 }
 
 renderer.setAnimationLoop(animate);
+
+// location.host
+// `ws://${location.host}/
+
+const CLIENT_ID_KEY = 'pong3d_client_id';
+let clientId = localStorage.getItem(CLIENT_ID_KEY) || '';
+
+function buildWsUrl() {
+	const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
+	const url = new URL(`${scheme}://${location.host}/ws`);
+	if (clientId) url.searchParams.set('clientId', clientId);
+	return url.toString();
+}
+
+let ws = null;
+let reconnectTimer = null;
+let isOpen = false;
+
+function send(obj) {
+	if (!ws || ws.readyState !== WebSocket.OPEN) return false;
+	ws.send(JSON.stringify(obj));
+	return true;
+}
+
+function connectWs() {
+	if (reconnectTimer) {
+		clearTimeout(reconnectTimer);
+		reconnectTimer = null;
+	}
+
+	const wsUrl = buildWsUrl();
+	console.log('[ws] connecting:', wsUrl);
+
+	ws = new WebSocket(wsUrl);
+
+	ws.onopen = () => {
+		isOpen = true;
+		console.log('[ws] connected');
+		send({ type: 'ping' });
+	};
+
+	ws.onmessage = (event) => {
+		let msg;
+		try {
+			msg = JSON.parse(event.data);
+		} catch (e) {
+			console.warn('[ws] invalid json:', event.data);
+			return;
+		}
+
+		switch (msg.type) {
+			case 'connected': {
+				if (msg.clientId && msg.clientId !== clientId) {
+					clientId = String(msg.clientId);
+					localStorage.setItem(CLIENT_ID_KEY, clientId);
+					console.log('[ws] assigned clientId:', clientId);
+				}
+
+				send({ type: 'game_join', gameId: 'demo' });
+				break;
+			}
+
+			case 'pong':
+				console.log('[ws] pong ts=', msg.ts);
+				break;
+
+			case 'game_join_ok':
+				console.log('[ws] joined game:', msg.gameId);
+				break;
+
+			case 'game_join_error':
+				console.warn('[ws] join error:', msg.message);
+				break;
+
+			case 'input_ok':
+				console.log('[ws] input ok', msg.ts);
+				break;
+
+			case 'error':
+				console.warn('[ws] server error:', msg.message);
+				break;
+
+			default:
+				console.log('[ws] message:', msg);
+		}
+	};
+
+	ws.onclose = () => {
+		isOpen = false;
+		console.log('[ws] closed - will retry');
+		reconnectTimer = setTimeout(connectWs, 1000);
+	};
+
+	ws.onerror = (err) => {
+		console.error('[ws] error:', err);
+	};
+}
+
+connectWs();
+
+window.addEventListener('keydown', (e) => {
+	if (!isOpen) return;
+
+	if (e.key === 'ArrowUp') {
+		send({ type: 'input', action: 'paddle_move', dy: -1 });
+	}
+	if (e.key === 'ArrowDown') {
+		send({ type: 'input', action: 'paddle_move', dy: 1 });
+	}
+	if (e.key.toLowerCase() === ' ') {
+		send({ type: 'ping' });
+	}
+});
