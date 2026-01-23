@@ -26,12 +26,14 @@
 			}
 
 			#chat__text {
+				font-family: sans-serif;
 				margin: 0;
 				color: white;
 				font-size: 1.1rem;
 				height: 10rem;
 				width: 45ch;
 				overflow-y: auto;
+				white-space: pre-wrap;
 			}
 
 			#chat__box {
@@ -45,7 +47,7 @@
 	<body>
 		<div id="chat">
 			<pre id="chat__text"></pre>
-			<input id="chat__box" placeholder="Chat" />
+			<input id="chat__box" placeholder="Chat (press Enter)" />
 		</div>
 		<script type="module" src="/main.js"></script>
 	</body>
