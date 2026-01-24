@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { AnimatedScene } from './game/animatedScene.js';
+import { AI } from './game/ai.js';
 import PongSocketClient from './socket.js';
 import { initChat } from './chat.js';
 
@@ -79,6 +80,8 @@ const ballMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
 const ball = new THREE.Mesh(ballGeometry, ballMaterial);
 scene.add(ball);
 
+const ai = new AI(rightPaddle, ball, [leftPaddle, rightPaddle], 15, ['x', 'y']);
+
 let ballVelocity = new THREE.Vector3(0.04, 0.03, -0.08);
 
 /* --------------------
@@ -127,6 +130,8 @@ function animate() {
 	if (keys['k']) rightPaddle.position.y -= speed;
 	if (keys['j']) rightPaddle.position.x -= speed;
 	if (keys['l']) rightPaddle.position.x += speed;
+
+	ai.update(delta);
 
 	clampPaddle(leftPaddle);
 	clampPaddle(rightPaddle);
