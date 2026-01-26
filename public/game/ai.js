@@ -82,8 +82,8 @@ export class AI {
 
     pickTarget() {
         this.volleyCount++;
-        this.positionError.x = (Math.random() - 0.5) * this.volleyCount * difficultyMult;
-        this.positionError.y = (Math.random() - 0.5) * this.volleyCount * difficultyMult;
+        this.positionError.x = (Math.random() - 0.5) * this.volleyCount * this.difficultyMult;
+        this.positionError.y = (Math.random() - 0.5) * this.volleyCount * this.difficultyMult;
 
         const others = this.paddles.filter((p) => p !== this.paddle);
         if (others.length > 0) {
