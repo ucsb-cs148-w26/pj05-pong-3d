@@ -12,7 +12,9 @@ export class AI {
         this.initialRotation = { x: paddle.rotation.x, y: paddle.rotation.y, z: paddle.rotation.z };
         this.currentLerp = 0;
         this.volleyCount = 0;
+        this.difficultyMult = 0.2;
         this.positionError = { x: 0, y: 0 };
+        this.maxRotation = 90;
     }
 
     update(delta) {
@@ -24,6 +26,7 @@ export class AI {
         }
         this.wasApproaching = isApproaching;
         this.prevDist = dist;
+
 
         this.axes.forEach((axis) => {
             const target = isApproaching ? this.ball.position[axis] + this.positionError[axis] : 0;
@@ -45,7 +48,7 @@ export class AI {
             }
             this.currentLerp += (targetLerp - this.currentLerp) * 10 * delta;
 
-            const maxAngle = 90 * (Math.PI / 180);
+            const maxAngle = this.maxRotation * (Math.PI / 180);
 
             const tx = this.targetPaddle.position.x + this.targetOffset.x;
             const ty = this.targetPaddle.position.y + this.targetOffset.y;
@@ -79,8 +82,8 @@ export class AI {
 
     pickTarget() {
         this.volleyCount++;
-        this.positionError.x = (Math.random() - 0.5) * this.volleyCount * 0.2;
-        this.positionError.y = (Math.random() - 0.5) * this.volleyCount * 0.2;
+        this.positionError.x = (Math.random() - 0.5) * this.volleyCount * difficultyMult;
+        this.positionError.y = (Math.random() - 0.5) * this.volleyCount * difficultyMult;
 
         const others = this.paddles.filter((p) => p !== this.paddle);
         if (others.length > 0) {
