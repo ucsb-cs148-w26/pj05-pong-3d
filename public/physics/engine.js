@@ -106,7 +106,6 @@ export class PhysicsEngine {
                 }
 
                 COLLIDERS.resolveCollision(A, B, result.normal);
-
             }
         }
 

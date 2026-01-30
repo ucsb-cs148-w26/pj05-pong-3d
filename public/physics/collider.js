@@ -303,17 +303,23 @@ export function orientCollisionNormal(bodyA, bodyB, normal) {
     return normal;
 }
 
-export function positionalCorrection(bodyA, bodyB, normal) {
-    const percent = 0.2;
-    const slop = 0.01;    
+export function positionalCorrection(bodyA, bodyB, normal, penetration = 0) {
+    const percent = 0.8;   
+    const slop = 0.001;    
 
-    const correction = normal.clone().scale(percent * slop);
+    const invMassA = 1 / bodyA.m;
+    const invMassB = bodyB ? 1 / bodyB.m : 0;
+    const invMassSum = invMassA + invMassB;
+    if (invMassSum <= 0) return;
 
-    bodyA.x.addVec(correction);
-    bodyB.x.subVec(correction);
+    const depth = Math.max(penetration - slop, 0);
+    if (depth <= 0) return;
+
+    const correction = normal.clone().scale((depth * percent) / invMassSum);
+
+    bodyA.x.addVec(correction.clone().scale(invMassA));
+    if (bodyB) bodyB.x.subVec(correction.clone().scale(invMassB));
 }
-
-
 
 export class BoxCollider extends ConvexPolyhedralCollider {
     constructor( center = new MATH.Vec3(), l = 1, w = 1, h = 1 ) {
@@ -377,63 +383,73 @@ export class BoxCollider extends ConvexPolyhedralCollider {
 }
 
 export class SphereCollider {
-    constructor( center, radius ) {
-        if ( radius <= 0 ) throw new Error("Radius must be pos");
-        this.center = center;
-        this.radius = radius;
-    }
 
-    support(dir) {
-        const d = dir.clone();
-        const n = d.norm();
-        if (n > 1e-9) d.scale(1 / n);
-        return this.center.clone().addVec(d.scale(this.radius));
+    constructor(center = new MATH.Vec3(), radius = 1) {
+        if (radius <= 0) throw new Error("sphere radius must be positive");
+
+        this.center = center;
+        this.r = radius;
     }
 
     applyTransform(transform) {
         transform(this.center);
     }
 
-    checkCollision( otherCol ) {
+    // ---- Visitor entry ----
+
+    checkCollision(otherCol) {
         return otherCol.checkCollision_Sphere?.(this);
     }
+
+    // ---- Sphere vs Convex Polyhedron (box) ----
+
+    checkCollision_ConvexPolyhedral(poly) {
+        let closestDistSq = Infinity;
+        let closestNormal = null;
+
+        // Project sphere center onto each face plane
+        for (const face of poly.faces) {
+            if (!face.normal) face.updateNormal();
+            if (face.d === null) face.updatePlaneD();
+
+            const dist = MATH.Vec3.dot(face.normal, this.center) + face.d;
+
+            // outside this face → no penetration on this face
+            if (dist > this.r) continue;
+
+            // penetration depth squared
+            const pen = this.r - dist;
+            const penSq = pen * pen;
+
+            if (penSq < closestDistSq) {
+                closestDistSq = penSq;
+                closestNormal = face.normal.clone();
+            }
+        }
+
+        if (!closestNormal) return { hit: false };
+
+        return {
+            hit: true,
+            normal: closestNormal.normalize(),
+            penetration: Math.sqrt(closestDistSq)
+        };
+    }
+
+    // ---- Sphere vs Sphere (optional but useful) ----
 
     checkCollision_Sphere(other) {
         const delta = this.center.clone().subVec(other.center);
         const dist = delta.norm();
-        const r = this.radius + other.radius;
+        const rSum = this.r + other.r;
 
-        if (dist >= r) return { hit: false };
+        if (dist >= rSum) return { hit: false };
 
-        const normal = dist > 1e-9 ? delta.scale(1 / dist) : new MATH.Vec3(1, 0, 0);
-
-        return { hit: true, normal };
+        return {
+            hit: true,
+            normal: dist > 1e-6 ? delta.scale(1 / dist) : new MATH.Vec3(1, 0, 0),
+            penetration: rSum - dist
+        };
     }
-
-    checkCollision_ConvexPolyhedral(box) {
-        let closest = this.center.clone();
-
-        for (const face of box.faces) {
-            if (!face.normal) face.updateNormal();
-            if (face.d === null) face.updatePlaneD();
-
-            const dist = MATH.Vec3.dot(face.normal, closest) + face.d;
-
-            if (dist > 0) closest.subVec(face.normal.clone().scale(dist));
-        }
-
-        const delta = this.center.clone().subVec(closest);
-        const distSq = MATH.Vec3.dot(delta, delta);
-
-        if (distSq > this.radius * this.radius) return { hit: false };
-        
-
-        const dist = Math.sqrt(distSq);
-        const normal = dist > 1e-9 ? delta.scale(1 / dist) : new MATH.Vec3(1, 0, 0);
-
-        return { hit: true, normal };
-    }
-
 
 }
-

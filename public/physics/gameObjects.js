@@ -9,7 +9,7 @@ export class Box {
     constructor( pos, mass, material, l = 1, w = 1, h = 1 ) {
         this.body = new RigidBody( mass, new BoxCollider( pos, l, w, h ) );
         this.body.x = pos.clone();
-        this.geometry = new THREE.BoxGeometry(w * 1.4 , h * 1.4, l * 1.4);
+        this.geometry = new THREE.BoxGeometry(w, h, l);
         this.visualBody = new THREE.Mesh( this.geometry, material );
     }
 
@@ -21,9 +21,12 @@ export class Box {
         this.visualBody.position.copy( this.body.x );
     }
 
-}
 
-// Broken for some reason
+    sync( visualBody ) {
+        visualBody.sync_Box( this );
+    }
+
+}
 export class Sphere {
     constructor( pos, mass, material, radius = 1 ) {
         this.body = new RigidBody( mass, new SphereCollider( pos, radius ) );
@@ -31,6 +34,8 @@ export class Sphere {
         this.geometry = new THREE.SphereGeometry(radius);
         this.visualBody = new THREE.Mesh( this.geometry, material );
     }
+
+    get r() { return this.body.col.r; }
 
     syncVisual() {
         this.visualBody.position.copy(this.body.x);
