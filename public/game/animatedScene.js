@@ -5,10 +5,11 @@ import { Paddle } from './paddle.js';
 import { Ball } from './ball.js';
 
 export class AnimatedScene {
+	#animateCallbacks = [];
+
 	constructor() {
 		this.renderer = new THREE.WebGLRenderer();
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
-		document.body.appendChild(this.renderer.domElement);
 
 		this.scene = new THREE.Scene();
 		this.camera = new THREE.PerspectiveCamera(
@@ -48,15 +49,21 @@ export class AnimatedScene {
 		this.yDirection = 1;
 
 		this.clock = new THREE.Clock();
-		this.animate();
+		this.renderer.setAnimationLoop(this.animate.bind(this));
+	}
+
+	addAnimateCallback(cb) {
+		this.#animateCallbacks.push(cb);
 	}
 
 	animate() {
-		requestAnimationFrame(() => this.animate());
-
 		const delta = this.clock.getDelta();
 		this.update(delta);
 		this.renderer.render(this.scene, this.camera);
+
+		for (const cb of this.#animateCallbacks) {
+			cb(delta);
+		}
 	}
 
 	toggleCameraMode() {
@@ -113,6 +120,8 @@ export class AnimatedScene {
 		this.camera.position.set(-37.5, 15, 22.5);
 		this.camera.up.set(0, 1, 0);
 		this.camera.lookAt(0, 0, 0);
+
+		window.addEventListener('resize', this.onWindowResize.bind(this));
 	}
 
 	onWindowResize() {
@@ -135,38 +144,6 @@ export class AnimatedScene {
 			this.ball.mesh.position.x = -11.2;
 			this.ballDirection = 1;
 		}
-
-		// Synchronized Z axis movement
-		let zPos = this.ball.mesh.position.z;
-		zPos += this.zSpeed * delta * this.zDirection;
-
-		if (zPos > 6.5) {
-			zPos = 6.5;
-			this.zDirection = -1;
-		} else if (zPos < -6.5) {
-			zPos = -6.5;
-			this.zDirection = 1;
-		}
-
-		this.ball.mesh.position.z = zPos;
-		this.paddle1.mesh.position.z = zPos;
-		this.paddle2.mesh.position.z = zPos;
-
-		// Synchronized Y axis movement
-		let yPos = this.ball.mesh.position.y;
-		yPos += this.ySpeed * delta * this.yDirection;
-
-		if (yPos > 6.5) {
-			yPos = 6.5;
-			this.yDirection = -1;
-		} else if (yPos < -6.5) {
-			yPos = -6.5;
-			this.yDirection = 1;
-		}
-
-		this.ball.mesh.position.y = yPos;
-		this.paddle1.mesh.position.y = yPos;
-		this.paddle2.mesh.position.y = yPos;
 
 		if (this.isOrbiting) {
 			this.controls.update();
