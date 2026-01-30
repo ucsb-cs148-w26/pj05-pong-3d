@@ -3,6 +3,8 @@ import { AnimatedScene } from './game/animatedScene.js';
 import { AI } from './game/ai.js';
 import PongSocketClient from './socket.js';
 import { initChat } from './chat.js';
+import {Paddle} from './game/paddle.js';
+import {Ball} from './game/ball.js';
 
 const socket = new PongSocketClient();
 socket.connect();
@@ -63,22 +65,22 @@ const PADDLE_HALF = PADDLE_SIZE / 2;
 
 const paddleGeometry = new THREE.BoxGeometry(PADDLE_SIZE, PADDLE_SIZE, 0.4);
 const paddleMaterial = new THREE.MeshStandardMaterial({ color: 0x00ff00 });
+const leftPaddle = new Paddle();
+//const leftPaddle = new THREE.Mesh(paddleGeometry, paddleMaterial);
+leftPaddle.mesh.position.set(0, 0, -10);
+scene.add(leftPaddle.mesh);
 
-const leftPaddle = new THREE.Mesh(paddleGeometry, paddleMaterial);
-leftPaddle.position.set(0, 0, -10);
-scene.add(leftPaddle);
-
-const rightPaddle = new THREE.Mesh(paddleGeometry, paddleMaterial);
-rightPaddle.position.set(0, 0, 10);
-scene.add(rightPaddle);
+const rightPaddle = new Paddle();
+rightPaddle.mesh.position.set(0, 0, 10);
+scene.add(rightPaddle.mesh);
 
 /* --------------------
    Ball
 -------------------- */
 const ballGeometry = new THREE.SphereGeometry(0.5, 32, 32);
 const ballMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-const ball = new THREE.Mesh(ballGeometry, ballMaterial);
-scene.add(ball);
+const ball = new Ball();
+scene.add(ball.mesh);
 
 const ai = new AI(rightPaddle, ball, [leftPaddle, rightPaddle], 15, ['x', 'y']);
 
@@ -102,13 +104,13 @@ window.addEventListener('keyup', (e) => {
    Paddle Clamp
 -------------------- */
 function clampPaddle(paddle) {
-	paddle.position.x = Math.max(
+	paddle.mesh.position.x = Math.max(
 		-ARENA_X + PADDLE_HALF,
-		Math.min(ARENA_X - PADDLE_HALF, paddle.position.x)
+		Math.min(ARENA_X - PADDLE_HALF, paddle.mesh.position.x)
 	);
-	paddle.position.y = Math.max(
+	paddle.mesh.position.y = Math.max(
 		-ARENA_Y + PADDLE_HALF,
-		Math.min(ARENA_Y - PADDLE_HALF, paddle.position.y)
+		Math.min(ARENA_Y - PADDLE_HALF, paddle.mesh.position.y)
 	);
 }
 
@@ -120,16 +122,16 @@ function animate() {
 	const speed = 0.25;
 
 	// Left paddle (WASD)
-	if (keys['w']) leftPaddle.position.y += speed;
-	if (keys['s']) leftPaddle.position.y -= speed;
-	if (keys['a']) leftPaddle.position.x -= speed;
-	if (keys['d']) leftPaddle.position.x += speed;
+	if (keys['w']) leftPaddle.mesh.position.y += speed;
+	if (keys['s']) leftPaddle.mesh.position.y -= speed;
+	if (keys['a']) leftPaddle.mesh.position.x -= speed;
+	if (keys['d']) leftPaddle.mesh.position.x += speed;
 
 	// Right paddle (IJKL)
-	if (keys['i']) rightPaddle.position.y += speed;
-	if (keys['k']) rightPaddle.position.y -= speed;
-	if (keys['j']) rightPaddle.position.x -= speed;
-	if (keys['l']) rightPaddle.position.x += speed;
+	if (keys['i']) rightPaddle.mesh.position.y += speed;
+	if (keys['k']) rightPaddle.mesh.position.y -= speed;
+	if (keys['j']) rightPaddle.mesh.position.x -= speed;
+	if (keys['l']) rightPaddle.mesh.position.x += speed;
 
 	ai.update(delta);
 
@@ -137,13 +139,13 @@ function animate() {
 	clampPaddle(rightPaddle);
 
 	// Ball movement
-	ball.position.add(ballVelocity);
+	ball.mesh.position.add(ballVelocity);
 
-	if (Math.abs(ball.position.x) > ARENA_X) ballVelocity.x *= -1;
-	if (Math.abs(ball.position.y) > ARENA_Y) ballVelocity.y *= -1;
+	if (Math.abs(ball.mesh.position.x) > ARENA_X) ballVelocity.x *= -1;
+	if (Math.abs(ball.mesh.position.y) > ARENA_Y) ballVelocity.y *= -1;
 
-	if (ball.position.z < -14 || ball.position.z > 14) {
-		ball.position.set(0, 0, 0);
+	if (ball.mesh.position.z < -14 || ball.mesh.position.z > 14) {
+		ball.mesh.position.set(0, 0, 0);
 		ballVelocity.z *= -1;
 	}
 
