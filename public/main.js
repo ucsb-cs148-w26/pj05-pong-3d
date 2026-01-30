@@ -1,53 +1,14 @@
-import * as THREE from 'three';
 import { AnimatedScene } from './game/animatedScene.js';
-import { Paddle } from './game/paddle.js';
 import PongSocketClient from './socket.js';
 import { initChat } from './chat.js';
+import { setupControls } from './game/controls.js';
 
 const socket = new PongSocketClient();
 socket.connect();
 initChat(socket);
 
-let playingAnimation = false;
-if (playingAnimation) {
-	const animatedScene = new AnimatedScene();
-	window.addEventListener('resize', () => {
-		animatedScene.onWindowResize();
-	});
-}
-
-/* --------------------
-   Core Setup
--------------------- */
-const clock = new THREE.Clock();
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x000000);
-
-const camera = new THREE.PerspectiveCamera(
-	75,
-	window.innerWidth / window.innerHeight,
-	0.1,
-	1000
-);
-camera.position.set(0, 0, 14);
-camera.lookAt(0, 0, 0);
-
-const renderer = new THREE.WebGLRenderer({ antialias: true });
-renderer.setSize(window.innerWidth, window.innerHeight);
-document.body.appendChild(renderer.domElement);
-
-window.addEventListener('resize', () => {
-	camera.aspect = window.innerWidth / window.innerHeight;
-	camera.updateProjectionMatrix();
-	renderer.setSize(window.innerWidth, window.innerHeight);
-});
-
-/* --------------------
-   Lighting
--------------------- */
-const light = new THREE.DirectionalLight(0xffffff, 1);
-light.position.set(0, 10, 10);
-scene.add(light);
+const animatedScene = new AnimatedScene();
+document.body.appendChild(animatedScene.renderer.domElement);
 
 /* --------------------
    Arena
@@ -56,38 +17,18 @@ const ARENA_X = 6;
 const ARENA_Y = 4;
 
 /* --------------------
-   Paddles (USING Paddle CLASS, SAME BEHAVIOR)
+   Paddles
 -------------------- */
 const PADDLE_SIZE = 2;
 const PADDLE_HALF = PADDLE_SIZE / 2;
 
 // Create Paddle objects
-const leftPaddleObj = new Paddle(0x00ff00);
-const rightPaddleObj = new Paddle(0x00ff00);
-
-// Rotate so the flat face looks at the camera
-leftPaddleObj.mesh.rotation.y = Math.PI / 2;
-rightPaddleObj.mesh.rotation.y = Math.PI / 2;
+const leftPaddleObj = animatedScene.paddle1;
+const rightPaddleObj = animatedScene.paddle2;
 
 // Use the mesh directly to preserve original logic
 const leftPaddle = leftPaddleObj.mesh;
 const rightPaddle = rightPaddleObj.mesh;
-
-leftPaddle.position.set(0, 0, -10);
-rightPaddle.position.set(0, 0, 10);
-
-scene.add(leftPaddle);
-scene.add(rightPaddle);
-
-/* --------------------
-   Ball
--------------------- */
-const ballGeometry = new THREE.SphereGeometry(0.5, 32, 32);
-const ballMaterial = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-const ball = new THREE.Mesh(ballGeometry, ballMaterial);
-scene.add(ball);
-
-let ballVelocity = new THREE.Vector3(0.04, 0.03, -0.08);
 
 /* --------------------
    Input
@@ -104,12 +45,12 @@ window.addEventListener('keyup', (e) => {
 });
 
 /* --------------------
-   Paddle Clamp (UNCHANGED)
+   Paddle Clamp
 -------------------- */
 function clampPaddle(paddle) {
-	paddle.position.x = Math.max(
+	paddle.position.z = Math.max(
 		-ARENA_X + PADDLE_HALF,
-		Math.min(ARENA_X - PADDLE_HALF, paddle.position.x)
+		Math.min(ARENA_X - PADDLE_HALF, paddle.position.z)
 	);
 	paddle.position.y = Math.max(
 		-ARENA_Y + PADDLE_HALF,
@@ -118,20 +59,17 @@ function clampPaddle(paddle) {
 }
 
 /* --------------------
-   Setup controls (RIGHT HERE)
+   Setup controls
 -------------------- */
 leftPaddle.directionY = 0; // vertical
 leftPaddle.directionX = 0; // horizontal
 rightPaddle.directionY = 0;
 rightPaddle.directionX = 0;
 
-import { setupControls } from './game/controls.js';
-
 setupControls(leftPaddle, 'w', 's', 'a', 'd');
 setupControls(rightPaddle, 'i', 'k', 'j', 'l');
 
-function animate() {
-	const delta = clock.getDelta();
+function animate(delta) {
 	const speed = 6 * delta;
 
 	// Vertical movement
@@ -139,24 +77,11 @@ function animate() {
 	rightPaddle.position.y += (rightPaddle.directionY ?? 0) * speed;
 
 	// Horizontal movement (optional but supported)
-	leftPaddle.position.x += (leftPaddle.directionX ?? 0) * speed;
-	rightPaddle.position.x += (rightPaddle.directionX ?? 0) * speed;
+	leftPaddle.position.z += (leftPaddle.directionX ?? 0) * speed;
+	rightPaddle.position.z += (rightPaddle.directionX ?? 0) * speed;
 
 	clampPaddle(leftPaddle);
 	clampPaddle(rightPaddle);
-
-	// Ball movement (unchanged)
-	ball.position.add(ballVelocity);
-
-	if (Math.abs(ball.position.x) > ARENA_X) ballVelocity.x *= -1;
-	if (Math.abs(ball.position.y) > ARENA_Y) ballVelocity.y *= -1;
-
-	if (ball.position.z < -14 || ball.position.z > 14) {
-		ball.position.set(0, 0, 0);
-		ballVelocity.z *= -1;
-	}
-
-	renderer.render(scene, camera);
 }
 
-renderer.setAnimationLoop(animate);
+animatedScene.addAnimateCallback(animate);
