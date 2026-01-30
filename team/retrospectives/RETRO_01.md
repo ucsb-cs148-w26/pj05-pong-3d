@@ -44,4 +44,6 @@ Overall:
 
 ## Experiment/change
 
-TBD.
+01/30: Our new PRs are working with separate files whenever possible, and we
+have had no merge conflicts so far. We also only push notes but not any code to
+main, ensuring all critical changes are reviewed.
