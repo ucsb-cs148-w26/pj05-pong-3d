@@ -5,10 +5,11 @@ export class Drag {
 	}
 
 	applyForce() {
-		for (let i = 0; i < this.bodies.length; i++) {
-			const v = this.bodies[i].v.clone();
-			v.scale(-this.k);
-			this.bodies[i].f.addVec(v);
+		for (const body of this.bodies.values()) {
+			const v = body.v.clone();
+
+			v.scale(-this.k * body.m);
+			body.f.addVec(v);
 		}
 	}
 }
@@ -25,4 +26,16 @@ export class Gravity {
 			this.bodies[i].f.y -= weight;
 		}
 	}
+}
+
+export class BodyForceApplier {
+	constructor(body, applier) {
+		this.force = body.f;
+		this.applier = applier;
+	}
+
+	applyForce() {
+		this.applier( this.force );
+	}
+
 }
