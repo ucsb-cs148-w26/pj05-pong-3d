@@ -1,5 +1,3 @@
-const CLIENT_ID_KEY = 'pong3d_client_id';
-
 export default class PongSocketClient {
 	#ws = null;
 	#reconnectTimer = null;
@@ -79,10 +77,12 @@ export default class PongSocketClient {
 	}
 
 	#getUrl() {
-		const clientId = localStorage.getItem(CLIENT_ID_KEY);
+		const locationUrl = new URL(location.href);
 		const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-		const url = new URL(`${scheme}://${location.host}/ws`);
-		if (clientId) url.searchParams.set('clientId', clientId);
+		const url = new URL(
+			`${scheme}://${location.host}/lobby/${locationUrl.searchParams.get('code')}`
+		);
+		url.searchParams.set('clientId', locationUrl.searchParams.get('username'));
 		return url.toString();
 	}
 

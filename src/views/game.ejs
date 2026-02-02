@@ -45,12 +45,27 @@
 				color: white;
 				border: 1px solid grey;
 			}
+
+			#lobby-info {
+				position: absolute;
+				left: 50%;
+				right: 50%;
+				bottom: 2rem;
+				color: white;
+				font-family: monospace;
+				text-align: center;
+				width: min-content;
+				transform: translateX(-50%);
+			}
 		</style>
 	</head>
 	<body>
 		<div id="chat">
 			<pre id="chat__text"></pre>
 			<input id="chat__box" placeholder="Chat (press Enter)" />
+		</div>
+		<div id="lobby-info">
+			Join Code<br /><span style="font-size: 2rem"><%= code %></span>
 		</div>
 		<script type="module" src="/main.js"></script>
 	</body>

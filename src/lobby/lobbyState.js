@@ -1,10 +1,30 @@
+import PongSocketServer from '../socket.js';
+import chatHandler from './chat.js';
+
 let nextLobbyId = 1;
 const EMPTY_LOBBY_DELETE_TIME = 60_000;
 
+function generateCode() {
+	const length = 5;
+	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+	let out = '';
+
+	for (let i = 0; i < length; i++) {
+		out += chars[Math.floor(Math.random() * chars.length)];
+	}
+
+	return out;
+}
+
 export default class LobbyState {
-	constructor() {
+	#server = null;
+
+	constructor(server) {
+		this.#server = server;
+
 		this.lobbies = new Map();
-		this.clientToLobby = new Map();
+		this.codeToLobby = new Map();
+		this.sockets = new Map();
 	}
 
 	createLobby(name = 'My Lobby') {
@@ -14,11 +34,40 @@ export default class LobbyState {
 			lobbyId,
 			name,
 			members: new Map(),
-			emptySince: Date.now()
+			emptySince: Date.now(),
+			code: generateCode()
 		};
 
 		this.lobbies.set(lobbyId, lobby);
+		this.codeToLobby.set(lobby.code, lobby);
+
+		const socket = new PongSocketServer(this.#server, `/lobby/${lobby.code}`);
+
+		socket.on('client:connect', (clientId) => {
+			// FIXME: No protection for duplicate name joining
+			this.joinLobby(lobbyId, clientId);
+			socket.broadcast({
+				type: 'chat',
+				content: `[System] ${clientId} joined`
+			});
+		});
+
+		socket.on('client:disconnect', (clientId) => {
+			this.leaveLobby(lobbyId, clientId);
+			socket.broadcast({
+				type: 'chat',
+				content: `[System] ${clientId} left`
+			});
+		});
+
+		socket.addHandler(chatHandler);
+		this.sockets.set(lobbyId, socket);
+
 		return lobby;
+	}
+
+	getLobbyFromCode(code) {
+		return this.codeToLobby.get(code);
 	}
 
 	listLobbies() {
@@ -29,25 +78,16 @@ export default class LobbyState {
 		}));
 	}
 
-	joinLobby(lobbyId, clientId, clientName = 'player') {
+	joinLobby(lobbyId, clientId) {
 		const lobby = this.lobbies.get(lobbyId);
 		if (!lobby) {
 			throw new Error(`Lobby not found: ${lobbyId}`);
 		}
 
-		const oldLobbyId = this.clientToLobby.get(clientId);
-		if (oldLobbyId && oldLobbyId !== lobbyId) {
-			this.leaveLobby(oldLobbyId, clientId);
-		}
-
 		lobby.members.set(clientId, {
-			clientId,
-			name: clientName
+			clientId
 		});
 		lobby.emptySince = null;
-		this.clientToLobby.set(clientId, lobbyId);
-
-		return lobby;
 	}
 
 	leaveLobby(lobbyId, clientId) {
@@ -57,13 +97,10 @@ export default class LobbyState {
 		}
 
 		lobby.members.delete(clientId);
-		this.clientToLobby.delete(clientId);
 
 		if (lobby.members.size === 0) {
 			lobby.emptySince = Date.now();
 		}
-
-		return lobby;
 	}
 
 	cleanup() {
@@ -76,6 +113,10 @@ export default class LobbyState {
 				now - lobby.emptySince >= EMPTY_LOBBY_DELETE_TIME
 			) {
 				this.lobbies.delete(lobbyId);
+				this.codeToLobby.delete(lobby.code);
+
+				this.sockets.get(lobbyId).stop();
+				this.sockets.delete(lobbyId);
 			}
 		}
 	}
