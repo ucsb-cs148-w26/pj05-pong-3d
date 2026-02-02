@@ -12,7 +12,7 @@ export class RigidBody {
 
 	applyTransform(transform) {
 		transform(this.x);
-		if (this.col) this.col.applyTransform(transform);
+		this.col?.applyTransform(transform);
 	}
 }
 
@@ -27,24 +27,23 @@ export class Force {
 
 export class PhysicsEngine {
 	constructor() {
-		this.bodies = [];
-		this.colliders = [];
+		this.bodies = new Map();
 		this.forces = [];
 		this.t = 0.0;
 	}
 
 	get dim() {
-		return 6 * this.bodies.length;
+		return 6 * this.bodies.size;
 	}
 
 	getState() {
 		const ret = new MATH.Vector(this.dim);
 		let j = 0;
 
-		for (let i = 0; i < this.bodies.length; i++) {
-			ret.load(j, this.bodies[i].x);
+		for (const body of this.bodies.values()) {
+			ret.load(j, body.x);
 			j += 3;
-			ret.load(j, this.bodies[i].v);
+			ret.load(j, body.v);
 			j += 3;
 		}
 
@@ -53,28 +52,28 @@ export class PhysicsEngine {
 
 	updateState(dx) {
 		let j = 0;
-		for (let i = 0; i < this.bodies.length; i++) {
+		for (const body of this.bodies.values()) {
 			let dx_x = dx.get(j++);
 			let dx_y = dx.get(j++);
 			let dx_z = dx.get(j++);
 
-			this.bodies[i].applyTransform((vec) => vec.add(dx_x, dx_y, dx_z));
-			this.bodies[i].v.add(dx.get(j++), dx.get(j++), dx.get(j++));
+			body.applyTransform((vec) => vec.add(dx_x, dx_y, dx_z));
+			body.v.add(dx.get(j++), dx.get(j++), dx.get(j++));
 		}
 	}
 
 	getDerivative() {
-		for (let i = 0; i < this.bodies.length; i++) this.bodies[i].f.zero();
+		for (const body of this.bodies.values()) body.f.zero();
 
-		for (let i = 0; i < this.forces.length; i++) this.forces[i].applyForce();
+		for (const force of this.forces) force.applyForce();
 
 		const ret = new MATH.Vector(this.dim);
 		let j = 0;
 
-		for (let i = 0; i < this.bodies.length; i++) {
-			ret.load(j, this.bodies[i].v);
+		for (const body of this.bodies.values()) {
+			ret.load(j, body.v);
 			j += 3;
-			ret.load(j, this.bodies[i].f.clone().scale(1 / this.bodies[i].m));
+			ret.load(j, body.f.clone().scale(1 / body.m));
 			j += 3;
 		}
 
@@ -82,15 +81,20 @@ export class PhysicsEngine {
 	}
 
 	// for right now, basic O(N^2) checks, replace later with AABB
-
 	checkColliders() {
-		for (let i = 0; i < this.colliders.length; i++) {
-			for (let j = i + 1; j < this.colliders.length; j++) {
+		const bodies = Array.from(this.bodies.values());
+
+		for (let i = 0; i < bodies.length; i++) {
+			if (bodies[i].col === undefined) continue;
+
+			for (let j = i + 1; j < bodies.length; j++) {
+				if (bodies[j].col === undefined) continue;
+
 				let i_then_j = true;
-				let result = this.colliders[i].checkCollision(this.colliders[j]);
+				let result = bodies[i].col.checkCollision(bodies[j].col);
 				if (result === undefined) {
 					i_then_j = false;
-					result = this.colliders[j].checkCollision(this.colliders[i]);
+					result = bodies[j].col.checkCollision(bodies[j].col);
 					if (result === undefined)
 						throw new Error(
 							`Some two collision objects don't support collision against each other`
@@ -102,11 +106,11 @@ export class PhysicsEngine {
 				let A = null,
 					B = null;
 				if (i_then_j) {
-					A = this.bodies[i];
-					B = this.bodies[j];
+					A = bodies[i];
+					B = bodies[j];
 				} else {
-					A = this.bodies[j];
-					B = this.bodies[i];
+					A = bodies[j];
+					B = bodies[i];
 				}
 
 				COLLIDERS.resolveCollision(A, B, result.normal);
@@ -122,15 +126,11 @@ export class PhysicsEngine {
 		this.t += dt;
 	}
 
-	registerForce(force) {
-		this.forces.push(force);
+	registerForce(...force) {
+		this.forces.push(...force);
 	}
 
-	registerBody(body) {
-		this.bodies.push(body);
-	}
-
-	registerCollider(col) {
-		this.colliders.push(col);
+	registerBody(key, body) {
+		this.bodies.set(key, body);
 	}
 }

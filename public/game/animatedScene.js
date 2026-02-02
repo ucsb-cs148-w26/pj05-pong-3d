@@ -1,9 +1,12 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { Arena } from './arena.js';
-import { Paddle } from './paddle.js';
-import { Ball } from './ball.js';
+import { PhysicsEngine } from '../physics/engine.js';
+import { Drag } from '../physics/forces.js';
 
+/*
+AnimatedScene is responsible for handling global objects,
+like the renderer, camera, and scene.
+*/
 export class AnimatedScene {
 	constructor() {
 		this.renderer = new THREE.WebGLRenderer();
@@ -18,47 +21,104 @@ export class AnimatedScene {
 			1000
 		);
 
-		this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-		this.controls.enableDamping = true;
-		this.controls.enabled = true;
-		this.isOrbiting = true;
-
-		this.infoDiv = document.createElement('div');
-		this.infoDiv.style.position = 'absolute';
-		this.infoDiv.style.top = '10px';
-		this.infoDiv.style.left = '10px';
-		this.infoDiv.style.color = 'white';
-		this.infoDiv.style.fontFamily = 'monospace';
-		document.body.appendChild(this.infoDiv);
-
-		window.addEventListener('pointerdown', (event) => {
-			if (event.button === 1) {
-				this.toggleCameraMode();
-			}
+		window.addEventListener('resize', () => {
+			this.camera.aspect = window.innerWidth / window.innerHeight;
+			this.camera.updateProjectionMatrix();
+			this.renderer.setSize(window.innerWidth, window.innerHeight);
 		});
 
-		this.init();
+		this.camera.position.set(-16, 0, 0);
+		this.camera.up.set(0, 1, 0);
+		this.camera.lookAt(0, 0, 0);
 
-		this.time = 0;
-		this.ballSpeed = 5;
-		this.ballDirection = 1;
-		this.zSpeed = 5;
-		this.zDirection = 1;
-		this.ySpeed = 2.5;
-		this.yDirection = 1;
+		this.gameObjects = new Map();
+		this.visuals = new Map();
+		this.updates = new Map();
+		this.requiresSync = new Map();
+
+		// Orbit controls is the camera spinning around the center of the arena
+		this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
 		this.clock = new THREE.Clock();
-		this.animate();
+		this.physics = new PhysicsEngine();
 	}
+
+	/*
+	Expected contract:
+	- obj.key -> unique identifier; expected string. If it already exists, an error will be thrown.
+	- obj.visual? -> Threejs mesh object to be added to the scene
+	- obj.body? -> Physics rigidbody to be added to the physics engine
+	- obj.self? -> Convience component for accessing the rest of the object from getGameObject(key).self
+	- obj.init? -> Convience component for running an init function. Calls obj.init(), then discards the function.
+	- obj.update? -> Function called on each frame before physics is run. `dt` is passed in. Called as obj.update(dt)
+	- obj.sync? -> Function called on each frame after physics is run, but before colliders are checked. `dt` is passed in.
+	If none is provided but visual and body exist, it will call obj.visual.position.copy( obj.body.x ) to copy position
+
+	Alternatively, pass in an object with { key: '<key>', object: <object> } instead.
+	Doing so well forward queries to the above properties to the wrapped object instead
+	of the one passed in. It will not set self in this case, so getGameObject(key) will
+	return the object itself, so you can determine via self?. Note that init() will still be called on the wrapper object
+	instead of the inside object. The constructor should handle inits that aren't per-instance.
+	*/
+	registerGameObject(...objs) {
+		for (const obj of objs) {
+			let objBody = obj;
+			if (Object.hasOwn(obj, 'object')) objBody = obj.object;
+
+			if (this.gameObjects.has(obj.key))
+				throw new Error(`Object key ${obj.key} already exists.`);
+			this.gameObjects.set(obj.key, objBody);
+
+			if (Object.hasOwn(objBody, 'visual')) {
+				this.visuals.set(obj.key, objBody.visual);
+				this.scene.add(objBody.visual);
+			}
+
+			if (typeof objBody?.update === 'function')
+				this.updates.set(obj.key, objBody);
+
+			if (Object.hasOwn(obj, 'init')) obj.init();
+
+			if (Object.hasOwn(objBody, 'body'))
+				this.physics.registerBody(obj.key, objBody.body);
+
+			if (Object.hasOwn(objBody, 'sync'))
+				this.requiresSync.set(obj.key, objBody.sync);
+			else if (
+				Object.hasOwn(objBody, 'visual') &&
+				Object.hasOwn(objBody, 'body')
+			)
+				this.requiresSync.set(obj.key, {
+					sync(dt) {
+						objBody.visual.position.copy(objBody.body.x);
+					}
+				});
+		}
+	}
+
+	getGameObject(key) {
+		return this.gameObjects.get(key);
+	}
+
+	// TODO; add a KillObject
 
 	animate() {
 		requestAnimationFrame(() => this.animate());
 
 		const delta = this.clock.getDelta();
-		this.update(delta);
+
+		for (const event of this.updates.values()) event.update(delta);
+
+		this.physics.step(delta);
+
+		for (const syncObject of this.requiresSync.values()) syncObject.sync(delta);
+
+		this.physics.checkColliders();
+
 		this.renderer.render(this.scene, this.camera);
 	}
 
+	// deprecated? can add back in later, not needed for MVP
 	toggleCameraMode() {
 		this.isOrbiting = !this.isOrbiting;
 		this.controls.enabled = this.isOrbiting;
@@ -71,107 +131,6 @@ export class AnimatedScene {
 		} else {
 			this.camera.position.set(0, 0, 0);
 			this.camera.up.set(0, 0, 1);
-		}
-	}
-
-	init() {
-		// Add Lights
-		const ambientLight = new THREE.AmbientLight(0xffffff, 0.2);
-		this.scene.add(ambientLight);
-
-		const light = new THREE.PointLight(0xffffff, 1000, 100);
-		light.position.set(0, 0, 0);
-		this.scene.add(light);
-
-		const light2 = new THREE.PointLight(0xffffff, 1000, 100);
-		light2.position.set(-8, 0, 0);
-		this.scene.add(light2);
-
-		const light3 = new THREE.PointLight(0xffffff, 1000, 100);
-		light3.position.set(8, 0, 0);
-		this.scene.add(light3);
-
-		// Add Arena
-		this.arena = new Arena();
-		this.scene.add(this.arena.mesh);
-
-		// Add Paddles
-		this.paddle1 = new Paddle(0x00ff00); // Green
-		this.paddle1.mesh.position.set(-11.75, 0, 0);
-		this.scene.add(this.paddle1.mesh);
-
-		this.paddle2 = new Paddle(0x0000ff); // Blue
-		this.paddle2.mesh.position.set(11.75, 0, 0);
-		this.scene.add(this.paddle2.mesh);
-
-		// Add Ball
-		this.ball = new Ball();
-		this.ball.mesh.position.y = 0;
-		this.scene.add(this.ball.mesh);
-
-		// Setup Camera
-		this.camera.position.set(-37.5, 15, 22.5);
-		this.camera.up.set(0, 1, 0);
-		this.camera.lookAt(0, 0, 0);
-	}
-
-	onWindowResize() {
-		this.camera.aspect = window.innerWidth / window.innerHeight;
-		this.camera.updateProjectionMatrix();
-		this.renderer.setSize(window.innerWidth, window.innerHeight);
-	}
-
-	update(delta) {
-		this.time += delta;
-
-		this.infoDiv.innerText = `Camera: ${this.camera.position.x.toFixed(1)}, ${this.camera.position.y.toFixed(1)}, ${this.camera.position.z.toFixed(1)}\nPress Middle Mouse Button to Toggle Camera Mode\nWhile in Orbit mode:\n Hold left mouse button and drag to rotate camera view\nScroll wheel zooms in and out`;
-
-		// Ball bouncing animation (X axis)
-		this.ball.mesh.position.x += this.ballSpeed * delta * this.ballDirection;
-		if (this.ball.mesh.position.x > 11.2) {
-			this.ball.mesh.position.x = 11.2;
-			this.ballDirection = -1;
-		} else if (this.ball.mesh.position.x < -11.2) {
-			this.ball.mesh.position.x = -11.2;
-			this.ballDirection = 1;
-		}
-
-		// Synchronized Z axis movement
-		let zPos = this.ball.mesh.position.z;
-		zPos += this.zSpeed * delta * this.zDirection;
-
-		if (zPos > 6.5) {
-			zPos = 6.5;
-			this.zDirection = -1;
-		} else if (zPos < -6.5) {
-			zPos = -6.5;
-			this.zDirection = 1;
-		}
-
-		this.ball.mesh.position.z = zPos;
-		this.paddle1.mesh.position.z = zPos;
-		this.paddle2.mesh.position.z = zPos;
-
-		// Synchronized Y axis movement
-		let yPos = this.ball.mesh.position.y;
-		yPos += this.ySpeed * delta * this.yDirection;
-
-		if (yPos > 6.5) {
-			yPos = 6.5;
-			this.yDirection = -1;
-		} else if (yPos < -6.5) {
-			yPos = -6.5;
-			this.yDirection = 1;
-		}
-
-		this.ball.mesh.position.y = yPos;
-		this.paddle1.mesh.position.y = yPos;
-		this.paddle2.mesh.position.y = yPos;
-
-		if (this.isOrbiting) {
-			this.controls.update();
-		} else {
-			this.camera.lookAt(this.ball.mesh.position);
 		}
 	}
 }
