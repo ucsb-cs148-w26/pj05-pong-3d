@@ -388,7 +388,7 @@ export class MeshCollider3D {
 	}
 
 	checkCollision(otherCol) {
-		for ( const coll of this.colliders ) {
+		for (const coll of this.colliders) {
 			const res = coll.checkCollision?.(otherCol);
 			if (res !== undefined && res.hit) return res;
 		}
@@ -398,7 +398,6 @@ export class MeshCollider3D {
 	applyTransform(transform) {
 		for (const coll of this.colliders) coll.applyTransform(transform);
 	}
-
 }
 
 export class SphereCollider {

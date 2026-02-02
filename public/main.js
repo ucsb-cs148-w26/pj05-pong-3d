@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { AnimatedScene } from './game/animatedScene.js';
-import { Arena, Ball, Paddle } from './game/gameObjects.js'
+import { Arena, Ball, Paddle } from './game/gameObjects.js';
 import { KeyboardController } from './game/controllers.js';
 
 const animatedScene = new AnimatedScene();
@@ -8,7 +8,7 @@ const animatedScene = new AnimatedScene();
 animatedScene.registerGameObject(
 	{
 		key: 'gameArena',
-		object: new Arena(),
+		object: new Arena()
 	},
 	{
 		key: 'ambientLight',
@@ -17,17 +17,23 @@ animatedScene.registerGameObject(
 	{
 		key: 'light1',
 		visual: new THREE.PointLight(0xffffff, 1000, 100),
-		init() { this.visual.position.set(0, 0, 0); }
+		init() {
+			this.visual.position.set(0, 0, 0);
+		}
 	},
 	{
 		key: 'light2',
 		visual: new THREE.PointLight(0xffffff, 1000, 100),
-		init() { this.visual.position.set(-8, 0, 0); }
+		init() {
+			this.visual.position.set(-8, 0, 0);
+		}
 	},
 	{
 		key: 'light3',
 		visual: new THREE.PointLight(0xffffff, 1000, 100),
-		init() { this.visual.position.set(8, 0, 0); }
+		init() {
+			this.visual.position.set(8, 0, 0);
+		}
 	},
 	{
 		key: 'infoDiv',
@@ -42,44 +48,46 @@ animatedScene.registerGameObject(
 			document.body.appendChild(this.self);
 		},
 		update(dt) {
-			this.self.innerText = 
-				`
+			this.self.innerText = `
 				Camera: ${animatedScene.camera.position.x.toFixed(1)}, ${animatedScene.camera.position.y.toFixed(1)}, ${animatedScene.camera.position.z.toFixed(1)}\n 
 				Hold left mouse button and drag to rotate camera view\n
 				Scroll wheel zooms in and out\n
 				Score: Green [${this.scores.WASD}], Red [${this.scores.IJKL}]\n
 				Ball Speed: ${this.scores.ballSpeed.toFixed(2)}\n
 				`;
-		} 
+		}
 	},
 	{
 		key: 'paddleWASD',
 		object: new Paddle({ color: 0x00ff00 }),
-		init() { 
-			this.object.body.applyTransform((vec) => vec.add(-23.5/4.125, 0, 0));
-			animatedScene.physics.registerForce( this.object.forceApplier );
+		init() {
+			this.object.body.applyTransform((vec) => vec.add(-23.5 / 4.125, 0, 0));
+			animatedScene.physics.registerForce(this.object.forceApplier);
 		}
 	},
 	{
 		key: 'paddleIJKL',
-		object: new Paddle({ color: 0xff0000 }, new KeyboardController("yz", ["KeyJ", "KeyL", "KeyI", "KeyK"])),
-		init() { 
-			this.object.body.applyTransform((vec) => vec.add(23.5/4.125, 0, 0));
-			animatedScene.physics.registerForce( this.object.forceApplier );
-		}
-	},
-);
-
-animatedScene.registerGameObject(
-	{
-		key: 'ball',
-		object: new Ball(
-			animatedScene.getGameObject('paddleWASD'),
-			animatedScene.getGameObject('paddleIJKL'),
-			animatedScene.getGameObject('infoDiv').scores,
+		object: new Paddle(
+			{ color: 0xff0000 },
+			new KeyboardController('yz', ['KeyJ', 'KeyL', 'KeyI', 'KeyK'])
 		),
-		init() { this.object.reset(); }
+		init() {
+			this.object.body.applyTransform((vec) => vec.add(23.5 / 4.125, 0, 0));
+			animatedScene.physics.registerForce(this.object.forceApplier);
+		}
 	}
 );
+
+animatedScene.registerGameObject({
+	key: 'ball',
+	object: new Ball(
+		animatedScene.getGameObject('paddleWASD'),
+		animatedScene.getGameObject('paddleIJKL'),
+		animatedScene.getGameObject('infoDiv').scores
+	),
+	init() {
+		this.object.reset();
+	}
+});
 
 animatedScene.animate();

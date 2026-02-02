@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { PhysicsEngine } from '../physics/engine.js'
-import { Drag } from '../physics/forces.js'
+import { PhysicsEngine } from '../physics/engine.js';
+import { Drag } from '../physics/forces.js';
 
 /*
 AnimatedScene is responsible for handling global objects,
@@ -64,30 +64,36 @@ export class AnimatedScene {
 	registerGameObject(...objs) {
 		for (const obj of objs) {
 			let objBody = obj;
-			if ( Object.hasOwn( obj, 'object' ) ) objBody = obj.object;
+			if (Object.hasOwn(obj, 'object')) objBody = obj.object;
 
-			if ( this.gameObjects.has( obj.key ) ) throw new Error(`Object key ${obj.key} already exists.`);
+			if (this.gameObjects.has(obj.key))
+				throw new Error(`Object key ${obj.key} already exists.`);
 			this.gameObjects.set(obj.key, objBody);
 
-			if ( Object.hasOwn(objBody, 'visual') ) {
+			if (Object.hasOwn(objBody, 'visual')) {
 				this.visuals.set(obj.key, objBody.visual);
 				this.scene.add(objBody.visual);
-			} 
+			}
 
 			if (typeof objBody?.update === 'function')
 				this.updates.set(obj.key, objBody);
 
-			if ( Object.hasOwn(obj, 'init') )
-				obj.init();
+			if (Object.hasOwn(obj, 'init')) obj.init();
 
-			if ( Object.hasOwn(objBody, 'body') )
+			if (Object.hasOwn(objBody, 'body'))
 				this.physics.registerBody(obj.key, objBody.body);
 
-			if ( Object.hasOwn( objBody, 'sync' ) )
+			if (Object.hasOwn(objBody, 'sync'))
 				this.requiresSync.set(obj.key, objBody.sync);
-			else if ( Object.hasOwn(objBody, 'visual') && Object.hasOwn(objBody, 'body') )
-				this.requiresSync.set(obj.key, { sync(dt) { objBody.visual.position.copy( objBody.body.x ); } });
-			
+			else if (
+				Object.hasOwn(objBody, 'visual') &&
+				Object.hasOwn(objBody, 'body')
+			)
+				this.requiresSync.set(obj.key, {
+					sync(dt) {
+						objBody.visual.position.copy(objBody.body.x);
+					}
+				});
 		}
 	}
 
@@ -102,14 +108,13 @@ export class AnimatedScene {
 
 		const delta = this.clock.getDelta();
 
-		for ( const event of this.updates.values() ) event.update(delta);
+		for (const event of this.updates.values()) event.update(delta);
 
 		this.physics.step(delta);
-		
-		for ( const syncObject of this.requiresSync.values() ) syncObject.sync(delta);
+
+		for (const syncObject of this.requiresSync.values()) syncObject.sync(delta);
 
 		this.physics.checkColliders();
-
 
 		this.renderer.render(this.scene, this.camera);
 	}

@@ -71,8 +71,10 @@ export class PhysicsEngine {
 		let j = 0;
 
 		for (const body of this.bodies.values()) {
-			ret.load(j, body.v); j += 3;
-			ret.load(j, body.f.clone().scale(1 / body.m)); j += 3;
+			ret.load(j, body.v);
+			j += 3;
+			ret.load(j, body.f.clone().scale(1 / body.m));
+			j += 3;
 		}
 
 		return ret;
@@ -83,10 +85,10 @@ export class PhysicsEngine {
 		const bodies = Array.from(this.bodies.values());
 
 		for (let i = 0; i < bodies.length; i++) {
-			if ( bodies[i].col === undefined ) continue;
+			if (bodies[i].col === undefined) continue;
 
 			for (let j = i + 1; j < bodies.length; j++) {
-				if ( bodies[j].col === undefined ) continue;
+				if (bodies[j].col === undefined) continue;
 
 				let i_then_j = true;
 				let result = bodies[i].col.checkCollision(bodies[j].col);
@@ -116,7 +118,6 @@ export class PhysicsEngine {
 		}
 	}
 
-
 	// improve accuracy later, ok for now
 
 	step(dt) {
@@ -132,5 +133,4 @@ export class PhysicsEngine {
 	registerBody(key, body) {
 		this.bodies.set(key, body);
 	}
-
 }

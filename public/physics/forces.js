@@ -35,7 +35,6 @@ export class BodyForceApplier {
 	}
 
 	applyForce() {
-		this.applier( this.force );
+		this.applier(this.force);
 	}
-
 }
