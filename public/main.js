@@ -48,18 +48,17 @@ animatedScene.registerGameObject(
 			document.body.appendChild(this.self);
 		},
 		update(dt) {
-			this.self.innerText = `
-				Camera: ${animatedScene.camera.position.x.toFixed(1)}, ${animatedScene.camera.position.y.toFixed(1)}, ${animatedScene.camera.position.z.toFixed(1)}\n 
-				Hold left mouse button and drag to rotate camera view\n
-				Scroll wheel zooms in and out\n
-				Score: Green [${this.scores.WASD}], Red [${this.scores.IJKL}]\n
-				Ball Speed: ${this.scores.ballSpeed.toFixed(2)}\n
-				`;
+			this.self.innerText = `P1: WASD
+				P2: IJKL
+				Camera: ${animatedScene.camera.position.x.toFixed(1)}, ${animatedScene.camera.position.y.toFixed(1)}, ${animatedScene.camera.position.z.toFixed(1)}
+				Scroll wheel zooms in and out
+				Score: Green [${this.scores.WASD}], Red [${this.scores.IJKL}]
+				Ball Speed: ${this.scores.ballSpeed.toFixed(2)}`;
 		}
 	},
 	{
 		key: 'paddleWASD',
-		object: new Paddle({ color: 0x00ff00 }),
+		object: new Paddle({ color: 0x00ff00, linewidth: 4 }),
 		init() {
 			this.object.body.applyTransform((vec) => vec.add(-23.5 / 4.125, 0, 0));
 			animatedScene.physics.registerForce(this.object.forceApplier);
@@ -68,7 +67,7 @@ animatedScene.registerGameObject(
 	{
 		key: 'paddleIJKL',
 		object: new Paddle(
-			{ color: 0xff0000 },
+			{ color: 0xff0000, linewidth: 4 },
 			new KeyboardController('yz', ['KeyJ', 'KeyL', 'KeyI', 'KeyK'])
 		),
 		init() {

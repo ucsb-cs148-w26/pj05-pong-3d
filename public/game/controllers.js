@@ -1,7 +1,7 @@
 import { Vec3 } from '../physics/math.js';
 
 export class KeyboardController {
-	constructor(plane = 'xz', lrudCodes = ['KeyD', 'KeyA', 'KeyW', 'KeyS']) {
+	constructor(plane = 'xz', lrudCodes = ['KeyA', 'KeyD', 'KeyW', 'KeyS']) {
 		this.plane = plane;
 		this.keys = new Set();
 		this.codes = lrudCodes;

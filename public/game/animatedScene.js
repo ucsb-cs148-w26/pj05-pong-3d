@@ -27,7 +27,7 @@ export class AnimatedScene {
 			this.renderer.setSize(window.innerWidth, window.innerHeight);
 		});
 
-		this.camera.position.set(0, 0, 15);
+		this.camera.position.set(-16, 0, 0);
 		this.camera.up.set(0, 1, 0);
 		this.camera.lookAt(0, 0, 0);
 
@@ -52,8 +52,7 @@ export class AnimatedScene {
 	- obj.init? -> Convience component for running an init function. Calls obj.init(), then discards the function.
 	- obj.update? -> Function called on each frame before physics is run. `dt` is passed in. Called as obj.update(dt)
 	- obj.sync? -> Function called on each frame after physics is run, but before colliders are checked. `dt` is passed in.
-	If none is provided but visual and body exist, it will call obj.visual.position.copy( obj.body.x ) to copy position 
-	
+	If none is provided but visual and body exist, it will call obj.visual.position.copy( obj.body.x ) to copy position
 
 	Alternatively, pass in an object with { key: '<key>', object: <object> } instead.
 	Doing so well forward queries to the above properties to the wrapped object instead
