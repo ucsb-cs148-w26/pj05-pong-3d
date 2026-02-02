@@ -9,7 +9,7 @@ export class Paddle {
 	// Square paddle
 	constructor(meshSettings, controller = new KeyboardController('yz')) {
 		const geometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(0.5, 3, 3));
-        const material = new THREE.LineBasicMaterial(meshSettings);
+		const material = new THREE.LineBasicMaterial(meshSettings);
 
 		this.visual = new THREE.LineSegments(geometry, material);
 		this.visual.castShadow = true;

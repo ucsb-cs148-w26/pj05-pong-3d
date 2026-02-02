@@ -1,3 +1,4 @@
+import EventEmitter from 'node:events';
 import { WebSocketServer } from 'ws';
 
 /*
@@ -13,19 +14,24 @@ import { WebSocketServer } from 'ws';
  *     does not return anything, subsequent handlers will be called.
  * - Handlers are called in the order they are added.
  */
-export default class PongSocketServer {
+export default class PongSocketServer extends EventEmitter {
+	#server = null;
 	#wss = null;
 	#wsByClientId = new Map();
 	#nextClientId = 1;
+	#upgradeHandler = null;
 
 	#handlers = [];
 
 	constructor(server, socketPath) {
+		super();
+
+		this.#server = server;
 		this.#wss = new WebSocketServer({ noServer: true });
 
 		this.addHandler(this.#baseMessageHandler);
 
-		server.on('upgrade', (req, socket, head) => {
+		this.#upgradeHandler = (req, socket, head) => {
 			const { pathname } = new URL(req.url, 'http://localhost');
 
 			if (pathname !== socketPath) {
@@ -36,7 +42,9 @@ export default class PongSocketServer {
 			this.#wss.handleUpgrade(req, socket, head, (ws) => {
 				this.#wss.emit('connection', ws, req);
 			});
-		});
+		};
+
+		server.on('upgrade', this.#upgradeHandler);
 
 		this.#wss.on('connection', (ws, req) => {
 			const url = new URL(req.url, 'http://localhost');
@@ -84,8 +92,11 @@ export default class PongSocketServer {
 				}
 			});
 
+			this.emit('client:connect', clientId);
+
 			ws.on('close', () => {
 				this.#wsByClientId.delete(clientId);
+				this.emit('client:disconnect', clientId);
 			});
 		});
 	}
@@ -100,6 +111,10 @@ export default class PongSocketServer {
 
 	addHandler(func) {
 		this.#handlers.push(func);
+	}
+
+	stop() {
+		this.#server.off('upgrade', this.#upgradeHandler);
 	}
 
 	#safeSend(ws, obj) {
