@@ -3,15 +3,20 @@ import { BoxCollider, MeshCollider3D } from '../physics/collider.js';
 import { Vec3 } from '../physics/math.js';
 import { RigidBody } from '../physics/engine.js';
 import { KeyboardController } from './controllers.js';
+import { paddleFragmentShader, paddleVertexShader } from './paddleShader.js';
 import { BodyForceApplier } from '../physics/forces.js';
 
 export class Paddle {
 	// Square paddle
 	constructor(meshSettings, controller = new KeyboardController('yz')) {
-		const geometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(0.5, 3, 3));
-        const material = new THREE.LineBasicMaterial(meshSettings);
+		const geometry = new THREE.BoxGeometry(0.5, 3, 3);
+		const material = new THREE.ShaderMaterial({
+			vertexShader: paddleVertexShader,
+			fragmentShader: paddleFragmentShader,
+			transparent: false
+		});
 
-		this.visual = new THREE.LineSegments(geometry, material);
+		this.visual = new THREE.Mesh(geometry, material);
 		this.visual.castShadow = true;
 		this.visual.receiveShadow = true;
 		this.body = new RigidBody(99999);
