@@ -6,8 +6,15 @@ export class KeyboardController {
 		this.keys = new Set();
 		this.codes = lrudCodes;
 
-		this._onKeyDown = (e) => this.keys.add(e.code);
-		this._onKeyUp = (e) => this.keys.delete(e.code);
+		this._onKeyDown = (e) => {
+			if (document.activeElement.tagName === 'INPUT') return;
+			this.keys.add(e.code);
+		};
+
+		this._onKeyUp = (e) => {
+			if (document.activeElement.tagName === 'INPUT') return;
+			this.keys.delete(e.code);
+		};
 
 		window.addEventListener('keydown', this._onKeyDown);
 		window.addEventListener('keyup', this._onKeyUp);

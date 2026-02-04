@@ -2,6 +2,12 @@ import * as THREE from 'three';
 import { AnimatedScene } from './game/animatedScene.js';
 import { Arena, Ball, Paddle } from './game/gameObjects.js';
 import { KeyboardController } from './game/controllers.js';
+import PongSocketClient from './socket.js';
+import { initChat } from './chat.js';
+
+const socket = new PongSocketClient();
+initChat(socket);
+socket.connect();
 
 const animatedScene = new AnimatedScene();
 
@@ -41,8 +47,9 @@ animatedScene.registerGameObject(
 		scores: { WASD: 0, IJKL: 0, ballSpeed: 0 },
 		init() {
 			this.self.style.position = 'absolute';
+			this.self.style.textAlign = 'right';
 			this.self.style.top = '10px';
-			this.self.style.left = '10px';
+			this.self.style.right = '10px';
 			this.self.style.color = 'white';
 			this.self.style.fontFamily = 'monospace';
 			document.body.appendChild(this.self);
