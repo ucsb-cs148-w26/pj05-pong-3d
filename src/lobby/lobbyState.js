@@ -5,119 +5,121 @@ let nextLobbyId = 1;
 const EMPTY_LOBBY_DELETE_TIME = 60_000;
 
 function generateCode() {
-	const length = 5;
-	const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-	let out = '';
+  const length = 5;
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+  let out = '';
 
-	for (let i = 0; i < length; i++) {
-		out += chars[Math.floor(Math.random() * chars.length)];
-	}
+  for (let i = 0; i < length; i++) {
+    out += chars[Math.floor(Math.random() * chars.length)];
+  }
 
-	return out;
+  return out;
 }
 
 export default class LobbyState {
-	#server = null;
+  #server = null;
 
-	constructor(server) {
-		this.#server = server;
+  constructor(server) {
+    this.#server = server;
 
-		this.lobbies = new Map();
-		this.codeToLobby = new Map();
-		this.sockets = new Map();
-	}
+    this.lobbies = new Map();
+    this.codeToLobby = new Map();
+    this.sockets = new Map();
+  }
 
-	createLobby(name = 'My Lobby') {
-		const lobbyId = String(nextLobbyId++);
+  createLobby(name = 'My Lobby') {
+    const lobbyId = String(nextLobbyId++);
 
-		const lobby = {
-			lobbyId,
-			name,
-			members: new Map(),
-			emptySince: Date.now(),
-			code: generateCode()
-		};
+    const lobby = {
+      lobbyId,
+      name,
+      members: new Map(),
+      emptySince: Date.now(),
+      code: generateCode()
+    };
 
-		this.lobbies.set(lobbyId, lobby);
-		this.codeToLobby.set(lobby.code, lobby);
+    this.lobbies.set(lobbyId, lobby);
+    this.codeToLobby.set(lobby.code, lobby);
 
-		const socket = new PongSocketServer(this.#server, `/lobby/${lobby.code}`);
+    const socket = new PongSocketServer(this.#server, `/lobby/${lobby.code}`);
 
-		socket.on('client:connect', (clientId) => {
-			// FIXME: No protection for duplicate name joining
-			this.joinLobby(lobbyId, clientId);
-			socket.broadcast({
-				type: 'chat',
-				content: `[System] ${clientId} joined`
-			});
-		});
+    socket.on('client:connect', (clientId) => {
+      // FIXME: No protection for duplicate name joining
+      this.joinLobby(lobbyId, clientId);
+      socket.broadcast({
+        type: 'chat',
+        content: `[System] ${clientId} joined`
+      });
+    });
 
-		socket.on('client:disconnect', (clientId) => {
-			this.leaveLobby(lobbyId, clientId);
-			socket.broadcast({
-				type: 'chat',
-				content: `[System] ${clientId} left`
-			});
-		});
+    socket.on('client:disconnect', (clientId) => {
+      this.leaveLobby(lobbyId, clientId);
+      socket.broadcast({
+        type: 'chat',
+        content: `[System] ${clientId} left`
+      });
+    });
 
-		socket.addHandler(chatHandler);
-		this.sockets.set(lobbyId, socket);
+    socket.addHandler(chatHandler);
+    this.sockets.set(lobbyId, socket);
 
-		return lobby;
-	}
+    return lobby;
+  }
 
-	getLobbyFromCode(code) {
-		return this.codeToLobby.get(code);
-	}
+  getLobbyFromCode(code) {
+    return this.codeToLobby.get(code);
+  }
 
-	listLobbies() {
-		return Array.from(this.lobbies.values()).map((lobby) => ({
-			lobbyId: lobby.lobbyId,
-			name: lobby.name,
-			memberCount: lobby.members.size
-		}));
-	}
+  // --- FIXED: listLobbies now includes `code` and safe memberCount ---
+  listLobbies() {
+    return Array.from(this.lobbies.values()).map((lobby) => ({
+      lobbyId: lobby.lobbyId,
+      name: lobby.name,
+      code: lobby.code,                    // <--- added this
+      memberCount: lobby.members?.size || 0
+    }));
+  }
 
-	joinLobby(lobbyId, clientId) {
-		const lobby = this.lobbies.get(lobbyId);
-		if (!lobby) {
-			throw new Error(`Lobby not found: ${lobbyId}`);
-		}
+  joinLobby(lobbyId, clientId) {
+    const lobby = this.lobbies.get(lobbyId);
+    if (!lobby) {
+      throw new Error(`Lobby not found: ${lobbyId}`);
+    }
 
-		lobby.members.set(clientId, {
-			clientId
-		});
-		lobby.emptySince = null;
-	}
+    lobby.members.set(clientId, {
+      clientId
+    });
+    lobby.emptySince = null;
+  }
 
-	leaveLobby(lobbyId, clientId) {
-		const lobby = this.lobbies.get(lobbyId);
-		if (!lobby) {
-			throw new Error(`Lobby not found: ${lobbyId}`);
-		}
+  leaveLobby(lobbyId, clientId) {
+    const lobby = this.lobbies.get(lobbyId);
+    if (!lobby) {
+      throw new Error(`Lobby not found: ${lobbyId}`);
+    }
 
-		lobby.members.delete(clientId);
+    lobby.members.delete(clientId);
 
-		if (lobby.members.size === 0) {
-			lobby.emptySince = Date.now();
-		}
-	}
+    if (lobby.members.size === 0) {
+      lobby.emptySince = Date.now();
+    }
+  }
 
-	cleanup() {
-		const now = Date.now();
+  cleanup() {
+    const now = Date.now();
 
-		for (const [lobbyId, lobby] of this.lobbies.entries()) {
-			if (
-				lobby.members.size === 0 &&
-				lobby.emptySince !== null &&
-				now - lobby.emptySince >= EMPTY_LOBBY_DELETE_TIME
-			) {
-				this.lobbies.delete(lobbyId);
-				this.codeToLobby.delete(lobby.code);
+    for (const [lobbyId, lobby] of this.lobbies.entries()) {
+      if (
+        lobby.members.size === 0 &&
+        lobby.emptySince !== null &&
+        now - lobby.emptySince >= EMPTY_LOBBY_DELETE_TIME
+      ) {
+        this.lobbies.delete(lobbyId);
+        this.codeToLobby.delete(lobby.code);
 
-				this.sockets.get(lobbyId).stop();
-				this.sockets.delete(lobbyId);
-			}
-		}
-	}
+        this.sockets.get(lobbyId).stop();
+        this.sockets.delete(lobbyId);
+      }
+    }
+  }
 }

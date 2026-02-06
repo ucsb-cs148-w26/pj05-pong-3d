@@ -1,22 +1,35 @@
 import express from 'express';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import createLobbyRouter from './lobby/router.js';
 
-const PORT = process.env.PORT || 3000;
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const app = express();
-app.set('views', path.join(import.meta.dirname, 'views'));
+
+// ---- middleware ----
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// ---- view engine ----
+app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
-app.use(express.json());
-app.use(express.static(path.join(import.meta.dirname, '../public')));
-
+// ---- ROUTES FIRST ----
 app.get('/', (_req, res) => {
-	res.render('lobbies.ejs');
+  console.log('Rendering lobbies.ejs');
+  res.render('lobbies');
 });
 
-const server = app.listen(PORT);
+// lobby + api routes
+app.use(createLobbyRouter(app));
 
-app.use('/', createLobbyRouter(server));
+// ---- static LAST ----
+app.use(express.static(path.join(__dirname, '../public')));
 
-export default app;
+// ---- start server ----
+const PORT = 3000;
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});

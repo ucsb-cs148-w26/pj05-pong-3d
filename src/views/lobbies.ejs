@@ -1,55 +1,140 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<title>Lobbies • 3D Pong</title>
-	</head>
-	<body>
-		<h1>Lobbies</h1>
+<head>
+  <meta charset="utf-8" />
+  <title>Lobbies • 3D Pong</title>
+  <style>
+    .lobby {
+      border: 1px solid #ccc;
+      padding: 0.75rem;
+      margin-bottom: 0.5rem;
+      border-radius: 4px;
+    }
+    .no-lobbies {
+      color: #888;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <h1>Lobbies</h1>
 
-		<input
-			id="username-field"
-			placeholder="Username"
-			style="margin-bottom: 0.5rem"
-		/>
+  <input id="username-field" placeholder="Username" style="margin-bottom:0.5rem" />
 
-		<div>
-			<input id="name-field" placeholder="Lobby name" />
-			<button id="create-button">Create Lobby</button>
-		</div>
+  <div>
+    <input id="name-field" placeholder="Lobby name" />
+    <button id="create-button">Create Lobby</button>
+  </div>
 
-		<div>
-			<input id="code-field" placeholder="Join Code" />
-			<button id="join-button">Join</button>
-		</div>
+  <div style="margin-top:0.5rem">
+    <input id="code-field" placeholder="Join Code" />
+    <button id="join-button">Join</button>
+  </div>
 
-		<script>
-			const usernameField = document.getElementById('username-field');
-			const nameField = document.getElementById('name-field');
-			document
-				.getElementById('create-button')
-				.addEventListener('click', (e) => {
-					if (!usernameField.value.length) return;
+  <h2 style="margin-top:1rem">Open Lobbies</h2>
+  <div id="lobbies-list">
+    <p class="no-lobbies">Loading lobbies...</p>
+  </div>
 
-					fetch('/api/lobbies', {
-						method: 'POST',
-						body: JSON.stringify({
-							name: nameField.value.length ? nameField.value : undefined
-						}),
-						headers: {
-							'Content-Type': 'application/json'
-						}
-					}).then(async (res) => {
-						const { lobby } = await res.json();
-						window.location = `/game?code=${lobby.code}&username=${usernameField.value}`;
-					});
-				});
+  <script>
+    console.log('✅ Lobbies page JS loaded');
 
-			const codeField = document.getElementById('code-field');
-			document.getElementById('join-button').addEventListener('click', (e) => {
-				if (!usernameField.value.length || !codeField.value.length) return;
-				window.location = `/game?code=${codeField.value}&username=${usernameField.value}`;
-			});
-		</script>
-	</body>
+    const usernameField = document.getElementById('username-field');
+    const nameField = document.getElementById('name-field');
+    const codeField = document.getElementById('code-field');
+    const lobbiesList = document.getElementById('lobbies-list');
+
+    // --- Create Lobby ---
+    document.getElementById('create-button').addEventListener('click', async () => {
+      const username = usernameField.value.trim();
+      if (!username) {
+        alert('Please enter a username first!');
+        return;
+      }
+
+      try {
+        console.log('Creating lobby with name:', nameField.value);
+        const res = await fetch('/api/lobbies', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({ name: nameField.value || undefined })
+        });
+        const data = await res.json();
+        console.log('Lobby creation response:', data);
+
+        const { lobby } = data;
+        if (!lobby || !lobby.code) {
+          alert('Failed to create lobby. Lobby code missing!');
+          return;
+        }
+
+        console.log('Navigating to game with lobby code:', lobby.code);
+        window.location = `/game?code=${lobby.code}&username=${username}`;
+      } catch (err) {
+        console.error('Failed to create lobby:', err);
+      }
+    });
+
+    // --- Join by code ---
+    document.getElementById('join-button').addEventListener('click', () => {
+      const username = usernameField.value.trim();
+      const code = codeField.value.trim();
+      if (!username || !code) {
+        alert('Please enter both a username and a lobby code!');
+        return;
+      }
+      console.log('Joining lobby by code:', code);
+      window.location = `/game?code=${code}&username=${username}`;
+    });
+
+    // --- Load and render all lobbies ---
+    async function loadLobbies() {
+      try {
+        const res = await fetch('/api/lobbies');
+        const data = await res.json();
+        const lobbies = data.lobbies || [];
+
+        lobbiesList.innerHTML = '';
+
+        if (!lobbies.length) {
+          lobbiesList.innerHTML = '<p class="no-lobbies">No open lobbies currently.</p>';
+          return;
+        }
+
+        lobbies.forEach(lobby => {
+          const div = document.createElement('div');
+          div.className = 'lobby';
+          div.innerHTML = `
+            <div><strong>${lobby.name || 'Unnamed Lobby'}</strong></div>
+            <div>Join Code: <code>${lobby.code}</code></div>
+            <div>Players: ${lobby.memberCount}</div>
+            <button>Join</button>
+          `;
+
+          div.querySelector('button').addEventListener('click', () => {
+            const username = usernameField.value.trim();
+            if (!username) {
+              alert('Please enter a username first!');
+              return;
+            }
+            console.log('Joining open lobby with code:', lobby.code);
+            window.location = `/game?code=${lobby.code}&username=${username}`;
+          });
+
+          lobbiesList.appendChild(div);
+        });
+      } catch (err) {
+        console.error('Failed to load lobbies:', err);
+        if (!lobbiesList.innerHTML) {
+          lobbiesList.innerHTML = '<p class="no-lobbies">Failed to load lobbies. Please try again later.</p>';
+        }
+      }
+    }
+
+    // Initial load + refresh every 5s
+    loadLobbies();
+    setInterval(loadLobbies, 5000);
+
+  </script>
+</body>
 </html>

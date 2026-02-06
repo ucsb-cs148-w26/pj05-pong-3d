@@ -1,62 +1,79 @@
 import { Router } from 'express';
 import LobbyState from './lobbyState.js';
 
+console.log('Lobby router file loaded');
+
 export default function createLobbyRouter(server) {
-	const router = Router();
-	const lobbyState = new LobbyState(server);
+  const router = Router();
+  const lobbyState = new LobbyState(server);
 
-	setInterval(() => {
-		lobbyState.cleanup();
-	}, 5000);
+  // Cleanup old/expired lobbies every 5 seconds
+  setInterval(() => {
+    lobbyState.cleanup();
+  }, 5000);
 
-	router.get('/api/lobbies', (_req, res) => {
-		res.json({ lobbies: lobbyState.listLobbies() });
-	});
+  // --- Get all lobbies ---
+  router.get('/api/lobbies', (_req, res) => {
+    const lobbies = lobbyState.listLobbies();
+    console.log('Sending lobby list:', lobbies);
+    res.json({ lobbies });
+  });
 
-	router.post('/api/lobbies', (req, res) => {
-		const name = req.body?.name;
-		const lobby = lobbyState.createLobby(name);
-		res.json({ lobby });
-	});
+  // --- Create a new lobby ---
+  router.post('/api/lobbies', (req, res) => {
+    const name = req.body?.name;
+    console.log('Create Lobby Request:', name);
 
-	router.get('/api/lobbies/:lobbyId', (req, res) => {
-		const lobbyId = req.params.lobbyId;
-		const lobby = lobbyState.lobbies.get(lobbyId);
+    const lobby = lobbyState.createLobby(name);
+    console.log('Lobby created:', lobby);
 
-		if (!lobby) {
-			res.status(404).json({ ok: false, message: 'Lobby not found' });
-			return;
-		}
+    res.json({ lobby });
+  });
 
-		res.json({
-			ok: true,
-			lobby: {
-				lobbyId: lobby.lobbyId,
-				name: lobby.name,
-				memberCount: lobby.members.size,
-				members: Array.from(lobby.members.values())
-			}
-		});
-	});
+  // --- Get a specific lobby by ID ---
+  router.get('/api/lobbies/:lobbyId', (req, res) => {
+    const lobbyId = req.params.lobbyId;
+    const lobby = lobbyState.lobbies.get(lobbyId);
 
-	router.get('/game', (req, res) => {
-		const { code, username } = req.query;
+    if (!lobby) {
+      res.status(404).json({ ok: false, message: 'Lobby not found' });
+      return;
+    }
 
-		if (!code || !code.length || !username || !username.length) {
-			return res.sendStatus(400);
-		}
+    res.json({
+      ok: true,
+      lobby: {
+        lobbyId: lobby.lobbyId,
+        name: lobby.name,
+        memberCount: lobby.members.size,
+        members: Array.from(lobby.members.values())
+      }
+    });
+  });
 
-		const lobby = lobbyState.getLobbyFromCode(code);
-		if (!lobby) {
-			return res.status(404).send('Lobby not found');
-		}
+  // --- Join game page ---
+  router.get('/game', (req, res) => {
+    const { code, username } = req.query;
 
-		if (lobby.members.get(username)) {
-			return res.status(400).send('Username is taken');
-		}
+    if (!code || !username) {
+      return res.sendStatus(400);
+    }
 
-		res.render('game', { code, username });
-	});
+    const lobby = lobbyState.getLobbyFromCode(code);
+    if (!lobby) {
+      return res.status(404).send('Lobby not found');
+    }
 
-	return router;
+    if (lobby.members.get(username)) {
+      return res.status(400).send('Username is taken');
+    }
+
+    // --- NEW: Add user immediately to members ---
+    lobby.members.set(username, { clientId: username });
+    lobby.emptySince = null; // mark lobby as active
+
+    res.render('game', { code, username });
+  });
+
+  return router;
 }
