@@ -45,6 +45,7 @@ animatedScene.registerGameObject(
 		key: 'infoDiv',
 		self: document.createElement('div'),
 		scores: { WASD: 0, IJKL: 0, ballSpeed: 0 },
+		socket,
 		init() {
 			this.self.style.position = 'absolute';
 			this.self.style.textAlign = 'right';
@@ -55,12 +56,17 @@ animatedScene.registerGameObject(
 			document.body.appendChild(this.self);
 		},
 		update(dt) {
+			const pingText =
+				this.socket?.lastLatencyMs == null
+					? 'Ping: -- ms'
+					: `Ping: ${this.socket.lastLatencyMs.toFixed(0)} ms`;
 			this.self.innerText = `P1: WASD
 				P2: IJKL
 				Camera: ${animatedScene.camera.position.x.toFixed(1)}, ${animatedScene.camera.position.y.toFixed(1)}, ${animatedScene.camera.position.z.toFixed(1)}
 				Scroll wheel zooms in and out
 				Score: Green [${this.scores.WASD}], Red [${this.scores.IJKL}]
-				Ball Speed: ${this.scores.ballSpeed.toFixed(2)}`;
+				Ball Speed: ${this.scores.ballSpeed.toFixed(2)}
+				${pingText}`;
 		}
 	},
 	{
