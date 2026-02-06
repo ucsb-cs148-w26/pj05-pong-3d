@@ -1,9 +1,24 @@
 import * as THREE from 'three';
-import { BoxCollider, MeshCollider3D } from '../physics/collider.js';
+import { BoxCollider } from '../physics/collider.js';
 import { Vec3 } from '../physics/math.js';
 import { RigidBody } from '../physics/engine.js';
 import { KeyboardController } from './controllers.js';
 import { BodyForceApplier } from '../physics/forces.js';
+
+export class DemoObj {
+	constructor(meshSettings) {
+		const geom = new THREE.BoxGeometry(1, 1, 1);
+		const mat = new THREE.MeshStandardMaterial(meshSettings);
+
+		this.visual = new THREE.Mesh(geom, mat);
+		this.visual.castShadow = true;
+
+		this.body = new RigidBody(5);
+		this.body.col = new BoxCollider(1, 1, 1, this.body.transform, (ev) =>
+			console.log('COLLISION')
+		);
+	}
+}
 
 export class Paddle {
 	// Square paddle
@@ -15,7 +30,9 @@ export class Paddle {
 		this.visual.castShadow = true;
 		this.visual.receiveShadow = true;
 		this.body = new RigidBody(99999);
-		this.body.col = new BoxCollider(this.body.x, 0.5, 3, 3);
+		this.body.col = new BoxCollider(0.5, 3, 3, this.body.transform, (ev) =>
+			console.log('COLLISION')
+		);
 		this.controller = controller;
 		this.accel = 30;
 		this.forceApplier = new BodyForceApplier(this.body, (vec) => {});
