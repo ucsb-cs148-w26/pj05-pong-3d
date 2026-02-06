@@ -1,69 +1,84 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<title>3D Pong</title>
-		<script type="importmap">
-			{
-				"imports": {
-					"three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.module.js",
-					"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.182.0/examples/jsm/"
-				}
-			}
-		</script>
-		<style>
-			body {
-				position: relative;
-				margin: 0;
-			}
+<head>
+  <meta charset="utf-8" />
+  <title>3D Pong</title>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.module.js",
+        "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.182.0/examples/jsm/"
+      }
+    }
+  </script>
+  <style>
+    body { margin: 0; background: #111; position: relative; }
+    #chat { background: rgba(0,0,0,0.25); position: absolute; top: 0; left: 0; padding: 1rem; width: 50ch; }
+    #chat__text { font-family: sans-serif; margin: 0; color: white; font-size: 1.1rem; height: 10rem; overflow-y: auto; white-space: pre-wrap; }
+    #chat__box { width: 100%; background: transparent; color: white; border: 1px solid grey; }
+    #lobby-info { position: absolute; left: 50%; bottom: 2rem; color: white; font-family: monospace; text-align: center; transform: translateX(-50%); }
+  </style>
+</head>
+<body>
+  <!-- Chat UI -->
+  <div id="chat">
+    <pre id="chat__text">Connecting to chat...</pre>
+    <input id="chat__box" placeholder="Chat (press Enter)" />
+  </div>
 
-			#chat {
-				background: rgba(0, 0, 0, 25%);
-				position: absolute;
-				top: 0;
-				left: 0;
-				padding: 1rem;
-			}
+  <!-- Lobby info -->
+  <div id="lobby-info">
+    Join Code<br /><span style="font-size: 2rem"><%= code %></span>
+  </div>
 
-			#chat__text {
-				font-family: sans-serif;
-				margin: 0;
-				color: white;
-				font-size: 1.1rem;
-				height: 10rem;
-				width: 45ch;
-				overflow-y: auto;
-				white-space: pre-wrap;
-			}
+  <!-- Load 3D Pong -->
+  <script type="module" src="/main.js"></script>
 
-			#chat__box {
-				width: 100%;
-				background: transparent;
-				color: white;
-				border: 1px solid grey;
-			}
+  <!-- Chat logic -->
+  <script type="module">
+    const code = '<%= code %>';
+    const username = new URLSearchParams(window.location.search).get('username') || 'Player';
+    const chatText = document.getElementById('chat__text');
+    const chatBox = document.getElementById('chat__box');
 
-			#lobby-info {
-				position: absolute;
-				left: 50%;
-				right: 50%;
-				bottom: 2rem;
-				color: white;
-				font-family: monospace;
-				text-align: center;
-				width: min-content;
-				transform: translateX(-50%);
-			}
-		</style>
-	</head>
-	<body>
-		<div id="chat">
-			<pre id="chat__text"></pre>
-			<input id="chat__box" placeholder="Chat (press Enter)" />
-		</div>
-		<div id="lobby-info">
-			Join Code<br /><span style="font-size: 2rem"><%= code %></span>
-		</div>
-		<script type="module" src="/main.js"></script>
-	</body>
+    // Connect to the correct WebSocket path
+    const protocol = window.location.protocol === 'https:' ? 'wss' : 'ws';
+    const socket = new WebSocket(`${protocol}://${window.location.host}/lobby/${code}`);
+
+    socket.addEventListener('open', () => {
+      chatText.textContent = '[System] Connected to chat\n';
+      socket.send(JSON.stringify({ type: 'join', username }));
+    });
+
+    socket.addEventListener('message', event => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data.type === 'chat') {
+          chatText.textContent += data.content + '\n';
+          chatText.scrollTop = chatText.scrollHeight;
+        }
+      } catch(err) {
+        console.error('Invalid chat message:', event.data);
+      }
+    });
+
+    socket.addEventListener('close', () => {
+      chatText.textContent += '[System] Disconnected from chat\n';
+    });
+
+    socket.addEventListener('error', () => {
+      chatText.textContent += '[System] Chat error\n';
+    });
+
+    chatBox.addEventListener('keydown', e => {
+      if (e.key !== 'Enter') return;
+      const message = chatBox.value.trim();
+      if (!message || socket.readyState !== WebSocket.OPEN) return;
+
+      // Send chat message
+      socket.send(JSON.stringify({ type: 'chat', content: `${username}: ${message}` }));
+      chatBox.value = '';
+    });
+  </script>
+</body>
 </html>
