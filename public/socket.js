@@ -1,17 +1,24 @@
 export default class PongSocketClient {
 	#ws = null;
 	#reconnectTimer = null;
+	#pingInterval = null;
+	#lastPingTs = null;
+	#lastLatencyMs = null;
 
 	#handlers = [];
 
 	constructor() {
-		this.addHandler(this.#baseMessageHandler);
+		this.addHandler(this.#baseMessageHandler.bind(this));
 	}
 
 	connect() {
 		if (this.#reconnectTimer) {
 			clearTimeout(this.#reconnectTimer);
 			this.#reconnectTimer = null;
+		}
+		if (this.#pingInterval) {
+			clearInterval(this.#pingInterval);
+			this.#pingInterval = null;
 		}
 
 		const url = this.#getUrl();
@@ -21,7 +28,10 @@ export default class PongSocketClient {
 
 		this.#ws.onopen = () => {
 			console.log('[ws] connected');
-			this.send({ type: 'ping' });
+			this.#sendPing();
+			this.#pingInterval = setInterval(() => {
+				this.#sendPing();
+			}, 1000);
 		};
 
 		this.#ws.onmessage = (event) => {
@@ -46,6 +56,10 @@ export default class PongSocketClient {
 
 		this.#ws.onclose = () => {
 			console.log('[ws] closed - will retry');
+			if (this.#pingInterval) {
+				clearInterval(this.#pingInterval);
+				this.#pingInterval = null;
+			}
 			this.#reconnectTimer = setTimeout(this.connect.bind(this), 1000);
 		};
 
@@ -58,7 +72,7 @@ export default class PongSocketClient {
 			if (!this.isOpen) return;
 
 			if (e.key.toLowerCase() === ' ') {
-				this.send({ type: 'ping' });
+				this.#sendPing();
 			}
 		});
 	}
@@ -76,6 +90,10 @@ export default class PongSocketClient {
 		this.#handlers.push(func);
 	}
 
+	get lastLatencyMs() {
+		return this.#lastLatencyMs;
+	}
+
 	#getUrl() {
 		const locationUrl = new URL(location.href);
 		const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
@@ -88,12 +106,25 @@ export default class PongSocketClient {
 
 	#baseMessageHandler(msg, respond) {
 		if (msg.type === 'pong') {
-			console.log('[ws] pong ts=', msg.ts);
+			if (typeof msg.clientTs === 'number') {
+				this.#lastLatencyMs = Date.now() - msg.clientTs;
+			}
+			console.log(
+				'[ws] pong clientTs=',
+				msg.clientTs,
+				'latencyMs=',
+				this.#lastLatencyMs
+			);
 			return true;
 		}
 		if (msg.type === 'error') {
 			console.warn('[ws] server error:', msg.message);
 			return true;
 		}
+	}
+
+	#sendPing() {
+		this.#lastPingTs = Date.now();
+		this.send({ type: 'ping', clientTs: this.#lastPingTs });
 	}
 }

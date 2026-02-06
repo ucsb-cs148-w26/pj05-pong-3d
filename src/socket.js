@@ -124,7 +124,7 @@ export default class PongSocketServer extends EventEmitter {
 
 	#baseMessageHandler(socket, clientId, ws, msg, respond) {
 		if (msg.type === 'ping') {
-			respond({ type: 'pong', ts: Date.now() });
+			respond({ type: 'pong', serverTs: Date.now(), clientTs: msg.clientTs });
 			return true;
 		}
 	}
