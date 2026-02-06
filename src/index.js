@@ -1,8 +1,14 @@
+import dotenv from 'dotenv';
+dotenv.config();
+
 import express from 'express';
+import session from 'express-session';
+import passport from 'passport';
 import path from 'path';
 import LobbyState from './lobby/lobbyState.js';
 import PongSocketServer from './socket.js';
 import chatHandler from './chat.js';
+import setupGoogleAuth from './auth/google.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -10,6 +16,24 @@ const app = express();
 
 app.use(express.json());
 app.use(express.static(path.join(import.meta.dirname, '../public')));
+
+app.use(
+	session({
+		secret: process.env.SESSION_SECRET,
+		resave: false,
+		saveUninitialized: false,
+		cookie: {
+			httpOnly: true,
+			sameSite: 'lax',
+			secure: false // Set true only when using https in production
+		}
+	})
+);
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+setupGoogleAuth(app);
 
 const lobbyState = new LobbyState();
 
