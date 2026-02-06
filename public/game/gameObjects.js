@@ -5,20 +5,6 @@ import { RigidBody } from '../physics/engine.js';
 import { KeyboardController } from './controllers.js';
 import { BodyForceApplier } from '../physics/forces.js';
 
-export class DemoObj {
-	constructor(meshSettings) {
-		const geom = new THREE.BoxGeometry(1, 1, 1);
-		const mat = new THREE.MeshStandardMaterial(meshSettings);
-
-		this.visual = new THREE.Mesh(geom, mat);
-		this.visual.castShadow = true;
-
-		this.body = new RigidBody(5);
-		this.body.col = new BoxCollider(1, 1, 1, this.body.transform, (ev) =>
-			console.log('COLLISION')
-		);
-	}
-}
 
 export class Paddle {
 	// Square paddle
