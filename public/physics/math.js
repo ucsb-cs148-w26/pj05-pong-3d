@@ -159,7 +159,7 @@ export class Vec3 extends Vector {
 	}
 
 	static tripleCross(a, b, c) {
-		return Vec3.cross( Vec3.cross(a, b), c );
+		return Vec3.cross(Vec3.cross(a, b), c);
 	}
 }
 
@@ -200,17 +200,28 @@ export class Quaternion extends Vector {
 		this.data[3] = value;
 	}
 
-	static fromAxisAngle( axis, angleRad ) {
+	static fromAxisAngle(axis, angleRad) {
 		const unitAxis = axis.normalize();
 		const half = angleRad / 2;
-		const s = Math.sin( half );
+		const s = Math.sin(half);
 
-		return new Quaternion( unitAxis.x * s, unitAxis.y * s, unitAxis.z * s, Math.cos(half) ).normalize();
+		return new Quaternion(
+			unitAxis.x * s,
+			unitAxis.y * s,
+			unitAxis.z * s,
+			Math.cos(half)
+		).normalize();
 	}
 
 	multiply(q) {
-		const ax = this.x, ay = this.y, az = this.z, aw = this.w;
-		const bx = q.x, by = q.y, bz = q.z, bw = q.w;
+		const ax = this.x,
+			ay = this.y,
+			az = this.z,
+			aw = this.w;
+		const bx = q.x,
+			by = q.y,
+			bz = q.z,
+			bw = q.w;
 
 		this.x = aw * bx + ax * bw + ay * bz - az * by;
 		this.y = aw * by - ax * bz + ay * bw + az * bx;
@@ -220,7 +231,6 @@ export class Quaternion extends Vector {
 		return this.normalize();
 	}
 
-	
 	rotateVec3InPlace(vec3) {
 		const ux = this.x;
 		const uy = this.y;
@@ -239,23 +249,15 @@ export class Quaternion extends Vector {
 		const cz = ux * vy - uy * vx;
 
 		vec3.assign(
-			2.0 * dotUV * ux +
-			(s * s - dotUU) * vx +
-			2.0 * s * cx,
+			2.0 * dotUV * ux + (s * s - dotUU) * vx + 2.0 * s * cx,
 
-			2.0 * dotUV * uy +
-			(s * s - dotUU) * vy +
-			2.0 * s * cy,
+			2.0 * dotUV * uy + (s * s - dotUU) * vy + 2.0 * s * cy,
 
-			2.0 * dotUV * uz +
-			(s * s - dotUU) * vz +
-			2.0 * s * cz
+			2.0 * dotUV * uz + (s * s - dotUU) * vz + 2.0 * s * cz
 		);
 
 		return vec3;
 	}
-
-
 }
 
 export const ZERO = new Vec3();

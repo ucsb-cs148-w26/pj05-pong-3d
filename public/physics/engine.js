@@ -7,10 +7,9 @@ export class RigidBody {
 		this.x = MATH.ZERO.clone();
 		this.v = MATH.ZERO.clone();
 		this.f = MATH.ZERO.clone();
-		this.transform = new COLLIDERS.Transform( this.x );
+		this.transform = new COLLIDERS.Transform(this.x);
 		this.col = undefined;
 	}
-
 }
 
 // "abstract" Force class.
@@ -105,7 +104,6 @@ export class PhysicsEngine {
 					A = bodies[j];
 					B = bodies[i];
 				}
-
 
 				A.col.onCollisionCallback?.(A);
 				B.col.onCollisionCallback?.(B);
