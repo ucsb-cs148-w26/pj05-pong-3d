@@ -1,6 +1,7 @@
 import express from 'express';
 import path from 'path';
 import createLobbyRouter from './lobby/router.js';
+import './db.js';
 
 const PORT = process.env.PORT || 3000;
 
