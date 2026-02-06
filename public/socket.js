@@ -8,7 +8,7 @@ export default class PongSocketClient {
 	#handlers = [];
 
 	constructor() {
-		this.addHandler(this.#baseMessageHandler);
+		this.addHandler(this.#baseMessageHandler.bind(this));
 	}
 
 	connect() {
