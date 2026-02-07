@@ -5,7 +5,6 @@ import { RigidBody } from '../physics/engine.js';
 import { KeyboardController } from './controllers.js';
 import { BodyForceApplier } from '../physics/forces.js';
 
-
 export class Paddle {
 	// Square paddle
 	constructor(meshSettings, controller = new KeyboardController('yz')) {
