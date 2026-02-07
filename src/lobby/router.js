@@ -58,9 +58,10 @@ export default function createLobbyRouter(server) {
 		res.render('game', { code, username });
 	});
 
-	router.get('/', (_req, res) => {
+	router.get('/', (req, res) => {
 		res.render('lobbies', {
-			lobbies: lobbyState.listLobbies()
+			lobbies: lobbyState.listLobbies(),
+			user: req.user
 		});
 	});
 

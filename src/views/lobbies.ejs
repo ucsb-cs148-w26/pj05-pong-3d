@@ -5,6 +5,15 @@
 		<title>Lobbies • 3D Pong</title>
 	</head>
 	<body>
+		<div>
+			<% if (user) { %>
+				<span>Logged in as <%= user.displayName %></span>
+				<button onclick="logout()">Log out</button>
+			<% } else { %>
+				<a href="/auth/google">Log in with Google</a>
+			<% } %>
+		</div>
+
 		<h1>Lobbies</h1>
 
 		<input
@@ -41,6 +50,13 @@
 		</div>
 
 		<script>
+			function logout() {
+				fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' })
+					.then(() => {
+						window.location.reload();
+					});
+			}
+
 			const usernameField = document.getElementById('username-field');
 			const nameField = document.getElementById('name-field');
 			document

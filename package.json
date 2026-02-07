@@ -5,8 +5,13 @@
 		"format": "prettier --write ."
 	},
 	"dependencies": {
+		"dotenv": "^17.2.4",
+		"dotnet": "^1.1.4",
 		"ejs": "^4.0.1",
 		"express": "^5.2.1",
+		"express-session": "^1.19.0",
+		"passport": "^0.7.0",
+		"passport-google-oauth20": "^2.0.0",
 		"sqlite3": "^5.1.7",
 		"ws": "^8.19.0"
 	},
@@ -14,8 +19,7 @@
 		"@types/express": "5.0.0",
 		"@types/node": "20.11.17",
 		"prettier": "3.8.0",
-		"typescript": "5.8.3",
-		"vercel": "^50.4.8"
+		"typescript": "5.8.3"
 	},
 	"version": "1.0.0",
 	"description": "A web-based multiplayer variant of the classic game of pong, brought to the third dimension.",
