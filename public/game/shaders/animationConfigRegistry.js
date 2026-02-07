@@ -2310,7 +2310,7 @@ const CRYSTAL_SPIRE_CONFIG = {
                 : Math.max(
                     0.0,
                     TWEEN.Easing.Elastic.Out(localProgress) +
-                        Math.sin(localProgress * Math.PI * 7.0) * (1.0 - localProgress) * 0.14
+                    Math.sin(localProgress * Math.PI * 7.0) * (1.0 - localProgress) * 0.14
                 );
             const width = mesh.userData.widthScale * (0.12 + rise * 0.88);
             const height = mesh.userData.heightScale * rise;
@@ -2345,34 +2345,37 @@ const GRAVITY_WELL_CONFIG = {
     shaders: {
         core: {
             vertexShader: `
-				uniform float uTime;
 				uniform float uProgress;
 				varying vec3 vNormal;
 				varying vec3 vWorldPos;
+				varying vec3 vViewPos;
 				void main() {
 					vNormal = normalize(normalMatrix * normal);
-					float pulse = sin(uTime * 2.2 + length(position) * 9.0) * 0.08;
 					float expand = 1.0 + uProgress * 2.6;
-					vec3 displaced = position * expand + normal * pulse;
+					float swell = (1.0 - uProgress) * 0.04;
+					vec3 displaced = position * expand + normal * swell;
 					vWorldPos = (modelMatrix * vec4(displaced, 1.0)).xyz;
-					gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
+					vec4 viewPos = modelViewMatrix * vec4(displaced, 1.0);
+					vViewPos = viewPos.xyz;
+					gl_Position = projectionMatrix * viewPos;
 				}
 			`,
             fragmentShader: `
-				uniform float uTime;
 				uniform float uProgress;
 				uniform vec3 uColor;
 				varying vec3 vNormal;
 				varying vec3 vWorldPos;
+				varying vec3 vViewPos;
 				void main() {
-					float fresnel = pow(1.0 - abs(dot(normalize(vNormal), normalize(vWorldPos))), 3.2);
-					float ripple = sin(length(vWorldPos) * 24.0 - uTime * 4.0) * 0.5 + 0.5;
-					float shear = sin(vWorldPos.y * 11.0 + vWorldPos.x * 7.5 - uTime * 3.2) * 0.5 + 0.5;
-					float refractionHint = clamp(fresnel * 1.25 + ripple * 0.65 + shear * 0.4, 0.0, 1.6);
+					vec3 normalDir = normalize(vNormal);
+					vec3 viewDir = normalize(-vViewPos);
+					float fresnel = pow(1.0 - max(dot(normalDir, viewDir), 0.0), 2.2);
+					float body = 0.55 + (1.0 - fresnel) * 0.45;
+					float refractionHint = clamp(body + fresnel * 1.1, 0.0, 1.6);
 					float fade = 1.0 - smoothstep(0.86, 1.0, uProgress);
 					vec3 color = mix(vec3(0.24, 0.72, 1.0), uColor, 0.6);
-					float alpha = min(1.0, refractionHint * 0.88) * fade;
-					gl_FragColor = vec4(color * (0.45 + refractionHint * 1.65), alpha);
+					float alpha = clamp((0.34 + refractionHint * 0.36) * fade, 0.0, 1.0);
+					gl_FragColor = vec4(color * (0.38 + refractionHint * 1.15), alpha);
 				}
 			`
         },
@@ -2925,5 +2928,4 @@ export function resolveGoalAnimationConfig(animationKey) {
 
     return GOAL_ANIMATION_CONFIGS[0];
 }
-
 
