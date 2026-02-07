@@ -64,7 +64,7 @@ export class Arena {
 
 export class Ball {
 	constructor(paddle1, paddle2, scores) {
-		const geometry = new THREE.BoxGeometry(1, 1, 1);
+		const geometry = new THREE.SphereGeometry(0.5);
 		const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
 		this.visual = new THREE.Mesh(geometry, material);
 		this.visual.castShadow = true;
