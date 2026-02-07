@@ -81,9 +81,6 @@ animatedScene.registerGameObject(
 			this.object.body.x.assign(23.5 / 2.125, 0, 0);
 			animatedScene.physics.registerForce(this.object.forceApplier);
 		}
-	},
-	{
-		key: 'demo'
 	}
 );
 
