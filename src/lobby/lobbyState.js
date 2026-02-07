@@ -74,7 +74,8 @@ export default class LobbyState {
 		return Array.from(this.lobbies.values()).map((lobby) => ({
 			lobbyId: lobby.lobbyId,
 			name: lobby.name,
-			memberCount: lobby.members.size
+			memberCount: lobby.members.size,
+			code: lobby.code
 		}));
 	}
 
