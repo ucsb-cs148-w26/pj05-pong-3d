@@ -1,1 +1,0 @@
-export * from './animationConfigRegistry.js';

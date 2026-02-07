@@ -4,6 +4,11 @@ import { Arena, Ball, Paddle } from './game/gameObjects.js';
 import { KeyboardController } from './game/controllers.js';
 import PongSocketClient from './socket.js';
 import { initChat } from './chat.js';
+import { startGoalExplosionDemo } from './game/goalExplosionDemo.js';
+//Temporary flag to allow viewing of goalExplosionDemo by devs
+if (false) {
+	startGoalExplosionDemo();
+}
 
 const socket = new PongSocketClient();
 initChat(socket);
