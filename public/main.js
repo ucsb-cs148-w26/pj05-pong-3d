@@ -73,7 +73,7 @@ animatedScene.registerGameObject(
 		key: 'paddleWASD',
 		object: new Paddle({ color: 0x00ff00, linewidth: 4 }),
 		init() {
-			this.object.body.applyTransform((vec) => vec.add(-23.5 / 4.125, 0, 0));
+			this.object.body.x.assign(-23.5 / 2.125, 0, 0);
 			animatedScene.physics.registerForce(this.object.forceApplier);
 		}
 	},
@@ -84,7 +84,7 @@ animatedScene.registerGameObject(
 			new KeyboardController('yz', ['KeyJ', 'KeyL', 'KeyI', 'KeyK'])
 		),
 		init() {
-			this.object.body.applyTransform((vec) => vec.add(23.5 / 4.125, 0, 0));
+			this.object.body.x.assign(23.5 / 2.125, 0, 0);
 			animatedScene.physics.registerForce(this.object.forceApplier);
 		}
 	}

@@ -1,459 +1,437 @@
 import * as MATH from './math.js';
 
-export function isCoplanar(vertices) {
-	if (vertices.length < 3) return true;
-
-	let v1 = vertices[1].clone().subVec(vertices[0]);
-	let v2 = vertices[2].clone().subVec(vertices[0]);
-	let n = MATH.Vec3.cross(v1, v2);
-
-	if (Math.abs(n.norm()) < 1e-3)
-		throw new Error('All triplets of a vertex list must not be colinear');
-
-	for (let i = 1; i < vertices.length; i++) {
-		if (
-			Math.abs(MATH.Vec3.dot(n, vertices[i].clone().subVec(vertices[0]))) > 1e-3
-		)
-			return false;
+export class Transform {
+	constructor(posRef) {
+		this.position = posRef;
+		this.rotation = new MATH.Quaternion(0, 0, 0, 1);
+		this.scale = new MATH.Vec3(1, 1, 1);
 	}
 
-	return true;
-}
-
-export class Polygon {
-	constructor(vertices) {
-		if (!isCoplanar(vertices))
-			throw new Error(
-				"Polygon must be coplanar. Vertices should be an array of Vec3's specifying vertices."
-			);
-
-		this.v = vertices;
-		this.normal = null;
-		this.d = null;
+	shift(dx) {
+		this.position.addVec(dx);
 	}
 
-	updateNormal() {
-		const n = this.v.length;
-
-		let nx = 0,
-			ny = 0,
-			nz = 0;
-
-		for (let i = 0; i < n; i++) {
-			const curr = this.v[i];
-			const next = this.v[(i + 1) % n];
-
-			nx += (curr.y - next.y) * (curr.z + next.z);
-			ny += (curr.z - next.z) * (curr.x + next.x);
-			nz += (curr.x - next.x) * (curr.y + next.y);
+	rotate(dv) {
+		if (dv.x !== 0) {
+			const qx = MATH.Quaternion.fromAxisAngle(Vec3.RIGHT, dv.x);
+			this.rotation.multiply(qx);
 		}
 
-		this.normal = new MATH.Vec3(nx, ny, nz).normalize();
+		if (dv.y !== 0) {
+			const qy = MATH.Quaternion.fromAxisAngle(Vec3.UP, dv.y);
+			this.rotation.multiply(qy);
+		}
+
+		if (dv.z !== 0) {
+			const qz = MATH.Quaternion.fromAxisAngle(Vec3.FORWARD, dv.z);
+			this.rotation.multiply(qz);
+		}
 	}
 
-	updatePlaneD() {
-		if (!this.normal) this.updateNormal();
+	applyInPlace(vec3) {
+		vec3.x *= this.scale.x;
+		vec3.y *= this.scale.y;
+		vec3.z *= this.scale.z;
 
-		const p = this.v[0];
-		this.d = -MATH.Vector.dot(this.normal, p);
+		this.rotation.rotateVec3InPlace(vec3);
+
+		vec3.addVec(this.position);
 	}
 
-	applyTransform(transform) {
-		for (let i = 0; i < this.v.length; i++) transform(this.v[i]);
-		this.updateNormal();
-		this.updatePlaneD();
+	apply(vec3) {
+		const nv3 = vec3.clone();
+		this.applyInPlace(nv3);
+		return nv3;
 	}
 }
 
-function isConvexPolyhedron(faces, eps = 1e-6) {
-	const vertices = [];
-	for (const face of faces) for (const v of face.v) vertices.push(v);
+/*
 
-	for (const face of faces) {
-		if (!face.normal) face.updateNormal();
-		if (face.d === null) face.updatePlaneD();
+**Note**: ConvexPolyhedron should be VERY carefully defined.
+You should probably make subclasses inherit from ConvexPolyhedron that define a layout based on params.
+(for example, Cube sends 8 vertices up to the convex poly based on l, w, h).
+This is because there's no checks for convexity; if a shape fails convexity, I have no idea what happens.
 
-		let hasPos = false;
-		let hasNeg = false;
+*/
 
-		for (const v of vertices) {
-			const dist = MATH.Vec3.dot(face.normal, v) + face.d;
-			if (dist > eps) hasPos = true;
-			else if (dist < -eps) hasNeg = true;
-
-			if (hasPos && hasNeg) return false;
-		}
+export class ConvexPolyhedron {
+	constructor(
+		vertices,
+		transform,
+		onCollisionCallback = undefined,
+		center = undefined
+	) {
+		this.vertices = vertices;
+		this.transform = transform;
+		this.onCollisionCallback = onCollisionCallback;
+		this.center = center;
 	}
 
-	return true;
-}
+	furthestPoint(direction) {
+		let maxPt;
+		let maxDist = -Infinity;
 
-function vertexKey(v, eps) {
-	return (
-		Math.round(v.x / eps) +
-		',' +
-		Math.round(v.y / eps) +
-		',' +
-		Math.round(v.z / eps)
-	);
-}
+		for (const vertex of this.vertices) {
+			const v = this.transform.apply(vertex);
 
-function collectCanonicalVertices(faces, eps = 1e-6) {
-	const map = new Map();
-	const verts = [];
-
-	for (const face of faces) {
-		for (const v of face.v) {
-			const key = vertexKey(v, eps);
-
-			if (map.has(key)) continue;
-
-			map.set(key, v.clone());
-			verts.push(map.get(key));
-		}
-	}
-
-	return verts;
-}
-
-function supportMinkowski(A, B, dir) {
-	const pA = A.support(dir);
-	const pB = B.support(dir.clone().scale(-1));
-	return pA.clone().subVec(pB);
-}
-
-function tripleCross(a, b, c) {
-	return MATH.Vec3.cross(MATH.Vec3.cross(a, b), c);
-}
-
-function doSimplex(simplex, dir) {
-	const A = simplex[simplex.length - 1];
-	const AO = A.clone().scale(-1);
-
-	if (simplex.length === 2) {
-		const B = simplex[0];
-		const AB = B.clone().subVec(A);
-
-		if (MATH.Vec3.dot(AB, AO) > 0) {
-			const newDir = tripleCross(AB, AO, AB);
-			return { hit: false, dir: newDir };
-		}
-
-		simplex.splice(0, 1);
-		return { hit: false, dir: AO };
-	}
-
-	if (simplex.length === 3) {
-		const C = simplex[0];
-		const B = simplex[1];
-
-		const AB = B.clone().subVec(A);
-		const AC = C.clone().subVec(A);
-
-		const ABC = MATH.Vec3.cross(AB, AC);
-
-		const abPerp = MATH.Vec3.cross(ABC, AB);
-		if (MATH.Vec3.dot(abPerp, AO) > 0) {
-			simplex.splice(0, 1);
-			return { hit: false, dir: tripleCross(AB, AO, AB) };
-		}
-
-		const acPerp = MATH.Vec3.cross(AC, ABC);
-		if (MATH.Vec3.dot(acPerp, AO) > 0) {
-			simplex.splice(1, 1);
-			return { hit: false, dir: tripleCross(AC, AO, AC) };
-		}
-
-		if (MATH.Vec3.dot(ABC, AO) > 0) return { hit: false, dir: ABC };
-
-		simplex[0] = B;
-		simplex[1] = C;
-		return { hit: false, dir: ABC.clone().scale(-1) };
-	}
-
-	if (simplex.length === 4) {
-		const D = simplex[0];
-		const C = simplex[1];
-		const B = simplex[2];
-
-		const AB = B.clone().subVec(A);
-		const AC = C.clone().subVec(A);
-		const AD = D.clone().subVec(A);
-
-		const ABC = MATH.Vec3.cross(AB, AC);
-		const ACD = MATH.Vec3.cross(AC, AD);
-		const ADB = MATH.Vec3.cross(AD, AB);
-
-		if (MATH.Vec3.dot(ABC, AO) > 0) {
-			simplex.splice(0, 1);
-			return { hit: false, dir: ABC };
-		}
-
-		if (MATH.Vec3.dot(ACD, AO) > 0) {
-			simplex.splice(2, 1);
-			return { hit: false, dir: ACD };
-		}
-
-		if (MATH.Vec3.dot(ADB, AO) > 0) {
-			simplex.splice(1, 1);
-			return { hit: false, dir: ADB };
-		}
-
-		return { hit: true, dir };
-	}
-
-	return { hit: false, dir };
-}
-
-export class ConvexPolyhedralCollider {
-	constructor(faces) {
-		if (!isConvexPolyhedron(faces))
-			throw new Error('polyhedron must be convex');
-
-		this.faces = faces;
-		this.vertices = collectCanonicalVertices(faces);
-	}
-
-	support(dir) {
-		let best = this.vertices[0];
-		let bestDot = MATH.Vec3.dot(best, dir);
-
-		for (let i = 1; i < this.vertices.length; i++) {
-			const v = this.vertices[i];
-			const d = MATH.Vec3.dot(v, dir);
-			if (d > bestDot) {
-				bestDot = d;
-				best = v;
+			let dist = MATH.Vector.dot(v, direction);
+			if (dist > maxDist) {
+				maxDist = dist;
+				maxPt = v;
 			}
 		}
 
-		return best;
+		return maxPt;
 	}
 
-	applyTransform(transform) {
-		for (let i = 0; i < this.faces.length; i++)
-			this.faces[i].applyTransform(transform);
-		this.vertices = collectCanonicalVertices(this.faces);
-	}
-
-	gjkIntersecting(otherCvxPoly, maxIters = 50, eps = 1e-9) {
-		let d = new MATH.Vec3(1, 0, 0);
-		let lastValidDir = d.clone();
-
-		const simplex = [];
-
-		let a = supportMinkowski(this, otherCvxPoly, d);
-		simplex.push(a);
-		d = a.clone().scale(-1);
-
-		for (let iter = 0; iter < maxIters; iter++) {
-			if (d.norm() > eps) lastValidDir = d.clone();
-
-			a = supportMinkowski(this, otherCvxPoly, d);
-
-			if (MATH.Vec3.dot(a, d) < 0) return { hit: false };
-
-			simplex.push(a);
-
-			const out = doSimplex(simplex, d);
-			if (out.hit)
-				return {
-					hit: true,
-					normal:
-						d.norm() > eps ? d.clone().normalize() : lastValidDir.normalize()
-				};
-
-			d = out.dir;
-
-			if (d.norm() <= eps)
-				return { hit: true, normal: lastValidDir.normalize() };
-		}
-
-		return { hit: true, normal: lastValidDir.normalize() };
-	}
-
-	// visitor system for collision
-	// checkCollision is the accept condition, and each must expose a checkCollision_<type> to check collision against
-	// a known type. if it returns null, it doesn't (yet?) support collisions against the visiting object.
-
+	/*
+	Visitor system to allow "knowledge of types" without types. If an object has this defined and it gets called,
+	the object passed in can be assumed to be a convex polyhedron.
+	*/
 	checkCollision(otherCol) {
-		return otherCol.checkCollision_ConvexPolyhedral?.(this);
+		return otherCol.checkCollision_ConvexPolyhedron?.(this);
 	}
 
-	checkCollision_ConvexPolyhedral(otherCvxPoly) {
-		return this.gjkIntersecting(otherCvxPoly);
+	checkCollision_ConvexPolyhedron(cvxPolyCol) {
+		return gjk(this, cvxPolyCol);
 	}
 }
 
-export function resolveCollision(bodyA, bodyB, normal) {
-	const rv = bodyA.v.clone().subVec(bodyB.v);
-	const velAlongNormal = MATH.Vec3.dot(rv, normal);
+function support(colA, colB, d) {
+	if (!d || d.norm() < 1e-8) d = new MATH.Vec3(1, 0, 0);
+
+	const p1 = colA.furthestPoint(d);
+	const p2 = colB.furthestPoint(d.clone().scale(-1));
+
+	return p1.clone().subVec(p2);
+}
+
+function sameDirection(dir, ao) {
+	return MATH.Vector.dot(dir, ao) > 0;
+}
+
+class SimplexHandler {
+	constructor(firstSimplexPt, direction) {
+		this.simplex = [firstSimplexPt];
+		this.d = direction;
+	}
+
+	handle() {
+		switch (this.simplex.length) {
+			case 2:
+				return this.#line();
+			case 3:
+				return this.#triangle();
+			case 4:
+				return this.#tetrahedron();
+		}
+
+		throw new Error('bruh the simplex machine brok');
+	}
+
+	#line() {
+		const [A, B] = this.simplex;
+		const ab = B.clone().subVec(A);
+		const ao = A.clone().scale(-1);
+
+		// maybe need extra work here?
+		if (sameDirection(ab, ao)) {
+			this.d = MATH.Vec3.tripleCross(ab, ao, ab);
+			if (this.d.norm() < 1e-8) this.d = ao;
+		} else {
+			this.simplex = [A];
+			this.d = ao;
+		}
+
+		return false;
+	}
+
+	#triangle() {
+		const [A, B, C] = this.simplex;
+
+		const ab = B.clone().subVec(A);
+		const ac = C.clone().subVec(A);
+		const ao = A.clone().scale(-1);
+
+		const abc = MATH.Vec3.cross(ab, ac);
+
+		if (sameDirection(MATH.Vec3.cross(abc, ac), ao)) {
+			if (sameDirection(ac, ao)) {
+				this.simplex = [A, C];
+				this.d = MATH.Vec3.tripleCross(ac, ao, ac);
+			} else {
+				this.simplex = [A, B];
+				return this.#line();
+			}
+		} else {
+			if (sameDirection(MATH.Vec3.cross(ab, abc), ao)) {
+				this.simplex = [A, B];
+				return this.#line();
+			} else {
+				if (sameDirection(abc, ao)) this.d = abc;
+				else {
+					this.simplex = [A, C, B];
+					this.d = abc.clone().scale(-1);
+				}
+			}
+		}
+
+		return false;
+	}
+
+	#tetrahedron() {
+		const [A, B, C, D] = this.simplex;
+
+		const ab = B.clone().subVec(A);
+		const ac = C.clone().subVec(A);
+		const ad = D.clone().subVec(A);
+		const ao = A.clone().scale(-1);
+
+		const abc = MATH.Vec3.cross(ab, ac);
+		const acd = MATH.Vec3.cross(ac, ad);
+		const adb = MATH.Vec3.cross(ad, ab);
+
+		if (sameDirection(abc, ao)) {
+			this.simplex = [A, B, C];
+			return this.#triangle();
+		}
+
+		if (sameDirection(acd, ao)) {
+			this.simplex = [A, C, D];
+			return this.#triangle();
+		}
+
+		if (sameDirection(adb, ao)) {
+			this.simplex = [A, D, B];
+			return this.#triangle();
+		}
+
+		return true;
+	}
+}
+
+function gjk(colA, colB, maxiters = 50) {
+	let initDir;
+	if (colA.center && colB.center) {
+		initDir = colB.center.clone().subVec(colA.center);
+		if (initDir.norm() < 1e-8) initDir = new MATH.Vec3(1);
+		else initDir.normalize();
+	} else initDir = new MATH.Vec3(1);
+
+	const tmpSupport = support(colA, colB, initDir);
+
+	const simplexHandler = new SimplexHandler(
+		tmpSupport,
+		tmpSupport.clone().scale(-1)
+	);
+
+	for (let i = 0; i < maxiters; ++i) {
+		const sup = support(colA, colB, simplexHandler.d);
+		if (!sup) return { hit: false };
+
+		if (MATH.Vector.dot(sup, simplexHandler.d) < 0) return { hit: false };
+
+		simplexHandler.simplex.unshift(sup); // maybe optimize? probably chill since is max len 4
+
+		if (simplexHandler.handle())
+			return { hit: true, simplex: simplexHandler.simplex };
+	}
+
+	return false;
+}
+
+export class BoxCollider extends ConvexPolyhedron {
+	constructor(l, w, h, transform, callback) {
+		const halfL = l / 2;
+		const halfW = w / 2;
+		const halfH = h / 2;
+
+		const vtxs = [
+			new MATH.Vec3(-halfL, -halfW, -halfH),
+			new MATH.Vec3(-halfL, halfW, -halfH),
+			new MATH.Vec3(halfL, -halfW, -halfH),
+			new MATH.Vec3(halfL, halfW, -halfH),
+			new MATH.Vec3(-halfL, -halfW, halfH),
+			new MATH.Vec3(-halfL, halfW, halfH),
+			new MATH.Vec3(halfL, -halfW, halfH),
+			new MATH.Vec3(halfL, halfW, halfH)
+		];
+
+		super(vtxs, transform, callback, transform.position);
+	}
+}
+
+function getFaceNormals(polytope, faces) {
+	const normals = [];
+	let minFace = 0;
+	let minDistance = Infinity;
+
+	for (let i = 0; i < faces.length; i += 3) {
+		const a = polytope[faces[i + 0]];
+		const b = polytope[faces[i + 1]];
+		const c = polytope[faces[i + 2]];
+
+		const ab = b.clone().subVec(a);
+		const ac = c.clone().subVec(a);
+
+		let normal = MATH.Vec3.cross(ab, ac).normalize();
+		let distance = MATH.Vector.dot(normal, a);
+
+		if (distance < 0) {
+			normal.scale(-1);
+			distance = -distance;
+		}
+
+		const face = new MATH.Vector(4);
+		face.set(0, normal.x);
+		face.set(1, normal.y);
+		face.set(2, normal.z);
+		face.set(3, distance);
+
+		normals.push(face);
+
+		if (distance < minDistance) {
+			minDistance = distance;
+			minFace = normals.length - 1;
+		}
+	}
+
+	return { normals, minFace };
+}
+
+function addIfUniqueEdge(edges, faces, a, b) {
+	const edgeA = faces[a];
+	const edgeB = faces[b];
+
+	for (let i = 0; i < edges.length; i++) {
+		const [e0, e1] = edges[i];
+
+		if (e0 === edgeB && e1 === edgeA) {
+			edges.splice(i, 1);
+			return;
+		}
+	}
+
+	edges.push([edgeA, edgeB]);
+}
+
+export function EPA(simplex, colA, colB) {
+	const polytope = [...simplex];
+
+	const faces = [0, 1, 2, 0, 3, 1, 0, 2, 3, 1, 3, 2];
+
+	const res = getFaceNormals(polytope, faces);
+	const normals = res.normals;
+	let minFace = res.minFace;
+
+	let minNormal;
+	let minDist = Infinity;
+
+	while (minDist == Infinity) {
+		const v4 = normals[minFace];
+		minNormal = new MATH.Vec3(v4.get(0), v4.get(1), v4.get(2));
+		minDist = v4.get(3);
+
+		const sup = support(colA, colB, minNormal);
+		if (!sup) {
+			console.warn('bruh epa seems to have bugged a bit');
+			break;
+		}
+
+		const sDist = MATH.Vector.dot(minNormal, sup);
+
+		if (sDist > minDist + 1e-6) {
+			minDist = Infinity;
+
+			const uniqueEdges = [];
+
+			for (let i = 0; i < normals.length; ++i) {
+				const v4to3 = new MATH.Vec3(normals[i].x, normals[i].y, normals[i].z);
+
+				if (MATH.Vec3.dot(v4to3, sup) > normals[i].get(3) + 1e-6) {
+					const f = i * 3;
+
+					addIfUniqueEdge(uniqueEdges, faces, f, f + 1);
+					addIfUniqueEdge(uniqueEdges, faces, f + 1, f + 2);
+					addIfUniqueEdge(uniqueEdges, faces, f + 2, f);
+
+					faces[f + 2] = faces.pop();
+					faces[f + 1] = faces.pop();
+					faces[f] = faces.pop();
+
+					normals[i] = normals.pop();
+
+					i--;
+				}
+			}
+
+			const newFaces = [];
+
+			for (const [ei1, ei2] of uniqueEdges) {
+				newFaces.push(ei1, ei2, polytope.length);
+			}
+
+			polytope.push(sup);
+
+			const newres = getFaceNormals(polytope, newFaces);
+			const newNormals = newres.normals;
+			const newMinFace = newres.minFace;
+
+			let oldMinDistance = Infinity;
+			for (let i = 0; i < normals.length; i++) {
+				if (normals[i].get(3) < oldMinDistance) {
+					oldMinDistance = normals[i].get(3);
+					minFace = i;
+				}
+			}
+
+			if (newNormals[newMinFace].get(3) < oldMinDistance) {
+				minFace = newMinFace + normals.length;
+			}
+
+			faces.push(...newFaces);
+			normals.push(...newNormals);
+		}
+	}
+
+	return { normal: minNormal, depth: minDist + 0.001 };
+}
+
+export function applyImpulses(bodyA, bodyB, collision) {
+	const n = collision.normal.clone().normalize();
+	const depth = collision.depth;
+
+	const invMassA = bodyA.invMass;
+	const invMassB = bodyB.invMass;
+	const invMassSum = invMassA + invMassB;
+
+	if (invMassSum === 0) return;
+
+	const percent = 0.8; // how aggressively to resolve penetration
+	const slop = 0.001; // penetration allowance
+
+	const correctionMag = Math.max(depth - slop, 0) * (percent / invMassSum);
+
+	const scaledNA = n.clone().scale(correctionMag * invMassA);
+	const scaledNB = n.clone().scale(correctionMag * invMassB);
+
+	bodyA.x.subVec(scaledNA);
+	bodyA.x.subVec(scaledNB);
+
+	const rv = bodyB.v.clone().sub(bodyA.v);
+	const velAlongNormal = MATH.Vector.dot(rv, n);
 
 	if (velAlongNormal > 0) return;
 
-	const e = 0.5;
-	const invMassA = 1 / bodyA.m;
-	const invMassB = bodyB ? 1 / bodyB.m : 0;
+	const restitution = Math.min(bodyA.restitution ?? 0, bodyB.restitution ?? 0);
 
-	const j = (-(1 + e) * velAlongNormal) / (invMassA + invMassB);
+	const j = (-(1 + restitution) * velAlongNormal) / invMassSum;
 
-	const impulse = normal.clone().scale(j);
+	const impulse = n.clone().scale(j);
 
-	bodyA.v.addVec(impulse.clone().scale(invMassA));
-	if (bodyB) bodyB.v.subVec(impulse.clone().scale(invMassB));
-}
+	const impulseA = impulse.clone().scale(invMassA);
+	const impulseB = impulse.clone().scale(invMassB);
 
-export function orientCollisionNormal(bodyA, bodyB, normal) {
-	const rv = bodyA.v.clone().subVec(bodyB.v);
-
-	if (MATH.Vec3.dot(rv, normal) > 0) normal.scale(-1);
-
-	return normal;
-}
-
-export function positionalCorrection(bodyA, bodyB, normal) {
-	const percent = 0.2;
-	const slop = 0.01;
-
-	const correction = normal.clone().scale(percent * slop);
-
-	bodyA.x.addVec(correction);
-	bodyB.x.subVec(correction);
-}
-
-export class BoxCollider extends ConvexPolyhedralCollider {
-	constructor(center = new MATH.Vec3(), l = 1, w = 1, h = 1) {
-		if (l <= 0 || w <= 0 || h <= 0)
-			throw new Error("box can't have negative length/width/height");
-
-		const half_l = l / 2;
-		const half_w = w / 2;
-		const half_h = h / 2;
-
-		super([
-			new Polygon([
-				center.clone().add(half_l, half_h, half_w),
-				center.clone().add(half_l, half_h, -half_w),
-				center.clone().add(-half_l, half_h, -half_w),
-				center.clone().add(-half_l, half_h, half_w)
-			]),
-			new Polygon([
-				center.clone().add(half_l, -half_h, half_w),
-				center.clone().add(half_l, -half_h, -half_w),
-				center.clone().add(-half_l, -half_h, -half_w),
-				center.clone().add(-half_l, -half_h, half_w)
-			]),
-			new Polygon([
-				center.clone().add(half_l, half_h, half_w),
-				center.clone().add(half_l, -half_h, half_w),
-				center.clone().add(half_l, -half_h, -half_w),
-				center.clone().add(half_l, half_h, -half_w)
-			]),
-			new Polygon([
-				center.clone().add(-half_l, half_h, half_w),
-				center.clone().add(-half_l, -half_h, half_w),
-				center.clone().add(-half_l, -half_h, -half_w),
-				center.clone().add(-half_l, half_h, -half_w)
-			]),
-			new Polygon([
-				center.clone().add(half_l, half_h, half_w),
-				center.clone().add(half_l, -half_h, half_w),
-				center.clone().add(-half_l, -half_h, half_w),
-				center.clone().add(-half_l, half_h, half_w)
-			]),
-			new Polygon([
-				center.clone().add(half_l, half_h, -half_w),
-				center.clone().add(half_l, -half_h, -half_w),
-				center.clone().add(-half_l, -half_h, -half_w),
-				center.clone().add(-half_l, half_h, -half_w)
-			])
-		]);
-
-		this.l = l;
-		this.w = w;
-		this.h = h;
-		this.center = center;
-	}
-
-	applyTransform(transform) {
-		transform(this.center);
-		super.applyTransform(transform);
-		return this;
-	}
-}
-
-export class MeshCollider3D {
-	constructor(colliders = []) {
-		this.colliders = colliders;
-	}
-
-	checkCollision(otherCol) {
-		for (const coll of this.colliders) {
-			const res = coll.checkCollision?.(otherCol);
-			if (res !== undefined && res.hit) return res;
-		}
-		return { hit: false };
-	}
-
-	applyTransform(transform) {
-		for (const coll of this.colliders) coll.applyTransform(transform);
-	}
-}
-
-export class SphereCollider {
-	constructor(center, radius) {
-		if (radius <= 0) throw new Error('Radius must be pos');
-		this.center = center;
-		this.radius = radius;
-	}
-
-	support(dir) {
-		const d = dir.clone();
-		const n = d.norm();
-		if (n > 1e-9) d.scale(1 / n);
-		return this.center.clone().addVec(d.scale(this.radius));
-	}
-
-	applyTransform(transform) {
-		transform(this.center);
-	}
-
-	checkCollision(otherCol) {
-		return otherCol.checkCollision_Sphere?.(this);
-	}
-
-	checkCollision_Sphere(other) {
-		const delta = this.center.clone().subVec(other.center);
-		const dist = delta.norm();
-		const r = this.radius + other.radius;
-
-		if (dist >= r) return { hit: false };
-
-		const normal = dist > 1e-9 ? delta.scale(1 / dist) : new MATH.Vec3(1, 0, 0);
-
-		return { hit: true, normal };
-	}
-
-	checkCollision_ConvexPolyhedral(box) {
-		let closest = this.center.clone();
-
-		for (const face of box.faces) {
-			if (!face.normal) face.updateNormal();
-			if (face.d === null) face.updatePlaneD();
-
-			const dist = MATH.Vec3.dot(face.normal, closest) + face.d;
-
-			if (dist > 0) closest.subVec(face.normal.clone().scale(dist));
-		}
-
-		const delta = this.center.clone().subVec(closest);
-		const distSq = MATH.Vec3.dot(delta, delta);
-
-		if (distSq > this.radius * this.radius) return { hit: false };
-
-		const dist = Math.sqrt(distSq);
-		const normal = dist > 1e-9 ? delta.scale(1 / dist) : new MATH.Vec3(1, 0, 0);
-
-		return { hit: true, normal };
-	}
+	bodyA.v.subVec(impulseA);
+	bodyB.v.addVec(impulseB);
 }

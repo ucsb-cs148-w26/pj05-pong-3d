@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { BoxCollider, MeshCollider3D } from '../physics/collider.js';
+import { BoxCollider } from '../physics/collider.js';
 import { Vec3 } from '../physics/math.js';
 import { RigidBody } from '../physics/engine.js';
 import { KeyboardController } from './controllers.js';
@@ -15,7 +15,9 @@ export class Paddle {
 		this.visual.castShadow = true;
 		this.visual.receiveShadow = true;
 		this.body = new RigidBody(99999);
-		this.body.col = new BoxCollider(this.body.x, 0.5, 3, 3);
+		this.body.col = new BoxCollider(0.5, 3, 3, this.body.transform, (ev) =>
+			console.log('COLLISION')
+		);
 		this.controller = controller;
 		this.accel = 30;
 		this.forceApplier = new BodyForceApplier(this.body, (vec) => {});
@@ -61,7 +63,7 @@ export class Arena {
 
 export class Ball {
 	constructor(paddle1, paddle2, scores) {
-		const geometry = new THREE.BoxGeometry(1, 1, 1);
+		const geometry = new THREE.SphereGeometry(0.5);
 		const material = new THREE.MeshStandardMaterial({ color: 0xffffff });
 		this.visual = new THREE.Mesh(geometry, material);
 		this.visual.castShadow = true;
