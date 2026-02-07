@@ -3,6 +3,94 @@
 	<head>
 		<meta charset="utf-8" />
 		<title>Lobbies • 3D Pong</title>
+		<script>
+			window.addEventListener('DOMContentLoaded', () => {
+				const css = `
+					*{ box-sizing:border-box; }
+					body{
+						margin:24px auto;
+						max-width:980px;
+						padding:24px;
+						font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+						color: rgba(255,255,255,.92);
+						background: linear-gradient(180deg,#0b1020,#0a1226);
+					}
+					input{
+						width:100%;
+						padding:12px;
+						border-radius:12px;
+						border:1px solid rgba(255,255,255,.18);
+						background: rgba(0,0,0,.25);
+						color: rgba(255,255,255,.92);
+						outline:none;
+						margin:0 0 16px 0;
+						transition: border .15s, box-shadow .15s;
+						display:block;
+					}
+					input::placeholder{ color: rgba(255,255,255,.45); }
+						input:focus{
+						border-color: rgba(255,255,255,.22);
+						box-shadow: 0 0 0 4px rgba(0,229,255,.12);
+					}
+					button{
+						width:100%;
+						padding:14px 16px;
+						border-radius:12px;
+						border:1px solid rgba(0,0,0,.12);
+						background:#fff;
+						color:#0b1020;
+						font-weight:700;
+						cursor:pointer;
+						box-shadow:0 6px 16px rgba(0,0,0,.18);
+						margin:0 0 18px 0;
+						transition: transform .08s, background .15s;
+						display:block;
+					}
+					button:hover{ background: rgba(255,255,255,.92); }
+					button:active{ transform: translateY(1px); }
+
+					h1{ font-size: 44px; margin: 0 0 18px 0; }
+					h2{ margin-top: 32px; }
+				`;
+				const style = document.createElement('style');
+				style.textContent = css;
+				document.head.appendChild(style);
+
+				const h1 = document.querySelector('h1');
+				const openH2 = Array.from(document.querySelectorAll('h2')).find(h => h.textContent.trim().toLowerCase() === 'open lobbies');
+				if (!h1 || !openH2) return;
+
+				const wrap = document.createElement('div');
+				const left = document.createElement('div');
+				const right = document.createElement('div');
+
+				const cardStyle = `
+					background: rgba(255,255,255,.06);
+					border: 1px solid rgba(255,255,255,.10);
+					border-radius: 18px;
+					box-shadow: 0 12px 40px rgba(0,0,0,.35);
+					padding: 20px;
+					margin-bottom: 18px;
+				`;
+				left.style.cssText = cardStyle;
+				right.style.cssText = cardStyle;
+
+				const moveRange = (start, stopExclusive, target) => {
+					let cur = start;
+					while (cur && cur !== stopExclusive) {
+						const next = cur.nextElementSibling;
+						target.appendChild(cur);
+						cur = next;
+					}
+				};
+
+				moveRange(h1, openH2, left);
+				moveRange(openH2, null, right);
+
+				wrap.append(left, right);
+				document.body.prepend(wrap);
+			});
+		</script>
 	</head>
 	<body>
 		<h1>Lobbies</h1>
