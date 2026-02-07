@@ -23,6 +23,23 @@
 			<button id="join-button">Join</button>
 		</div>
 
+		<h2 style="margin-top:1rem">Open Lobbies</h2>
+		<div id="lobbies-list">
+			<% if (lobbies && lobbies.length > 0) { %>
+				<% for (let i = 0; i < lobbies.length; i++) { %>
+				<div class="lobby">
+					<div><strong><%= lobbies[i].name || 'Unnamed Lobby' %></strong></div>
+					<div>Join Code: <code><%= lobbies[i].code %></code></div>
+					<div>Players: <%= lobbies[i].memberCount %></div>
+
+					<button onclick="join('<%= lobbies[i].code %>')">Join</button>
+				</div>
+				<% } %>
+			<% } else { %>
+				<p class="no-lobbies">No open lobbies currently.</p>
+			<% } %>
+		</div>
+
 		<script>
 			const usernameField = document.getElementById('username-field');
 			const nameField = document.getElementById('name-field');
@@ -50,6 +67,11 @@
 				if (!usernameField.value.length || !codeField.value.length) return;
 				window.location = `/game?code=${codeField.value}&username=${usernameField.value}`;
 			});
+
+			function join(code) {
+				if (!usernameField.value.length) return;
+				window.location = `/game?code=${code}&username=${usernameField.value}`;
+			}
 		</script>
 	</body>
 </html>
