@@ -5,6 +5,15 @@
 		<title>Lobbies • 3D Pong</title>
 	</head>
 	<body>
+		<div>
+			<% if (user) { %>
+				<span>Logged in as <%= user.displayName %></span>
+				<button onclick="logout()">Log out</button>
+			<% } else { %>
+				<a href="/auth/google">Log in with Google</a>
+			<% } %>
+		</div>
+
 		<h1>Lobbies</h1>
 
 		<input
@@ -41,58 +50,12 @@
 		</div>
 
 		<script>
-			const authDiv = document.createElement('div');
-			authDiv.style.marginTop = '1rem';
-
-			const status = document.createElement('span');
-			status.textContent = 'Checking login...';
-
-			const loginButton = document.createElement('button');
-			loginButton.textContent = 'Login with Google';
-			loginButton.style.display = 'none';
-
-			const logoutButton = document.createElement('button');
-			logoutButton.textContent = 'Logout';
-			logoutButton.style.display = 'none';
-
-			loginButton.onclick = () => {
-				window.location.href = '/auth/google';
-			};
-
-			logoutButton.onclick = async () => {
-				await fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' });
-				checkAuth();
-			};
-
-			authDiv.appendChild(status);
-			authDiv.appendChild(document.createTextNode(' '));
-			authDiv.appendChild(loginButton);
-			authDiv.appendChild(document.createTextNode(' '));
-			authDiv.appendChild(logoutButton);
-			document.body.appendChild(authDiv);
-
-			async function checkAuth() {
-				try {
-					const res = await fetch('/auth/me', { credentials: 'same-origin' });
-					if (!res.ok) {
-						status.textContent = ' Not logged in';
-						loginButton.style.display = '';
-						logoutButton.style.display = 'none';
-						return;
-					}
-
-					const { user } = await res.json();
-					status.textContent = ` Logged in as ${user.displayName || 'User'}`;
-					loginButton.style.display = 'none';
-					logoutButton.style.display = '';
-				} catch {
-					status.textContent = ' Auth error';
-					loginButton.style.display = '';
-					logoutButton.style.display = 'none';
-				}
+			function logout() {
+				fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' })
+					.then(() => {
+						window.location.reload();
+					});
 			}
-
-			checkAuth();
 
 			const usernameField = document.getElementById('username-field');
 			const nameField = document.getElementById('name-field');

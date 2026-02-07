@@ -42,11 +42,6 @@ export default function setupAuth(app) {
 		}
 	);
 
-	app.get('/auth/me', (req, res) => {
-		if (!req.user) return res.status(401).json({ user: null });
-		res.json({ user: req.user });
-	});
-
 	app.post('/auth/logout', (req, res, next) => {
 		req.logout((err) => {
 			if (err) return next(err);
