@@ -11,10 +11,6 @@ app.set('view engine', 'ejs');
 app.use(express.json());
 app.use(express.static(path.join(import.meta.dirname, '../public')));
 
-app.get('/', (_req, res) => {
-	res.render('lobbies.ejs');
-});
-
 const server = app.listen(PORT);
 
 app.use('/', createLobbyRouter(server));
