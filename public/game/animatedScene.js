@@ -11,6 +11,7 @@ export class AnimatedScene {
 	constructor() {
 		this.renderer = new THREE.WebGLRenderer();
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
+		this._renderSuspended = false;
 		document.body.appendChild(this.renderer.domElement);
 
 		this.scene = new THREE.Scene();
@@ -35,12 +36,16 @@ export class AnimatedScene {
 		this.visuals = new Map();
 		this.updates = new Map();
 		this.requiresSync = new Map();
+		this.onKills = new Map();
 
 		// Orbit controls is the camera spinning around the center of the arena
 		this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
 		this.clock = new THREE.Clock();
 		this.physics = new PhysicsEngine();
+
+		this._isRunning = false;
+		this._rafId = null;
 	}
 
 	/*
@@ -93,6 +98,9 @@ export class AnimatedScene {
 						objBody.visual.position.copy(objBody.body.x);
 					}
 				});
+
+			const onKill = obj.onKill || objBody.onKill;
+			if (typeof onKill === 'function') this.onKills.set(obj.key, onKill);
 		}
 	}
 
@@ -100,10 +108,54 @@ export class AnimatedScene {
 		return this.gameObjects.get(key);
 	}
 
-	// TODO; add a KillObject
+	deleteGameObject(key) {
+		const objBody = this.gameObjects.get(key);
+		if (!objBody) return false;
+
+		const onKill = this.onKills.get(key);
+		if (typeof onKill === 'function') onKill(objBody, key);
+
+		this.onKills.delete(key);
+		this.updates.delete(key);
+		this.requiresSync.delete(key);
+		this.physics.bodies.delete(key);
+
+		const visual = this.visuals.get(key);
+		if (visual) {
+			this.scene.remove(visual);
+			this._disposeVisual(visual);
+			this.visuals.delete(key);
+		}
+
+		this.gameObjects.delete(key);
+		return true;
+	}
 
 	animate() {
-		requestAnimationFrame(() => this.animate());
+		this.start();
+	}
+
+	start() {
+		if (this._isRunning) return;
+		this._isRunning = true;
+		this._renderSuspended = false;
+		this._readdVisuals();
+		this.clock.getDelta();
+		this._tick();
+	}
+
+	stop() {
+		if (!this._isRunning) return;
+		this._isRunning = false;
+		if (this._rafId !== null) cancelAnimationFrame(this._rafId);
+		this._rafId = null;
+		this._renderSuspended = true;
+		this._removeVisuals();
+	}
+
+	_tick() {
+		if (!this._isRunning) return;
+		this._rafId = requestAnimationFrame(() => this._tick());
 
 		const delta = this.clock.getDelta();
 
@@ -132,5 +184,38 @@ export class AnimatedScene {
 			this.camera.position.set(0, 0, 0);
 			this.camera.up.set(0, 0, 1);
 		}
+	}
+
+	_removeVisuals() {
+		for (const visual of this.visuals.values()) {
+			this.scene.remove(visual);
+		}
+	}
+
+	_readdVisuals() {
+		for (const visual of this.visuals.values()) {
+			if (!this.scene.children.includes(visual)) this.scene.add(visual);
+		}
+	}
+
+	_disposeVisual(root) {
+		root.traverse((obj) => {
+			if (obj.geometry) obj.geometry.dispose();
+			if (obj.material) {
+				if (Array.isArray(obj.material)) {
+					for (const mat of obj.material) this._disposeMaterial(mat);
+				} else {
+					this._disposeMaterial(obj.material);
+				}
+			}
+		});
+	}
+
+	_disposeMaterial(mat) {
+		for (const key in mat) {
+			const value = mat[key];
+			if (value && value.isTexture) value.dispose();
+		}
+		mat.dispose?.();
 	}
 }
