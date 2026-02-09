@@ -1,3 +1,4 @@
+import db from '../db.js';
 import session from 'express-session';
 import passport from 'passport';
 import setupGoogleStrategy from './google.js';
@@ -21,8 +22,12 @@ export default function setupAuth(app) {
 	app.use(passport.initialize());
 	app.use(passport.session());
 
-	passport.serializeUser((user, done) => done(null, user));
-	passport.deserializeUser((user, done) => done(null, user));
+	passport.serializeUser((user, done) => done(null, user.id));
+	passport.deserializeUser((userId, done) => {
+		db.get('SELECT * FROM users WHERE id = ?', [userId], (err, user) => {
+			done(err, user);
+		});
+	});
 
 	setupGoogleStrategy();
 
