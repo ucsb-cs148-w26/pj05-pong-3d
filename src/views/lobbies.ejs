@@ -83,7 +83,7 @@
 	<body>
 		<div>
 			<% if (user) { %>
-				<span>Logged in as <%= user.displayName %></span>
+				<span>Logged in as <%= user.display_name %></span>
 				<button onclick="logout()">Log out</button>
 			<% } else { %>
 				<a href="/auth/google">Log in with Google</a>
