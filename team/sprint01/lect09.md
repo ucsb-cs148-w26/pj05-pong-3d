@@ -1,6 +1,6 @@
-# lect08 standup meeting
+# lect09 standup meeting
 
-- Meeting time: lect08
+- Meeting time: lect09
 - Meeting type: Daily scrum
 - Team: All present
 
@@ -8,8 +8,8 @@ Discussion:
 
 - Jehmiah: Implemented shader system and goal animation & laid the framework for later shader implementation. Will work on improving camera system. No blockers.
 - Terry: Finished pinging values to the screen and compute the latency. Will work on the delete/stop system. no blockers.
-- Bobby: Studying the whole time. Going to work on CSP with Wong. No blockers. 
+- Bobby: Studying the whole time. Going to work on CSP with Wong. No blockers.
 - Chenchang: Improved the UI for lobby page. Will work on ball cosmetics. No blockers.
-- Ayala: I have worked on listing the current open lobbies on the frontend and implemented the join button. Will work on improving gameplay. No blockers. 
-- Dennis: Finished the Google API key and made frontend element that allows login/logout. Will work on connecting user credentials to the database. No blockers. 
+- Ayala: I have worked on listing the current open lobbies on the frontend and implemented the join button. Will work on improving gameplay. No blockers.
+- Dennis: Finished the Google API key and made frontend element that allows login/logout. Will work on connecting user credentials to the database. No blockers.
 - Wong: Finished the join lobby and fixed other's PR's. Will work on server state updates. No blockers.
