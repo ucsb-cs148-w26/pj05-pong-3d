@@ -7,7 +7,11 @@ import { BodyForceApplier } from '../physics/forces.js';
 
 export class Paddle {
 	// Square paddle
-	constructor(meshSettings, bodyIdentifier, controller = new KeyboardController('yz')) {
+	constructor(
+		meshSettings,
+		bodyIdentifier,
+		controller = new KeyboardController('yz')
+	) {
 		const geometry = new THREE.EdgesGeometry(new THREE.BoxGeometry(0.5, 3, 3));
 		const material = new THREE.LineBasicMaterial(meshSettings);
 
@@ -66,35 +70,34 @@ export class Arena {
 			new RigidBody(999999),
 			new RigidBody(999999)
 		];
-		
+
 		// MeshCollider should probably be created so this is more convenient
 		// but i aint doin allat rn
 
-		this.bodies[0].col = new BoxCollider( 23.5, 3, 15, this.bodies[0].transform );
-		this.bodies[1].col = new BoxCollider( 23.5, 3, 15, this.bodies[1].transform );
-		this.bodies[2].col = new BoxCollider( 23.5, 15, 3, this.bodies[2].transform );
-		this.bodies[3].col = new BoxCollider( 23.5, 15, 3, this.bodies[3].transform );
+		this.bodies[0].col = new BoxCollider(23.5, 3, 15, this.bodies[0].transform);
+		this.bodies[1].col = new BoxCollider(23.5, 3, 15, this.bodies[1].transform);
+		this.bodies[2].col = new BoxCollider(23.5, 15, 3, this.bodies[2].transform);
+		this.bodies[3].col = new BoxCollider(23.5, 15, 3, this.bodies[3].transform);
 
-		this.bodies[4].col = new BoxCollider( 3, 15, 15, this.bodies[4].transform );
-		this.bodies[5].col = new BoxCollider( 3, 15, 15, this.bodies[5].transform );
-		
-		this.bodies[0].x.addVec( new Vec3(0, 9) );
-		this.bodies[1].x.addVec( new Vec3(0, -9) );
-		this.bodies[2].x.addVec( new Vec3(0, 0, 9) );
-		this.bodies[3].x.addVec( new Vec3(0, 0, -9) );
-		this.bodies[4].x.addVec( new Vec3(-13.28125 ) );
-		this.bodies[5].x.addVec( new Vec3(13.28125));
+		this.bodies[4].col = new BoxCollider(3, 15, 15, this.bodies[4].transform);
+		this.bodies[5].col = new BoxCollider(3, 15, 15, this.bodies[5].transform);
 
-		this.bodies[4].ballIdentifier = "greenWall";
-		this.bodies[5].ballIdentifier = "redWall";
+		this.bodies[0].x.addVec(new Vec3(0, 9));
+		this.bodies[1].x.addVec(new Vec3(0, -9));
+		this.bodies[2].x.addVec(new Vec3(0, 0, 9));
+		this.bodies[3].x.addVec(new Vec3(0, 0, -9));
+		this.bodies[4].x.addVec(new Vec3(-13.28125));
+		this.bodies[5].x.addVec(new Vec3(13.28125));
 
-		physicsEngine.registerBody("arenaWallTop", this.bodies[0]);
-		physicsEngine.registerBody("arenaWallBottom", this.bodies[1]);
-		physicsEngine.registerBody("arenaWallSide1", this.bodies[2]);
-		physicsEngine.registerBody("arenaWallSide2", this.bodies[3]);
-		physicsEngine.registerBody("arenaWallGreen", this.bodies[4]);
-		physicsEngine.registerBody("arenaWallRed", this.bodies[5]);
+		this.bodies[4].ballIdentifier = 'greenWall';
+		this.bodies[5].ballIdentifier = 'redWall';
 
+		physicsEngine.registerBody('arenaWallTop', this.bodies[0]);
+		physicsEngine.registerBody('arenaWallBottom', this.bodies[1]);
+		physicsEngine.registerBody('arenaWallSide1', this.bodies[2]);
+		physicsEngine.registerBody('arenaWallSide2', this.bodies[3]);
+		physicsEngine.registerBody('arenaWallGreen', this.bodies[4]);
+		physicsEngine.registerBody('arenaWallRed', this.bodies[5]);
 	}
 }
 
@@ -107,37 +110,36 @@ export class Ball {
 		this.scores = scores;
 		this.needsToReset = false;
 		this.body = new RigidBody(3);
-		this.body.col = new SphereCollider(0.5, this.body.transform, (me, other) => {
-			if ( !Object.hasOwn(other, "ballIdentifier") ) return;
-			
-			switch ( other.ballIdentifier ) {
-				case "paddle": {
-					const tinyV = this.body.v.clone().normalize().scale(0.1);
-					this.body.v.addVec(tinyV);
-					return;
+		this.body.col = new SphereCollider(
+			0.5,
+			this.body.transform,
+			(me, other) => {
+				if (!Object.hasOwn(other, 'ballIdentifier')) return;
+
+				switch (other.ballIdentifier) {
+					case 'paddle': {
+						const tinyV = this.body.v.clone().normalize().scale(0.1);
+						this.body.v.addVec(tinyV);
+						return;
+					}
+
+					case 'greenWall':
+						this.scores.IJKL += 1;
+						this.needsToReset = true;
+						return;
+
+					case 'redWall':
+						this.scores.WASD += 1;
+						this.needsToReset = true;
+						return;
 				}
-			
-				case "greenWall":
-					this.scores.IJKL += 1;
-					this.needsToReset = true;
-					return;
-
-				case "redWall":
-					this.scores.WASD += 1;
-					this.needsToReset = true;
-					return;
-
 			}
-
-		});
-
+		);
 
 		this.body.v.assign(5, 0, 0);
-
 	}
 
 	reset() {
-
 		this.body.x.assign(0, 0, 0);
 
 		let theta = (Math.random() * PI) / 2 + PI / 4;
@@ -160,11 +162,9 @@ export class Ball {
 	update(dt) {
 		this.scores.ballSpeed = this.body.v.norm();
 
-		if ( this.needsToReset ) {
+		if (this.needsToReset) {
 			this.needsToReset = false;
 			this.reset();
 		}
-
 	}
-
 }

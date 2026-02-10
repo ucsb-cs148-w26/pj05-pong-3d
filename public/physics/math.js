@@ -205,7 +205,6 @@ export class Vec4 extends Vector {
 	set w(value) {
 		this.data[3] = value;
 	}
-
 }
 
 export class Quaternion extends Vec4 {

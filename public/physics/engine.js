@@ -22,7 +22,6 @@ export class RigidBody {
 	get scale() {
 		return this.transform.scale;
 	}
-
 }
 
 // "abstract" Force class.
@@ -117,15 +116,15 @@ export class PhysicsEngine {
 					A = bodies[j];
 					B = bodies[i];
 				}
-				
+
 				A.col.onCollisionCallback?.(A, B);
 				B.col.onCollisionCallback?.(B, A);
 
-				if ( A.isTrigger || B.isTrigger ) continue;
+				if (A.isTrigger || B.isTrigger) continue;
 
-				const [ normal, depth ] = COLLIDERS.EPA( result.simplex, A.col, B.col );
+				const [normal, depth] = COLLIDERS.EPA(result.simplex, A.col, B.col);
 
-				COLLIDERS.resolveImpulseCollision( A, B, normal, depth );
+				COLLIDERS.resolveImpulseCollision(A, B, normal, depth);
 			}
 		}
 	}

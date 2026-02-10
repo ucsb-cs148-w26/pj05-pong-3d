@@ -14,7 +14,7 @@ const animatedScene = new AnimatedScene();
 animatedScene.registerGameObject(
 	{
 		key: 'gameArena',
-		object: new Arena( animatedScene.physics )
+		object: new Arena(animatedScene.physics)
 	},
 	{
 		key: 'ambientLight',
@@ -71,7 +71,7 @@ animatedScene.registerGameObject(
 	},
 	{
 		key: 'paddleWASD',
-		object: new Paddle({ color: 0x00ff00, linewidth: 4 }, "paddle"),
+		object: new Paddle({ color: 0x00ff00, linewidth: 4 }, 'paddle'),
 		init() {
 			this.object.body.x.assign(-23.5 / 2.125, 0, 0);
 			animatedScene.physics.registerForce(this.object.forceApplier);
@@ -81,14 +81,14 @@ animatedScene.registerGameObject(
 		key: 'paddleIJKL',
 		object: new Paddle(
 			{ color: 0xff0000, linewidth: 4 },
-			"paddle",
+			'paddle',
 			new KeyboardController('yz', ['KeyJ', 'KeyL', 'KeyI', 'KeyK'])
 		),
 		init() {
 			this.object.body.x.assign(23.5 / 2.125, 0, 0);
 			animatedScene.physics.registerForce(this.object.forceApplier);
 		}
-	},
+	}
 );
 
 animatedScene.registerGameObject({

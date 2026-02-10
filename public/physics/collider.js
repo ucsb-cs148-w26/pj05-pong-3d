@@ -215,8 +215,6 @@ function gjk(colA, colB, maxiters = 50) {
 	return false;
 }
 
-
-
 function getFaceNormals(polytope, faces) {
 	const normals = [];
 	let minTriangle = 0;
@@ -227,14 +225,14 @@ function getFaceNormals(polytope, faces) {
 		const b = polytope[faces[i + 1]];
 		const c = polytope[faces[i + 2]];
 
-		let normal = MATH.Vec3.cross( b.clone().subVec(a), c.clone().subVec(a) );
+		let normal = MATH.Vec3.cross(b.clone().subVec(a), c.clone().subVec(a));
 		const l = normal.norm();
 		let dist = Infinity;
 
-		if ( l < 1e-8 ) normal = new MATH.Vec3();
+		if (l < 1e-8) normal = new MATH.Vec3();
 		else {
-			normal.scale(1/l);
-			dist = MATH.Vec3.dot( normal, a );
+			normal.scale(1 / l);
+			dist = MATH.Vec3.dot(normal, a);
 		}
 
 		if (dist < 0) {
@@ -242,17 +240,15 @@ function getFaceNormals(polytope, faces) {
 			dist *= -1;
 		}
 
-		normals.push( MATH.Vec4.fromVec3( normal, dist ) );
+		normals.push(MATH.Vec4.fromVec3(normal, dist));
 
-		if ( Number.isFinite(dist) && dist < minDist ) {
+		if (Number.isFinite(dist) && dist < minDist) {
 			minTriangle = i / 3;
 			minDist = dist;
 		}
-
 	}
 
 	return [normals, minTriangle];
-
 }
 
 function addIfUniqueEdge(edges, faces, a, b) {
@@ -267,18 +263,12 @@ function addIfUniqueEdge(edges, faces, a, b) {
 	else edges.push([faces[a], faces[b]]);
 }
 
-
 // EPA takes the simplex and gives you a normal and depth to operate on for collision resolution.
 // It alway returns [ normal, depth ]. If depth === Infinity, there was a direct, head on collision.
 // In this case, the normals are exactly the velocities of the bodies.
 export function EPA(simplex, colA, colB) {
 	const polytope = simplex;
-	const faces = [
-		0, 1, 2,
-		0, 3, 1,
-		0, 2, 3,
-		1, 3, 2
-	];
+	const faces = [0, 1, 2, 0, 3, 1, 0, 2, 3, 1, 3, 2];
 
 	let [normals, minFace] = getFaceNormals(polytope, faces);
 
@@ -290,66 +280,72 @@ export function EPA(simplex, colA, colB) {
 		minDist = normals[minFace].w;
 
 		const sup = support(colA, colB, minNormal);
-		const sDist = MATH.Vec3.dot( minNormal, sup );
+		const sDist = MATH.Vec3.dot(minNormal, sup);
 
-		
-		if ( Math.abs(sDist - minDist) > 0.001 ) {
+		if (Math.abs(sDist - minDist) > 0.001) {
 			minDist = Infinity;
 
 			const uniqueEdges = [];
 
-			for ( let i = 0; i < normals.length; i++ ) {
-				if ( MATH.Vec3.dot( normals[i].xyz(), sup ) - normals[i].w > 0 ) {
+			for (let i = 0; i < normals.length; i++) {
+				if (MATH.Vec3.dot(normals[i].xyz(), sup) - normals[i].w > 0) {
 					const f = i * 3;
 
 					addIfUniqueEdge(uniqueEdges, faces, f, f + 1);
 					addIfUniqueEdge(uniqueEdges, faces, f + 1, f + 2);
 					addIfUniqueEdge(uniqueEdges, faces, f + 2, f);
 
-					faces[f + 2] = faces.at(-1); faces.pop();
-					faces[f + 1] = faces.at(-1); faces.pop();
-					faces[f] = faces.at(-1); faces.pop();
+					faces[f + 2] = faces.at(-1);
+					faces.pop();
+					faces[f + 1] = faces.at(-1);
+					faces.pop();
+					faces[f] = faces.at(-1);
+					faces.pop();
 
-					normals[i] = normals.at(-1); normals.pop();
+					normals[i] = normals.at(-1);
+					normals.pop();
 
 					i--;
 				}
-
 			}
-			
 
-			if ( uniqueEdges.length === 0 ) return [ minNormal, minDist ];
+			if (uniqueEdges.length === 0) return [minNormal, minDist];
 
 			const newFaces = [];
 
-			for ( const [ edgeIdx1, edgeIdx2 ] of uniqueEdges ) 
-				newFaces.push( edgeIdx1, edgeIdx2, polytope.length );
-			
-			polytope.push( sup );
+			for (const [edgeIdx1, edgeIdx2] of uniqueEdges)
+				newFaces.push(edgeIdx1, edgeIdx2, polytope.length);
 
-			const [ newNormals, newMinFace ] = getFaceNormals(polytope, newFaces);
+			polytope.push(sup);
+
+			const [newNormals, newMinFace] = getFaceNormals(polytope, newFaces);
 
 			let oldMinDist = Infinity;
 			for (let i = 0; i < normals.length; i++) {
-				if ( normals[i].w < oldMinDist ) {
+				if (normals[i].w < oldMinDist) {
 					oldMinDist = normals[i].w;
 					minFace = i;
 				}
 			}
 
-			if ( newNormals[newMinFace].w < oldMinDist )
+			if (newNormals[newMinFace].w < oldMinDist)
 				minFace = newMinFace + normals.length;
 
-			faces.push( ...newFaces );
-			normals.push( ...newNormals );
-
+			faces.push(...newFaces);
+			normals.push(...newNormals);
 		}
 	}
 
-	return [ minNormal, minDist + 0.001 ];
+	return [minNormal, minDist + 0.001];
 }
 
-export function resolveImpulseCollision( bodyA, bodyB, normal, depth, restitution = 1.0 ) {
+export function resolveImpulseCollision(
+	bodyA,
+	bodyB,
+	normal,
+	depth,
+	restitution = 1.0
+) {
 	const n = normal.clone().normalize();
 
 	const vA = bodyA.v;
@@ -367,14 +363,16 @@ export function resolveImpulseCollision( bodyA, bodyB, normal, depth, restitutio
 	if (depth === Infinity) {
 		const reflected = n.clone().scale(-2 * velAlongNormal * restitution);
 
-		if (invMassA > 0) vA.subVec(reflected.clone().scale(invMassA / (invMassA + invMassB)));
+		if (invMassA > 0)
+			vA.subVec(reflected.clone().scale(invMassA / (invMassA + invMassB)));
 
-		if (invMassB > 0) vB.addVec(reflected.clone().scale(invMassB / (invMassA + invMassB)));
+		if (invMassB > 0)
+			vB.addVec(reflected.clone().scale(invMassB / (invMassA + invMassB)));
 
 		return;
 	}
 
-	const j = -(1 + restitution) * velAlongNormal / (invMassA + invMassB);
+	const j = (-(1 + restitution) * velAlongNormal) / (invMassA + invMassB);
 
 	const impulse = n.clone().scale(j);
 
@@ -382,7 +380,6 @@ export function resolveImpulseCollision( bodyA, bodyB, normal, depth, restitutio
 
 	if (invMassB > 0) bodyB.v.addVec(impulse.clone().scale(invMassB));
 }
-
 
 /*
 **Note**: ConvexPolyhedron should be VERY carefully defined.
@@ -460,10 +457,9 @@ export class SphereCollider {
 	}
 
 	checkCollision_Sphere(sphereCol) {
-		return gjk(this, sphereCol); 
+		return gjk(this, sphereCol);
 		// could later rework to use more efficient algo since sphere-sphere is simple
 	}
-
 }
 
 export class BoxCollider extends ConvexPolyhedron {
