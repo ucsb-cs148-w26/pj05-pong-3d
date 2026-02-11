@@ -3,15 +3,15 @@ import { Vec3 } from '../../physics/math.js';
 import { RigidBody } from '../../physics/engine.js';
 import { BodyForceApplier } from '../../physics/forces.js';
 import * as Constants from '../constants.js';
-import { GameObjectBase } from './GameObjectBase.js';
+import { GameObjectBase } from './GameObject.js';
 
 /**
  * Abstract base class for paddle objects containing physics logic
  * Subclasses must implement getDirection() to provide movement control
  */
 export class PaddleCommon extends GameObjectBase {
-	constructor(bodyIdentifier) {
-		super();
+	constructor(key, bodyIdentifier, initialX) {
+		super(key);
 		this.bodyIdentifier = bodyIdentifier;
 		this.body = new RigidBody(Constants.STATIC_MASS);
 		this.body.ballIdentifier = bodyIdentifier;
@@ -23,32 +23,14 @@ export class PaddleCommon extends GameObjectBase {
 		);
 		this.accel = Constants.PADDLE_ACCEL;
 		this.forceApplier = new BodyForceApplier(this.body, (vec) => {});
+		this.body.x.assign(initialX, 0, 0);
 	}
 
-	/**
-	 * Abstract method: returns the direction vector for paddle movement
-	 * Must be implemented by subclasses
-	 * @returns {Vec3} Direction vector
-	 */
-	getDirection() {
-		throw new Error('getDirection() must be implemented by subclass');
+	init(scene) {
+		scene.physics.registerForce(this.forceApplier);
 	}
 
-	/**
-	 * Updates paddle physics
-	 * @param {number} dt Delta time
-	 */
 	update(dt) {
-		// Keep paddle within bounds
-		if (this.body.x.y > Constants.PADDLE_BOUND)
-			this.body.x.y = Constants.PADDLE_BOUND_ADJUST;
-		if (this.body.x.y < -Constants.PADDLE_BOUND)
-			this.body.x.y = -Constants.PADDLE_BOUND_ADJUST;
-		if (this.body.x.z > Constants.PADDLE_BOUND)
-			this.body.x.z = Constants.PADDLE_BOUND_ADJUST;
-		if (this.body.x.z < -Constants.PADDLE_BOUND)
-			this.body.x.z = -Constants.PADDLE_BOUND_ADJUST;
-
 		let direction = this.getDirection();
 		if (direction === null) direction = new Vec3();
 
@@ -60,13 +42,34 @@ export class PaddleCommon extends GameObjectBase {
 		this.forceApplier.applier = (f) => {
 			f.addVec(direction);
 		};
+
+		// Keep paddle within bounds
+		if (this.body.x.y > Constants.PADDLE_BOUND)
+			this.body.x.y = Constants.PADDLE_BOUND_ADJUST;
+		if (this.body.x.y < -Constants.PADDLE_BOUND)
+			this.body.x.y = -Constants.PADDLE_BOUND_ADJUST;
+		if (this.body.x.z > Constants.PADDLE_BOUND)
+			this.body.x.z = Constants.PADDLE_BOUND_ADJUST;
+		if (this.body.x.z < -Constants.PADDLE_BOUND)
+			this.body.x.z = -Constants.PADDLE_BOUND_ADJUST;
+	}
+
+	sync(dt) {}
+
+	get bodies() {
+		return [this.body];
+	}
+
+	get syncedBodies() {
+		return [this.body];
 	}
 
 	/**
-	 * Returns the bodies to be synced with the server
-	 * @returns {Array} Array containing the paddle body
+	 * Abstract method: returns the direction vector for paddle movement
+	 * Must be implemented by subclasses
+	 * @returns {Vec3} Direction vector
 	 */
-	getBodies() {
-		return [this.body];
+	getDirection() {
+		throw new Error('getDirection() must be implemented by subclass');
 	}
 }

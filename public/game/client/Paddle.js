@@ -8,12 +8,16 @@ import { PaddleCommon } from '../common/PaddleCommon.js';
  * Extends PaddleCommon to add visual representation
  */
 export class Paddle extends PaddleCommon {
+	#visual = null;
+
 	constructor(
+		key,
 		meshSettings,
 		bodyIdentifier,
+		initialX,
 		controller = new KeyboardController('yz')
 	) {
-		super(bodyIdentifier);
+		super(key, bodyIdentifier, initialX);
 
 		// Create THREE.js visual representation
 		const geometry = new THREE.EdgesGeometry(
@@ -23,31 +27,29 @@ export class Paddle extends PaddleCommon {
 				Constants.PADDLE_DEPTH
 			)
 		);
+
 		const material = new THREE.LineBasicMaterial(meshSettings);
-		this.visual = new THREE.LineSegments(geometry, material);
-		this.visual.castShadow = true;
-		this.visual.receiveShadow = true;
+
+		this.#visual = new THREE.LineSegments(geometry, material);
+		this.#visual.castShadow = true;
+		this.#visual.receiveShadow = true;
 
 		// Store the controller for movement input
 		this.controller = controller;
 	}
 
-	/**
-	 * Implements the abstract getDirection method using keyboard input
-	 * @returns {Vec3} Direction vector from keyboard input
-	 */
-	getDirection() {
-		return this.controller.checkMoveInputs();
-	}
-
-	/**
-	 * Updates both physics and rendering
-	 * @param {number} dt Delta time
-	 */
 	update(dt) {
 		super.update(dt);
 
 		// Sync visual representation with physics body
 		this.visual.position.copy(this.body.x);
+	}
+
+	get visual() {
+		return this.#visual;
+	}
+
+	getDirection() {
+		return this.controller.checkMoveInputs();
 	}
 }

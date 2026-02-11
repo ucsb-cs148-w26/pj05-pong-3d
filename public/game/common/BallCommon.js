@@ -1,14 +1,14 @@
 import { SphereCollider } from '../../physics/collider.js';
 import { RigidBody } from '../../physics/engine.js';
 import * as Constants from '../constants.js';
-import { GameObjectBase } from './GameObjectBase.js';
+import { GameObjectBase } from './GameObject.js';
 
 /**
  * Ball containing physics logic and collision detection
  */
 export class BallCommon extends GameObjectBase {
-	constructor(scores) {
-		super();
+	constructor(key, scores) {
+		super(key);
 		this.scores = scores;
 		this.needsToReset = false;
 		this.body = new RigidBody(Constants.BALL_MASS);
@@ -41,12 +41,26 @@ export class BallCommon extends GameObjectBase {
 			}
 		);
 
-		this.body.v.assign(Constants.BALL_INITIAL_SPEED, 0, 0);
+		this.reset();
 	}
 
-	/**
-	 * Resets the ball to the center with a random direction
-	 */
+	update(dt) {
+		this.scores.ballSpeed = this.body.v.norm();
+
+		if (this.needsToReset) {
+			this.needsToReset = false;
+			this.reset();
+		}
+	}
+
+	get bodies() {
+		return [this.body];
+	}
+
+	get syncedBodies() {
+		return [this.body];
+	}
+
 	reset() {
 		this.body.x.assign(0, 0, 0);
 
@@ -65,26 +79,5 @@ export class BallCommon extends GameObjectBase {
 				Math.cos(theta) * Math.sin(phi)
 			)
 			.scale(Constants.BALL_INITIAL_SPEED);
-	}
-
-	/**
-	 * Updates ball physics
-	 * @param {number} dt Delta time
-	 */
-	update(dt) {
-		this.scores.ballSpeed = this.body.v.norm();
-
-		if (this.needsToReset) {
-			this.needsToReset = false;
-			this.reset();
-		}
-	}
-
-	/**
-	 * Returns the bodies to be synced with the server
-	 * @returns {Array} Array containing the ball body
-	 */
-	getBodies() {
-		return [this.body];
 	}
 }

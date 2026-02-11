@@ -5,7 +5,7 @@ export const PADDLE_HEIGHT = 3;
 export const PADDLE_DEPTH = 3;
 export const PADDLE_ACCEL = 40;
 export const PADDLE_BOUND = 5.75;
-export const PADDLE_BOUND_ADJUST = 5.65;
+export const PADDLE_BOUND_ADJUST = PADDLE_BOUND - 1 / 32;
 export const PADDLE_VELOCITY_DAMPING = -0.25;
 
 export const ARENA_DEPTH = 23.5;
