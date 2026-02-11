@@ -82,5 +82,3 @@ animatedScene.registerGameObject(
 animatedScene.registerGameObject(
 	new Ball('ball', animatedScene.getGameObject('infoDiv').config.scores)
 );
-
-animatedScene.animate();

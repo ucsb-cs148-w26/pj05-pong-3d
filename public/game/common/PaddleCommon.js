@@ -45,13 +45,13 @@ export class PaddleCommon extends GameObjectBase {
 
 		// Keep paddle within bounds
 		if (this.body.x.y > Constants.PADDLE_BOUND)
-			this.body.x.y = Constants.PADDLE_BOUND_ADJUST;
+			this.body.x.y = Constants.PADDLE_BOUND;
 		if (this.body.x.y < -Constants.PADDLE_BOUND)
-			this.body.x.y = -Constants.PADDLE_BOUND_ADJUST;
+			this.body.x.y = -Constants.PADDLE_BOUND;
 		if (this.body.x.z > Constants.PADDLE_BOUND)
-			this.body.x.z = Constants.PADDLE_BOUND_ADJUST;
+			this.body.x.z = Constants.PADDLE_BOUND;
 		if (this.body.x.z < -Constants.PADDLE_BOUND)
-			this.body.x.z = -Constants.PADDLE_BOUND_ADJUST;
+			this.body.x.z = -Constants.PADDLE_BOUND;
 	}
 
 	sync(dt) {}
