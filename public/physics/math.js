@@ -163,15 +163,21 @@ export class Vec3 extends Vector {
 	}
 }
 
-export class Quaternion extends Vector {
-	constructor(x = 0, y = 0, z = 0, w = 1) {
+export class Vec4 extends Vector {
+	constructor(x = 0, y = 0, z = 0, w = 0) {
 		super(4);
 		this.data[0] = x;
 		this.data[1] = y;
 		this.data[2] = z;
 		this.data[3] = w;
+	}
 
-		this.normalize();
+	static fromVec3(vec3, w = 0) {
+		return new Vec4(vec3.x, vec3.y, vec3.z, w);
+	}
+
+	xyz() {
+		return new Vec3(this.x, this.y, this.z);
 	}
 
 	get x() {
@@ -198,6 +204,18 @@ export class Quaternion extends Vector {
 	}
 	set w(value) {
 		this.data[3] = value;
+	}
+}
+
+export class Quaternion extends Vec4 {
+	constructor(x = 0, y = 0, z = 0, w = 1) {
+		super(4);
+		this.data[0] = x;
+		this.data[1] = y;
+		this.data[2] = z;
+		this.data[3] = w;
+
+		this.normalize();
 	}
 
 	static fromAxisAngle(axis, angleRad) {

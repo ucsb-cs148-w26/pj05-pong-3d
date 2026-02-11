@@ -2,13 +2,25 @@ import * as MATH from './math.js';
 import * as COLLIDERS from './collider.js';
 
 export class RigidBody {
-	constructor(mass) {
+	constructor(mass, isTrigger = false) {
 		this.m = mass;
-		this.x = MATH.ZERO.clone();
 		this.v = MATH.ZERO.clone();
 		this.f = MATH.ZERO.clone();
-		this.transform = new COLLIDERS.Transform(this.x);
+		this.transform = new COLLIDERS.Transform();
 		this.col = undefined;
+		this.isTrigger = isTrigger;
+	}
+
+	get x() {
+		return this.transform.position;
+	}
+
+	get rotation() {
+		return this.transform.rotation;
+	}
+
+	get scale() {
+		return this.transform.scale;
 	}
 }
 
@@ -105,8 +117,14 @@ export class PhysicsEngine {
 					B = bodies[i];
 				}
 
-				A.col.onCollisionCallback?.(A);
-				B.col.onCollisionCallback?.(B);
+				A.col.onCollisionCallback?.(A, B);
+				B.col.onCollisionCallback?.(B, A);
+
+				if (A.isTrigger || B.isTrigger) continue;
+
+				const [normal, depth] = COLLIDERS.EPA(result.simplex, A.col, B.col);
+
+				COLLIDERS.resolveImpulseCollision(A, B, normal, depth);
 			}
 		}
 	}
