@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { AnimatedScene } from './game/animatedScene.js';
-import { Arena, Ball, Paddle } from './game/gameObjects.js';
+import { Arena } from './game/client/Arena.js';
+import { Ball } from './game/client/Ball.js';
+import { Paddle } from './game/client/Paddle.js';
 import { KeyboardController } from './game/controllers.js';
 import PongSocketClient from './socket.js';
 import { initChat } from './chat.js';
