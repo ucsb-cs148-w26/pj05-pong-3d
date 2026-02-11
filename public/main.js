@@ -10,6 +10,7 @@ initChat(socket);
 socket.connect();
 
 const animatedScene = new AnimatedScene();
+window.animatedScene = animatedScene;
 
 animatedScene.registerGameObject(
 	{
@@ -102,4 +103,4 @@ animatedScene.registerGameObject({
 	}
 });
 
-animatedScene.animate();
+animatedScene.start();

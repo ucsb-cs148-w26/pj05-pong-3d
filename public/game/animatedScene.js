@@ -11,7 +11,6 @@ export class AnimatedScene {
 	constructor() {
 		this.renderer = new THREE.WebGLRenderer();
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
-		this._renderSuspended = false;
 		document.body.appendChild(this.renderer.domElement);
 
 		this.scene = new THREE.Scene();
@@ -45,7 +44,6 @@ export class AnimatedScene {
 		this.physics = new PhysicsEngine();
 
 		this._isRunning = false;
-		this._rafId = null;
 	}
 
 	/*
@@ -57,6 +55,7 @@ export class AnimatedScene {
 	- obj.init? -> Convience component for running an init function. Calls obj.init(), then discards the function.
 	- obj.update? -> Function called on each frame before physics is run. `dt` is passed in. Called as obj.update(dt)
 	- obj.sync? -> Function called on each frame after physics is run, but before colliders are checked. `dt` is passed in.
+	- obj.onKill? -> Optional cleanup hook called before deleteGameObject removes the object. Called as obj.onKill()
 	If none is provided but visual and body exist, it will call obj.visual.position.copy( obj.body.x ) to copy position
 
 	Alternatively, pass in an object with { key: '<key>', object: <object> } instead.
@@ -99,7 +98,7 @@ export class AnimatedScene {
 					}
 				});
 
-			const onKill = obj.onKill || objBody.onKill;
+			const onKill = objBody?.onKill;
 			if (typeof onKill === 'function') this.onKills.set(obj.key, onKill);
 		}
 	}
@@ -113,7 +112,7 @@ export class AnimatedScene {
 		if (!objBody) return false;
 
 		const onKill = this.onKills.get(key);
-		if (typeof onKill === 'function') onKill(objBody, key);
+		if (onKill) onKill();
 
 		this.onKills.delete(key);
 		this.updates.delete(key);
@@ -132,30 +131,26 @@ export class AnimatedScene {
 	}
 
 	animate() {
-		this.start();
+		requestAnimationFrame(() => this._tick());
 	}
 
 	start() {
 		if (this._isRunning) return;
 		this._isRunning = true;
-		this._renderSuspended = false;
 		this._readdVisuals();
 		this.clock.getDelta();
-		this._tick();
+		this.animate();
 	}
 
 	stop() {
 		if (!this._isRunning) return;
 		this._isRunning = false;
-		if (this._rafId !== null) cancelAnimationFrame(this._rafId);
-		this._rafId = null;
-		this._renderSuspended = true;
 		this._removeVisuals();
 	}
 
 	_tick() {
 		if (!this._isRunning) return;
-		this._rafId = requestAnimationFrame(() => this._tick());
+		requestAnimationFrame(() => this._tick());
 
 		const delta = this.clock.getDelta();
 
