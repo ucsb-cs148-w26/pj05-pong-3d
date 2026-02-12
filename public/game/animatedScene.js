@@ -31,8 +31,6 @@ export class AnimatedScene extends Scene {
 		this.camera.up.set(0, 1, 0);
 		this.camera.lookAt(0, 0, 0);
 
-		this.visuals = new Map();
-
 		// Orbit controls is the camera spinning around the center of the arena
 		this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
@@ -47,7 +45,6 @@ export class AnimatedScene extends Scene {
 
 		for (const obj of objs) {
 			if (obj.visual) {
-				this.visuals.set(obj.key, obj.visual);
 				this.scene.add(obj.visual);
 			}
 		}
@@ -57,18 +54,20 @@ export class AnimatedScene extends Scene {
 		const obj = this.getGameObject(key);
 		if (!obj) return false;
 
-		const visual = this.visuals.get(key);
-		if (visual) {
-			this.scene.remove(visual);
-			this._disposeVisual(visual);
-			this.visuals.delete(key);
+		if (obj.visual) {
+			this.scene.remove(obj.visual);
+			this.#disposeVisual(obj.visual);
 		}
 
 		return super.deleteGameObject(key);
 	}
 
 	animate() {
-		if (!this._isRunning) return;
+		if (!this._isRunning) {
+			this.renderer.clear();
+			return;
+		}
+
 		requestAnimationFrame(() => this.animate());
 
 		const delta = this.clock.getDelta();
@@ -80,7 +79,6 @@ export class AnimatedScene extends Scene {
 		if (this._isRunning) return;
 		this._isRunning = true;
 		this._showNonThreeElements();
-		this._readdVisuals();
 		this.clock.getDelta();
 		this.animate();
 	}
@@ -88,7 +86,6 @@ export class AnimatedScene extends Scene {
 	stop() {
 		if (!this._isRunning) return;
 		this._isRunning = false;
-		this._removeVisuals();
 		this._hideNonThreeElements();
 		this.renderer.render(this.scene, this.camera);
 	}
@@ -109,18 +106,6 @@ export class AnimatedScene extends Scene {
 		}
 	}
 
-	_removeVisuals() {
-		for (const visual of this.visuals.values()) {
-			this.scene.remove(visual);
-		}
-	}
-
-	_readdVisuals() {
-		for (const visual of this.visuals.values()) {
-			if (!this.scene.children.includes(visual)) this.scene.add(visual);
-		}
-	}
-
 	_hideNonThreeElements() {
 		this._hiddenHtml.clear();
 		for (const el of document.body.children) {
@@ -137,20 +122,20 @@ export class AnimatedScene extends Scene {
 		this._hiddenHtml.clear();
 	}
 
-	_disposeVisual(root) {
+	#disposeVisual(root) {
 		root.traverse((obj) => {
 			if (obj.geometry) obj.geometry.dispose();
 			if (obj.material) {
 				if (Array.isArray(obj.material)) {
-					for (const mat of obj.material) this._disposeMaterial(mat);
+					for (const mat of obj.material) this.#disposeMaterial(mat);
 				} else {
-					this._disposeMaterial(obj.material);
+					this.#disposeMaterial(obj.material);
 				}
 			}
 		});
 	}
 
-	_disposeMaterial(mat) {
+	#disposeMaterial(mat) {
 		for (const key in mat) {
 			const value = mat[key];
 			if (value && value.isTexture) value.dispose();
