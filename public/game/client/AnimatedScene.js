@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { Scene } from './common/Scene.js';
+import { Scene } from '../common/Scene.js';
 
 /**
  * Scene with rendering capabilities. Uses the `visual` on each game object.

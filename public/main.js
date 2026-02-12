@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { AnimatedScene } from './game/animatedScene.js';
+import { AnimatedScene } from './game/client/AnimatedScene.js';
 import { GameObjectCustom } from './game/common/GameObject.js';
 import { Arena } from './game/client/Arena.js';
 import { Ball } from './game/client/Ball.js';
