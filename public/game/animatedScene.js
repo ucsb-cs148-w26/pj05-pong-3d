@@ -44,6 +44,7 @@ export class AnimatedScene {
 		this.physics = new PhysicsEngine();
 
 		this._isRunning = false;
+		this._hiddenHtml = new Map();
 	}
 
 	/*
@@ -131,26 +132,8 @@ export class AnimatedScene {
 	}
 
 	animate() {
-		requestAnimationFrame(() => this._tick());
-	}
-
-	start() {
-		if (this._isRunning) return;
-		this._isRunning = true;
-		this._readdVisuals();
-		this.clock.getDelta();
-		this.animate();
-	}
-
-	stop() {
 		if (!this._isRunning) return;
-		this._isRunning = false;
-		this._removeVisuals();
-	}
-
-	_tick() {
-		if (!this._isRunning) return;
-		requestAnimationFrame(() => this._tick());
+		requestAnimationFrame(() => this.animate());
 
 		const delta = this.clock.getDelta();
 
@@ -162,6 +145,23 @@ export class AnimatedScene {
 
 		this.physics.checkColliders();
 
+		this.renderer.render(this.scene, this.camera);
+	}
+
+	start() {
+		if (this._isRunning) return;
+		this._isRunning = true;
+		this._showNonThreeElements();
+		this._readdVisuals();
+		this.clock.getDelta();
+		this.animate();
+	}
+
+	stop() {
+		if (!this._isRunning) return;
+		this._isRunning = false;
+		this._removeVisuals();
+		this._hideNonThreeElements();
 		this.renderer.render(this.scene, this.camera);
 	}
 
@@ -191,6 +191,22 @@ export class AnimatedScene {
 		for (const visual of this.visuals.values()) {
 			if (!this.scene.children.includes(visual)) this.scene.add(visual);
 		}
+	}
+
+	_hideNonThreeElements() {
+		this._hiddenHtml.clear();
+		for (const el of document.body.children) {
+			if (el === this.renderer.domElement) continue;
+			this._hiddenHtml.set(el, el.style.display);
+			el.style.display = 'none';
+		}
+	}
+
+	_showNonThreeElements() {
+		for (const [el, display] of this._hiddenHtml.entries()) {
+			el.style.display = display;
+		}
+		this._hiddenHtml.clear();
 	}
 
 	_disposeVisual(root) {
