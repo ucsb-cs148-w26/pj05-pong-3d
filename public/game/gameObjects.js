@@ -167,4 +167,8 @@ export class Ball {
 			this.reset();
 		}
 	}
+
+	onKill() {
+		console.log(`from ball: ${this.body.v}`);
+	}
 }

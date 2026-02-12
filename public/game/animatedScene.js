@@ -35,12 +35,16 @@ export class AnimatedScene {
 		this.visuals = new Map();
 		this.updates = new Map();
 		this.requiresSync = new Map();
+		this.onKills = new Map();
 
 		// Orbit controls is the camera spinning around the center of the arena
 		this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
 		this.clock = new THREE.Clock();
 		this.physics = new PhysicsEngine();
+
+		this._isRunning = false;
+		this._hiddenHtml = new Map();
 	}
 
 	/*
@@ -52,6 +56,7 @@ export class AnimatedScene {
 	- obj.init? -> Convience component for running an init function. Calls obj.init(), then discards the function.
 	- obj.update? -> Function called on each frame before physics is run. `dt` is passed in. Called as obj.update(dt)
 	- obj.sync? -> Function called on each frame after physics is run, but before colliders are checked. `dt` is passed in.
+	- obj.onKill? -> Optional cleanup hook called before deleteGameObject removes the object. Called as obj.onKill()
 	If none is provided but visual and body exist, it will call obj.visual.position.copy( obj.body.x ) to copy position
 
 	Alternatively, pass in an object with { key: '<key>', object: <object> } instead.
@@ -93,6 +98,10 @@ export class AnimatedScene {
 						objBody.visual.position.copy(objBody.body.x);
 					}
 				});
+
+			if (typeof objBody?.onKill === 'function') {
+				this.onKills.set(obj.key, objBody);
+			}
 		}
 	}
 
@@ -100,9 +109,31 @@ export class AnimatedScene {
 		return this.gameObjects.get(key);
 	}
 
-	// TODO; add a KillObject
+	deleteGameObject(key) {
+		const objBody = this.gameObjects.get(key);
+		if (!objBody) return false;
+
+		const onKill = this.onKills.get(key);
+		onKill.onKill();
+
+		this.onKills.delete(key);
+		this.updates.delete(key);
+		this.requiresSync.delete(key);
+		this.physics.bodies.delete(key);
+
+		const visual = this.visuals.get(key);
+		if (visual) {
+			this.scene.remove(visual);
+			this._disposeVisual(visual);
+			this.visuals.delete(key);
+		}
+
+		this.gameObjects.delete(key);
+		return true;
+	}
 
 	animate() {
+		if (!this._isRunning) return;
 		requestAnimationFrame(() => this.animate());
 
 		const delta = this.clock.getDelta();
@@ -115,6 +146,23 @@ export class AnimatedScene {
 
 		this.physics.checkColliders();
 
+		this.renderer.render(this.scene, this.camera);
+	}
+
+	start() {
+		if (this._isRunning) return;
+		this._isRunning = true;
+		this._showNonThreeElements();
+		this._readdVisuals();
+		this.clock.getDelta();
+		this.animate();
+	}
+
+	stop() {
+		if (!this._isRunning) return;
+		this._isRunning = false;
+		this._removeVisuals();
+		this._hideNonThreeElements();
 		this.renderer.render(this.scene, this.camera);
 	}
 
@@ -132,5 +180,54 @@ export class AnimatedScene {
 			this.camera.position.set(0, 0, 0);
 			this.camera.up.set(0, 0, 1);
 		}
+	}
+
+	_removeVisuals() {
+		for (const visual of this.visuals.values()) {
+			this.scene.remove(visual);
+		}
+	}
+
+	_readdVisuals() {
+		for (const visual of this.visuals.values()) {
+			if (!this.scene.children.includes(visual)) this.scene.add(visual);
+		}
+	}
+
+	_hideNonThreeElements() {
+		this._hiddenHtml.clear();
+		for (const el of document.body.children) {
+			if (el === this.renderer.domElement) continue;
+			this._hiddenHtml.set(el, el.style.display);
+			el.style.display = 'none';
+		}
+	}
+
+	_showNonThreeElements() {
+		for (const [el, display] of this._hiddenHtml.entries()) {
+			el.style.display = display;
+		}
+		this._hiddenHtml.clear();
+	}
+
+	_disposeVisual(root) {
+		root.traverse((obj) => {
+			if (obj.geometry) obj.geometry.dispose();
+			if (obj.material) {
+				if (Array.isArray(obj.material)) {
+					for (const mat of obj.material) this._disposeMaterial(mat);
+				} else {
+					this._disposeMaterial(obj.material);
+				}
+			}
+		});
+	}
+
+	_disposeMaterial(mat) {
+		for (const key in mat) {
+			const value = mat[key];
+			if (value && value.isTexture) value.dispose();
+		}
+		mat.dispose?.();
 	}
 }
