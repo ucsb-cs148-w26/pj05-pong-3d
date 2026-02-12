@@ -13,6 +13,7 @@ initChat(socket);
 socket.connect();
 
 const animatedScene = new AnimatedScene();
+window.animatedScene = animatedScene;
 
 animatedScene.registerGameObject(
 	new Arena('gameArena'),
@@ -82,3 +83,5 @@ animatedScene.registerGameObject(
 animatedScene.registerGameObject(
 	new Ball('ball', animatedScene.getGameObject('infoDiv').config.scores)
 );
+
+animatedScene.start();

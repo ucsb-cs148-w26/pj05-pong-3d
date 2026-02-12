@@ -33,6 +33,11 @@ export class GameObjectBase {
 	}
 
 	/**
+	 * Function called when this object is removed from the scene.
+	 */
+	kill() {}
+
+	/**
 	 * Returns the THREE.js mesh object to be added to the scene.
 	 * Do not implement on the server side.
 	 */
@@ -78,6 +83,10 @@ export class GameObjectCustom extends GameObjectBase {
 
 	sync(dt) {
 		if (typeof this.config.sync === 'function') this.config.sync(dt);
+	}
+
+	kill() {
+		if (typeof this.config.kill === 'function') this.config.kill();
 	}
 
 	get visual() {

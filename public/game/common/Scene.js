@@ -27,6 +27,25 @@ export class Scene {
 	}
 
 	/**
+	 * Delete a game object from the scene, calling its kill function.
+	 * @param {string} key The unique identifier of the object
+	 * @returns {boolean} Whether the object was successfully deleted
+	 */
+	deleteGameObject(key) {
+		const obj = this.gameObjects.get(key);
+		if (!obj) return false;
+
+		obj.kill();
+
+		for (let i = 0; i < obj.bodies.length; i++) {
+			this.physics.bodies.delete(obj.key + i);
+		}
+
+		this.gameObjects.delete(key);
+		return true;
+	}
+
+	/**
 	 * Retrieve a game object by its key
 	 * @param {string} key The unique identifier of the object
 	 * @returns {object} The game object, or undefined if not found
