@@ -152,4 +152,8 @@ export class Ball {
 			}
 		}
 	}
+
+	onKill() {
+		console.log(`from ball: ${this.body.v}`);
+	}
 }

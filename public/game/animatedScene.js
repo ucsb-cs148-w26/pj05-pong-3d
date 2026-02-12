@@ -99,8 +99,9 @@ export class AnimatedScene {
 					}
 				});
 
-			const onKill = objBody?.onKill;
-			if (typeof onKill === 'function') this.onKills.set(obj.key, onKill);
+			if (typeof objBody?.onKill === 'function') {
+				this.onKills.set(obj.key, objBody);
+			}
 		}
 	}
 
@@ -113,7 +114,7 @@ export class AnimatedScene {
 		if (!objBody) return false;
 
 		const onKill = this.onKills.get(key);
-		if (onKill) onKill();
+		onKill.onKill();
 
 		this.onKills.delete(key);
 		this.updates.delete(key);
