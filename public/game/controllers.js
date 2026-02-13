@@ -1,8 +1,5 @@
-import { Vec3 } from '../physics/math.js';
-
 export class KeyboardController {
-	constructor(plane = 'xz', lrudCodes = ['KeyA', 'KeyD', 'KeyW', 'KeyS']) {
-		this.plane = plane;
+	constructor(lrudCodes = ['KeyA', 'KeyD', 'KeyW', 'KeyS']) {
 		this.keys = new Set();
 		this.codes = lrudCodes;
 
@@ -18,51 +15,25 @@ export class KeyboardController {
 
 		window.addEventListener('keydown', this._onKeyDown);
 		window.addEventListener('keyup', this._onKeyUp);
-
-		this._dir = new Vec3();
 	}
 
-	checkMoveInputs() {
-		let x = 0,
-			y = 0,
-			z = 0;
-
+	getMoveInputs() {
 		const left = this.keys.has(this.codes[0]);
 		const right = this.keys.has(this.codes[1]);
 		const up = this.keys.has(this.codes[2]);
 		const down = this.keys.has(this.codes[3]);
 
-		switch (this.plane) {
-			case 'xy':
-				if (left) x -= 1;
-				if (right) x += 1;
-				if (down) y -= 1;
-				if (up) y += 1;
-				break;
+		let lr = 0;
+		let ud = 0;
 
-			case 'xz':
-				if (left) x -= 1;
-				if (right) x += 1;
-				if (up) z -= 1;
-				if (down) z += 1;
-				break;
+		if (left) lr -= 1;
+		if (right) lr += 1;
+		if (up) ud += 1;
+		if (down) ud -= 1;
 
-			case 'yz':
-				if (down) y -= 1;
-				if (up) y += 1;
-				if (left) z -= 1;
-				if (right) z += 1;
-				break;
+		const norm = Math.hypot(lr, ud);
+		if (norm === 0) return [0, 0];
 
-			default:
-				throw new Error(`Unknown plane: ${this.plane}`);
-		}
-
-		if (x === 0 && y === 0 && z === 0) {
-			return null;
-		}
-
-		this._dir.assign(x, y, z).normalize();
-		return this._dir;
+		return [lr / norm, ud / norm];
 	}
 }

@@ -15,6 +15,8 @@ socket.connect();
 const animatedScene = new AnimatedScene();
 window.animatedScene = animatedScene;
 
+animatedScene.registerGameObject(new GameObjectCustom('socket', { socket }));
+
 animatedScene.registerGameObject(
 	new Arena('gameArena'),
 	new GameObjectCustom('ambientLight', {
@@ -65,18 +67,17 @@ animatedScene.registerGameObject(
 				${pingText}`;
 		}
 	}),
-	new Paddle(
-		'paddleWASD',
-		{ color: 0x00ff00, linewidth: 4 },
-		'paddle',
-		-23.5 / 2.125
-	),
+	new Paddle('paddleWASD', 'yz', 'paddle', -23.5 / 2.125, {
+		color: 0x00ff00,
+		linewidth: 4
+	}),
 	new Paddle(
 		'paddleIJKL',
-		{ color: 0xff0000, linewidth: 4 },
+		'yz',
 		'paddle',
 		23.5 / 2.125,
-		new KeyboardController('yz', ['KeyJ', 'KeyL', 'KeyI', 'KeyK'])
+		{ color: 0xff0000, linewidth: 4 },
+		new KeyboardController(['KeyJ', 'KeyL', 'KeyI', 'KeyK'])
 	)
 );
 

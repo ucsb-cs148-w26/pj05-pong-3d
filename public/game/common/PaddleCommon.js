@@ -10,8 +10,9 @@ import { GameObjectBase } from './GameObject.js';
  * Subclasses must implement getDirection() to provide movement control
  */
 export class PaddleCommon extends GameObjectBase {
-	constructor(key, bodyIdentifier, initialX) {
+	constructor(key, plane, bodyIdentifier, initialX) {
 		super(key);
+		this.plane = plane;
 		this.bodyIdentifier = bodyIdentifier;
 		this.body = new RigidBody(Constants.STATIC_MASS);
 		this.body.ballIdentifier = bodyIdentifier;
@@ -31,8 +32,32 @@ export class PaddleCommon extends GameObjectBase {
 	}
 
 	update(dt) {
-		let direction = this.getDirection();
-		if (direction === null) direction = new Vec3();
+		const inputDirection = this.getDirection();
+		let x = 0,
+			y = 0,
+			z = 0;
+		switch (this.plane) {
+			case 'xy':
+				x += inputDirection[0];
+				y += inputDirection[1];
+				break;
+
+			case 'xz':
+				x += inputDirection[0];
+				z += inputDirection[1];
+				break;
+
+			case 'yz':
+				y += inputDirection[1];
+				z += inputDirection[0];
+				break;
+
+			default:
+				throw new Error(`Unknown plane: ${this.plane}`);
+		}
+
+		const direction = new Vec3();
+		direction.assign(x, y, z);
 
 		direction.addVec(
 			this.body.v.clone().scale(Constants.PADDLE_VELOCITY_DAMPING)
@@ -54,8 +79,6 @@ export class PaddleCommon extends GameObjectBase {
 			this.body.x.z = -Constants.PADDLE_BOUND;
 	}
 
-	sync(dt) {}
-
 	get bodies() {
 		return [this.body];
 	}
@@ -67,7 +90,7 @@ export class PaddleCommon extends GameObjectBase {
 	/**
 	 * Abstract method: returns the direction vector for paddle movement
 	 * Must be implemented by subclasses
-	 * @returns {Vec3} Direction vector
+	 * @returns {Array} [LR, UD] movement direction vector
 	 */
 	getDirection() {
 		throw new Error('getDirection() must be implemented by subclass');

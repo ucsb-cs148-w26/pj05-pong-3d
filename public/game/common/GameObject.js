@@ -29,7 +29,9 @@ export class GameObjectBase {
 	 * @param {number} dt Delta time since the last sync.
 	 */
 	sync(dt) {
-		if (this.visual && this.body) this.visual.position.copy(this.body.x);
+		if (this.visual && this.bodies.length === 1) {
+			this.visual.position.copy(this.bodies[0].x);
+		}
 	}
 
 	/**

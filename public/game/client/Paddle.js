@@ -9,15 +9,17 @@ import { PaddleCommon } from '../common/PaddleCommon.js';
  */
 export class Paddle extends PaddleCommon {
 	#visual = null;
+	#socket = null;
 
 	constructor(
 		key,
-		meshSettings,
+		plane,
 		bodyIdentifier,
 		initialX,
-		controller = new KeyboardController('yz')
+		meshSettings,
+		controller = new KeyboardController()
 	) {
-		super(key, bodyIdentifier, initialX);
+		super(key, plane, bodyIdentifier, initialX);
 
 		// Create THREE.js visual representation
 		const geometry = new THREE.EdgesGeometry(
@@ -34,15 +36,23 @@ export class Paddle extends PaddleCommon {
 		this.#visual.castShadow = true;
 		this.#visual.receiveShadow = true;
 
-		// Store the controller for movement input
 		this.controller = controller;
+	}
+
+	init(scene) {
+		super.init(scene);
+		this.#socket = scene.getGameObject('socket')?.config.socket;
+		console.log(this.#socket);
 	}
 
 	update(dt) {
 		super.update(dt);
 
-		// Sync visual representation with physics body
-		this.visual.position.copy(this.body.x);
+		this.#socket?.send({
+			type: 'move',
+			ts: Date.now(),
+			direction: this.getDirection()
+		});
 	}
 
 	get visual() {
@@ -50,6 +60,6 @@ export class Paddle extends PaddleCommon {
 	}
 
 	getDirection() {
-		return this.controller.checkMoveInputs();
+		return this.controller.getMoveInputs();
 	}
 }
