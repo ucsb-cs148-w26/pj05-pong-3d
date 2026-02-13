@@ -13,13 +13,12 @@ export class Paddle extends PaddleCommon {
 
 	constructor(
 		key,
-		plane,
 		bodyIdentifier,
 		initialX,
 		meshSettings,
-		controller = new KeyboardController()
+		controller = new KeyboardController(),
 	) {
-		super(key, plane, bodyIdentifier, initialX);
+		super(key, controller, bodyIdentifier, initialX);
 
 		// Create THREE.js visual representation
 		const geometry = new THREE.EdgesGeometry(
@@ -36,7 +35,6 @@ export class Paddle extends PaddleCommon {
 		this.#visual.castShadow = true;
 		this.#visual.receiveShadow = true;
 
-		this.controller = controller;
 	}
 
 	init(scene) {
@@ -50,7 +48,7 @@ export class Paddle extends PaddleCommon {
 		this.#socket?.send({
 			type: 'move',
 			ts: Date.now(),
-			direction: this.getDirection()
+			direction: [...this.controller.getDirection()] // len-3 float array
 		});
 	}
 
@@ -58,7 +56,4 @@ export class Paddle extends PaddleCommon {
 		return this.#visual;
 	}
 
-	getDirection() {
-		return this.controller.getMoveInputs();
-	}
 }

@@ -2,7 +2,8 @@ import * as Constants from '../../public/game/constants.js';
 import { Scene } from '../../public/game/common/Scene.js';
 import { ArenaCommon } from '../../public/game/common/ArenaCommon.js';
 import { BallCommon } from '../../public/game/common/BallCommon.js';
-import { PaddleServer } from './PaddleServer.js';
+import { PaddleCommon } from '../../public/game/common/PaddleCommon.js';
+import { PaddleController } from './PaddleController.js';
 
 const SYNC_INTERVAL = 5;
 
@@ -21,7 +22,7 @@ export default class ServerScene extends Scene {
 			new ArenaCommon('gameArena'),
 			new BallCommon('ball', this.scores),
 			// TODO: create on player join
-			new PaddleServer('paddleWASD', 'yz', 'paddle', -23.5 / 2.125)
+			new PaddleCommon('paddleWASD', new PaddleController(), 'paddle', -23.5 / 2.125)
 		);
 
 		socket.addHandler(this.#socketHandler.bind(this));
@@ -61,7 +62,7 @@ export default class ServerScene extends Scene {
 		if (msg.type === 'move') {
 			// TODO
 			const paddle = this.getGameObject('paddleWASD');
-			paddle.enqueueInput(msg);
+			paddle.controller.enqueueInput(msg);
 			return true;
 		}
 	}

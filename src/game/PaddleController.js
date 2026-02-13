@@ -1,14 +1,10 @@
-import { PaddleCommon } from '../../public/game/common/PaddleCommon.js';
+import { Vec3 } from '../../public/physics/math.js';
 
 const MAX_QUEUE_LENGTH = 5;
 
-export class PaddleServer extends PaddleCommon {
+export class PaddleController {
 	#inputQueue = [];
 	#lastTs = 0;
-
-	constructor(key, plane, bodyIdentifier, initialX) {
-		super(key, plane, bodyIdentifier, initialX);
-	}
 
 	get lastTs() {
 		return this.#lastTs;
@@ -23,9 +19,11 @@ export class PaddleServer extends PaddleCommon {
 			this.#inputQueue = this.#inputQueue.slice(-MAX_QUEUE_LENGTH);
 		}
 
-		if (this.#inputQueue.length === 0) return [0, 0];
+		if (this.#inputQueue.length === 0) return new Vec3();
 		const msg = this.#inputQueue.shift();
 		this.#lastTs = msg.ts;
-		return msg.direction;
+		return new Vec3(...msg.direction);
 	}
+
 }
+

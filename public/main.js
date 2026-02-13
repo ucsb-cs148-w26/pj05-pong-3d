@@ -72,7 +72,7 @@ animatedScene.registerGameObject(
 animatedScene.registerGameObject(
 	new Arena('gameArena'),
 	new Ball('ball', animatedScene.getGameObject('infoDiv').config.scores),
-	new Paddle('paddleWASD', 'yz', 'paddle', -23.5 / 2.125, {
+	new Paddle('paddleWASD', 'paddle', -23.5 / 2.125, {
 		color: 0x00ff00,
 		linewidth: 4
 	})
