@@ -16,6 +16,21 @@ function generateCode() {
 	return out;
 }
 
+const DEFAULT_COSMETICS = Object.freeze({
+	ball: { skinId: 'classic' }
+});
+
+const ALLOWED_BALL_SKINS = new Set(['classic', 'neon_blue', 'hot_pink']);
+
+function normalizeCosmetics(input) {
+const skinId = input?.ball?.skinId;
+	return {
+		ball: {
+			skinId: ALLOWED_BALL_SKINS.has(skinId) ? skinId : DEFAULT_COSMETICS.ball.skinId
+		}
+	};
+}
+
 export default class LobbyState {
 	#server = null;
 
@@ -27,12 +42,27 @@ export default class LobbyState {
 		this.sockets = new Map();
 	}
 
-	createLobby(name = 'My Lobby') {
-		const lobbyId = String(nextLobbyId++);
+	createLobby(arg = undefined) {
 
+		console.log('createLobby arg =', arg);
+		console.log('createLobby arg.cosmetics =', arg?.cosmetics);
+
+		let name = 'My Lobby';
+		let cosmetics = undefined;
+
+		if (typeof arg === 'string' || arg === undefined || arg === null) {
+			name = arg ?? 'My Lobby';
+		} else if (typeof arg === 'object') {
+			name = arg.name ?? 'My Lobby';
+			cosmetics = arg.cosmetics;
+		}
+
+		const lobbyId = String(nextLobbyId++);
+		
 		const lobby = {
 			lobbyId,
 			name,
+			cosmetics: normalizeCosmetics(cosmetics),
 			members: new Map(),
 			emptySince: Date.now(),
 			code: generateCode()
