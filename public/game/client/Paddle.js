@@ -16,7 +16,7 @@ export class Paddle extends PaddleCommon {
 		bodyIdentifier,
 		initialX,
 		meshSettings,
-		controller = new KeyboardController(),
+		controller = new KeyboardController()
 	) {
 		super(key, controller, bodyIdentifier, initialX);
 
@@ -34,7 +34,6 @@ export class Paddle extends PaddleCommon {
 		this.#visual = new THREE.LineSegments(geometry, material);
 		this.#visual.castShadow = true;
 		this.#visual.receiveShadow = true;
-
 	}
 
 	init(scene) {
@@ -55,5 +54,4 @@ export class Paddle extends PaddleCommon {
 	get visual() {
 		return this.#visual;
 	}
-
 }

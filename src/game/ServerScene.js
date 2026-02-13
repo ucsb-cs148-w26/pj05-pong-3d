@@ -22,7 +22,12 @@ export default class ServerScene extends Scene {
 			new ArenaCommon('gameArena'),
 			new BallCommon('ball', this.scores),
 			// TODO: create on player join
-			new PaddleCommon('paddleWASD', new PaddleController(), 'paddle', -23.5 / 2.125)
+			new PaddleCommon(
+				'paddleWASD',
+				new PaddleController(),
+				'paddle',
+				-23.5 / 2.125
+			)
 		);
 
 		socket.addHandler(this.#socketHandler.bind(this));

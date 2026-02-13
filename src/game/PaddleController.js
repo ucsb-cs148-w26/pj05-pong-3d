@@ -24,6 +24,4 @@ export class PaddleController {
 		this.#lastTs = msg.ts;
 		return new Vec3(...msg.direction);
 	}
-
 }
-

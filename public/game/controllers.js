@@ -16,7 +16,7 @@ for a controller to inherit from game object if need be. Otherwise, just impleme
 */
 
 export class KeyboardController {
-	constructor(lrudCodes = ['KeyA', 'KeyD', 'KeyW', 'KeyS'], plane = "zy") {
+	constructor(lrudCodes = ['KeyA', 'KeyD', 'KeyW', 'KeyS'], plane = 'zy') {
 		this.keys = new Set();
 		this.codes = lrudCodes;
 		this.plane = plane;
@@ -35,13 +35,13 @@ export class KeyboardController {
 		window.addEventListener('keyup', this._onKeyUp);
 	}
 
-	// Returns orthonormal vectors [ e_1, e_2 ] for movement. 
+	// Returns orthonormal vectors [ e_1, e_2 ] for movement.
 	// Input should be a string following (x|y|z)(x|y|z).
 	// The first char defines "left/right" movement, the second defines "up/down" movement.
 	static dirFromPlane(plane) {
-		const e = [ new MATH.Vec3() , new MATH.Vec3() ];
+		const e = [new MATH.Vec3(), new MATH.Vec3()];
 
-		for ( let i = 0; i < 2; i++ ) {
+		for (let i = 0; i < 2; i++) {
 			switch (plane[i]) {
 				case 'x':
 					e[i].assign(1, 0, 0);
@@ -64,17 +64,17 @@ export class KeyboardController {
 		const up = this.keys.has(this.codes[2]);
 		const down = this.keys.has(this.codes[3]);
 
-		if ( ![left, right, up, down].some(elem => elem) ) return new MATH.Vec3();
+		if (![left, right, up, down].some((elem) => elem)) return new MATH.Vec3();
 
-		const [ e1, e2 ] = KeyboardController.dirFromPlane( this.plane );
+		const [e1, e2] = KeyboardController.dirFromPlane(this.plane);
 
 		const retDirection = new MATH.Vec3();
 
-		if (left) retDirection.addVec( e1.clone().scale(-1) );
-		if (right) retDirection.addVec( e1.clone() );
-		if (up) retDirection.addVec( e2.clone() );
-		if (down) retDirection.addVec( e2.clone().scale(-1) );
+		if (left) retDirection.addVec(e1.clone().scale(-1));
+		if (right) retDirection.addVec(e1.clone());
+		if (up) retDirection.addVec(e2.clone());
+		if (down) retDirection.addVec(e2.clone().scale(-1));
 
-		return retDirection.normalize();		
+		return retDirection.normalize();
 	}
 }
