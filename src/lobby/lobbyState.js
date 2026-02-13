@@ -1,5 +1,6 @@
 import PongSocketServer from '../socket.js';
 import chatHandler from './chat.js';
+import ServerScene from '../game/ServerScene.js';
 
 let nextLobbyId = 1;
 const EMPTY_LOBBY_DELETE_TIME = 60_000;
@@ -23,6 +24,7 @@ export default class LobbyState {
 		this.#server = server;
 
 		this.lobbies = new Map();
+		this.scenes = new Map();
 		this.codeToLobby = new Map();
 		this.sockets = new Map();
 	}
@@ -62,6 +64,10 @@ export default class LobbyState {
 
 		socket.addHandler(chatHandler);
 		this.sockets.set(lobbyId, socket);
+
+		const scene = new ServerScene(socket);
+		scene.start();
+		this.scenes.set(lobbyId, scene);
 
 		return lobby;
 	}
@@ -114,6 +120,8 @@ export default class LobbyState {
 				now - lobby.emptySince >= EMPTY_LOBBY_DELETE_TIME
 			) {
 				this.lobbies.delete(lobbyId);
+				this.scenes.get(lobbyId).stop();
+				this.scenes.delete(lobbyId);
 				this.codeToLobby.delete(lobby.code);
 
 				this.sockets.get(lobbyId).stop();

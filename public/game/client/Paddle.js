@@ -42,7 +42,6 @@ export class Paddle extends PaddleCommon {
 	init(scene) {
 		super.init(scene);
 		this.#socket = scene.getGameObject('socket')?.config.socket;
-		console.log(this.#socket);
 	}
 
 	update(dt) {

@@ -7,7 +7,7 @@ import { Scene } from '../common/Scene.js';
  * Scene with rendering capabilities. Uses the `visual` on each game object.
  */
 export class AnimatedScene extends Scene {
-	constructor() {
+	constructor(socket) {
 		super();
 
 		this.renderer = new THREE.WebGLRenderer();
@@ -40,6 +40,8 @@ export class AnimatedScene extends Scene {
 
 		this._isRunning = false;
 		this._hiddenHtml = new Map();
+
+		socket.addHandler(this.#socketHandler.bind(this));
 	}
 
 	registerGameObject(...objs) {
@@ -100,6 +102,7 @@ export class AnimatedScene extends Scene {
 		this.renderer.render(this.scene, this.camera);
 
 		if (this.physicsInterval) clearInterval(this.physicsInterval);
+		this.physicsInterval = null;
 	}
 
 	// deprecated? can add back in later, not needed for MVP
@@ -153,5 +156,12 @@ export class AnimatedScene extends Scene {
 			if (value && value.isTexture) value.dispose();
 		}
 		mat.dispose?.();
+	}
+
+	#socketHandler(msg, respond) {
+		if (msg.type === 'sync') {
+			this.physicsLoad(msg.ts, msg.physics);
+			return true;
+		}
 	}
 }

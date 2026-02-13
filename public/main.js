@@ -12,13 +12,12 @@ const socket = new PongSocketClient();
 initChat(socket);
 socket.connect();
 
-const animatedScene = new AnimatedScene();
+const animatedScene = new AnimatedScene(socket);
 window.animatedScene = animatedScene;
 
 animatedScene.registerGameObject(new GameObjectCustom('socket', { socket }));
 
 animatedScene.registerGameObject(
-	new Arena('gameArena'),
 	new GameObjectCustom('ambientLight', {
 		visual: new THREE.AmbientLight(0xffffff, 0.2)
 	}),
@@ -66,23 +65,25 @@ animatedScene.registerGameObject(
 				Ball Speed: ${this.scores.ballSpeed.toFixed(2)}
 				${pingText}`;
 		}
-	}),
+	})
+);
+
+// Order matters: Sync with ServerScene.js
+animatedScene.registerGameObject(
+	new Arena('gameArena'),
+	new Ball('ball', animatedScene.getGameObject('infoDiv').config.scores),
 	new Paddle('paddleWASD', 'yz', 'paddle', -23.5 / 2.125, {
 		color: 0x00ff00,
 		linewidth: 4
-	}),
-	new Paddle(
-		'paddleIJKL',
-		'yz',
-		'paddle',
-		23.5 / 2.125,
-		{ color: 0xff0000, linewidth: 4 },
-		new KeyboardController(['KeyJ', 'KeyL', 'KeyI', 'KeyK'])
-	)
-);
-
-animatedScene.registerGameObject(
-	new Ball('ball', animatedScene.getGameObject('infoDiv').config.scores)
+	})
+	// new Paddle(
+	// 	'paddleIJKL',
+	// 	'yz',
+	// 	'paddle',
+	// 	23.5 / 2.125,
+	// 	{ color: 0xff0000, linewidth: 4 },
+	// 	new KeyboardController(['KeyJ', 'KeyL', 'KeyI', 'KeyK'])
+	// )
 );
 
 animatedScene.start();

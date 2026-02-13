@@ -52,7 +52,7 @@ export default class PongSocketServer extends EventEmitter {
 
 			this.#wsByClientId.set(clientId, ws);
 
-			this.#safeSend(ws, { type: 'connected', clientId });
+			this.safeSend(ws, { type: 'connected', clientId });
 
 			ws.on('message', (raw) => {
 				const text = raw.toString();
@@ -61,12 +61,12 @@ export default class PongSocketServer extends EventEmitter {
 				try {
 					msg = JSON.parse(text);
 				} catch {
-					this.#safeSend(ws, { type: 'error', message: 'Invalid JSON' });
+					this.safeSend(ws, { type: 'error', message: 'Invalid JSON' });
 					return;
 				}
 
 				if (!msg?.type) {
-					this.#safeSend(ws, {
+					this.safeSend(ws, {
 						type: 'error',
 						message: 'Missing message type'
 					});
@@ -77,7 +77,7 @@ export default class PongSocketServer extends EventEmitter {
 
 				for (const handler of this.#handlers) {
 					if (
-						handler(this, clientId, ws, msg, (res) => this.#safeSend(ws, res))
+						handler(this, clientId, ws, msg, (res) => this.safeSend(ws, res))
 					) {
 						handled = true;
 						break;
@@ -85,7 +85,7 @@ export default class PongSocketServer extends EventEmitter {
 				}
 
 				if (!handled) {
-					this.#safeSend(ws, {
+					this.safeSend(ws, {
 						type: 'error',
 						message: `Unknown message type: ${msg.type}`
 					});
@@ -109,6 +109,14 @@ export default class PongSocketServer extends EventEmitter {
 		});
 	}
 
+	forEachClient(cb) {
+		for (const [clientId, ws] of this.#wsByClientId.entries()) {
+			if (ws.readyState === WebSocket.OPEN) {
+				cb(clientId, ws);
+			}
+		}
+	}
+
 	addHandler(func) {
 		this.#handlers.push(func);
 	}
@@ -117,7 +125,7 @@ export default class PongSocketServer extends EventEmitter {
 		this.#server.off('upgrade', this.#upgradeHandler);
 	}
 
-	#safeSend(ws, obj) {
+	safeSend(ws, obj) {
 		if (ws.readyState !== ws.OPEN) return;
 		ws.send(JSON.stringify(obj));
 	}
