@@ -10,8 +10,6 @@ export default class ServerScene extends Scene {
 	#interval = null;
 	#socket = null;
 
-	#lastClientTs = new Map();
-
 	constructor(socket) {
 		super();
 
@@ -42,7 +40,8 @@ export default class ServerScene extends Scene {
 				this.#socket.forEachClient((clientId, ws) => {
 					this.#socket.safeSend(ws, {
 						type: 'sync',
-						ts: this.#lastClientTs.get(clientId) || 0,
+						// TODO
+						ts: this.getGameObject('paddleWASD').lastTs,
 						physics: Array.from(this.physicsDump())
 					});
 				});
@@ -60,9 +59,9 @@ export default class ServerScene extends Scene {
 
 	#socketHandler(socket, clientId, ws, msg, respond) {
 		if (msg.type === 'move') {
+			// TODO
 			const paddle = this.getGameObject('paddleWASD');
-			paddle.enqueueInput(msg.direction);
-			this.#lastClientTs.set(clientId, msg.ts);
+			paddle.enqueueInput(msg);
 			return true;
 		}
 	}

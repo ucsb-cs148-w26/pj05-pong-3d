@@ -4,9 +4,14 @@ const MAX_QUEUE_LENGTH = 5;
 
 export class PaddleServer extends PaddleCommon {
 	#inputQueue = [];
+	#lastTs = 0;
 
 	constructor(key, plane, bodyIdentifier, initialX) {
 		super(key, plane, bodyIdentifier, initialX);
+	}
+
+	get lastTs() {
+		return this.#lastTs;
 	}
 
 	enqueueInput(input) {
@@ -19,6 +24,8 @@ export class PaddleServer extends PaddleCommon {
 		}
 
 		if (this.#inputQueue.length === 0) return [0, 0];
-		return this.#inputQueue.shift();
+		const msg = this.#inputQueue.shift();
+		this.#lastTs = msg.ts;
+		return msg.direction;
 	}
 }
