@@ -1,6 +1,9 @@
 import * as THREE from 'three';
-import { AnimatedScene } from './game/animatedScene.js';
-import { Arena, Ball, Paddle } from './game/gameObjects.js';
+import { AnimatedScene } from './game/client/AnimatedScene.js';
+import { GameObjectCustom } from './game/common/GameObject.js';
+import { Arena } from './game/client/Arena.js';
+import { Ball } from './game/client/Ball.js';
+import { Paddle } from './game/client/Paddle.js';
 import { KeyboardController } from './game/controllers.js';
 import PongSocketClient from './socket.js';
 import { initChat } from './chat.js';
@@ -9,41 +12,34 @@ const socket = new PongSocketClient();
 initChat(socket);
 socket.connect();
 
-const animatedScene = new AnimatedScene();
+const animatedScene = new AnimatedScene(socket);
 window.animatedScene = animatedScene;
 
+animatedScene.registerGameObject(new GameObjectCustom('socket', { socket }));
+
 animatedScene.registerGameObject(
-	{
-		key: 'gameArena',
-		object: new Arena(animatedScene.physics)
-	},
-	{
-		key: 'ambientLight',
+	new GameObjectCustom('ambientLight', {
 		visual: new THREE.AmbientLight(0xffffff, 0.2)
-	},
-	{
-		key: 'light1',
+	}),
+	new GameObjectCustom('light1', {
 		visual: new THREE.PointLight(0xffffff, 1000, 100),
 		init() {
 			this.visual.position.set(0, 0, 0);
 		}
-	},
-	{
-		key: 'light2',
+	}),
+	new GameObjectCustom('light2', {
 		visual: new THREE.PointLight(0xffffff, 1000, 100),
 		init() {
 			this.visual.position.set(-8, 0, 0);
 		}
-	},
-	{
-		key: 'light3',
+	}),
+	new GameObjectCustom('light3', {
 		visual: new THREE.PointLight(0xffffff, 1000, 100),
 		init() {
 			this.visual.position.set(8, 0, 0);
 		}
-	},
-	{
-		key: 'infoDiv',
+	}),
+	new GameObjectCustom('infoDiv', {
 		self: document.createElement('div'),
 		scores: { WASD: 0, IJKL: 0, ballSpeed: 0 },
 		socket,
@@ -69,35 +65,25 @@ animatedScene.registerGameObject(
 				Ball Speed: ${this.scores.ballSpeed.toFixed(2)}
 				${pingText}`;
 		}
-	},
-	{
-		key: 'paddleWASD',
-		object: new Paddle({ color: 0x00ff00, linewidth: 4 }, 'paddle'),
-		init() {
-			this.object.body.x.assign(-23.5 / 2.125, 0, 0);
-			animatedScene.physics.registerForce(this.object.forceApplier);
-		}
-	},
-	{
-		key: 'paddleIJKL',
-		object: new Paddle(
-			{ color: 0xff0000, linewidth: 4 },
-			'paddle',
-			new KeyboardController('yz', ['KeyJ', 'KeyL', 'KeyI', 'KeyK'])
-		),
-		init() {
-			this.object.body.x.assign(23.5 / 2.125, 0, 0);
-			animatedScene.physics.registerForce(this.object.forceApplier);
-		}
-	}
+	})
 );
 
-animatedScene.registerGameObject({
-	key: 'ball',
-	object: new Ball(animatedScene.getGameObject('infoDiv').scores),
-	init() {
-		this.object.reset();
-	}
-});
+// Order matters: Sync with ServerScene.js
+animatedScene.registerGameObject(
+	new Arena('gameArena'),
+	new Ball('ball', animatedScene.getGameObject('infoDiv').config.scores),
+	new Paddle('paddleWASD', 'paddle', -23.5 / 2.125, {
+		color: 0x00ff00,
+		linewidth: 4
+	})
+	// new Paddle(
+	// 	'paddleIJKL',
+	// 	'yz',
+	// 	'paddle',
+	// 	23.5 / 2.125,
+	// 	{ color: 0xff0000, linewidth: 4 },
+	// 	new KeyboardController(['KeyJ', 'KeyL', 'KeyI', 'KeyK'])
+	// )
+);
 
 animatedScene.start();
