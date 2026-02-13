@@ -23,10 +23,12 @@ const DEFAULT_COSMETICS = Object.freeze({
 const ALLOWED_BALL_SKINS = new Set(['classic', 'neon_blue', 'hot_pink']);
 
 function normalizeCosmetics(input) {
-const skinId = input?.ball?.skinId;
+	const skinId = input?.ball?.skinId;
 	return {
 		ball: {
-			skinId: ALLOWED_BALL_SKINS.has(skinId) ? skinId : DEFAULT_COSMETICS.ball.skinId
+			skinId: ALLOWED_BALL_SKINS.has(skinId)
+				? skinId
+				: DEFAULT_COSMETICS.ball.skinId
 		}
 	};
 }
@@ -43,10 +45,6 @@ export default class LobbyState {
 	}
 
 	createLobby(arg = undefined) {
-
-		console.log('createLobby arg =', arg);
-		console.log('createLobby arg.cosmetics =', arg?.cosmetics);
-
 		let name = 'My Lobby';
 		let cosmetics = undefined;
 
@@ -58,7 +56,7 @@ export default class LobbyState {
 		}
 
 		const lobbyId = String(nextLobbyId++);
-		
+
 		const lobby = {
 			lobbyId,
 			name,
