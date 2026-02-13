@@ -109,12 +109,6 @@ export default class PongSocketClient {
 			if (typeof msg.clientTs === 'number') {
 				this.#lastLatencyMs = Date.now() - msg.clientTs;
 			}
-			console.log(
-				'[ws] pong clientTs=',
-				msg.clientTs,
-				'latencyMs=',
-				this.#lastLatencyMs
-			);
 			return true;
 		}
 		if (msg.type === 'error') {
