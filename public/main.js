@@ -10,11 +10,12 @@ initChat(socket);
 socket.connect();
 
 const animatedScene = new AnimatedScene();
+window.animatedScene = animatedScene;
 
 animatedScene.registerGameObject(
 	{
 		key: 'gameArena',
-		object: new Arena()
+		object: new Arena(animatedScene.physics)
 	},
 	{
 		key: 'ambientLight',
@@ -71,9 +72,9 @@ animatedScene.registerGameObject(
 	},
 	{
 		key: 'paddleWASD',
-		object: new Paddle({ color: 0x00ff00, linewidth: 4 }),
+		object: new Paddle({ color: 0x00ff00, linewidth: 4 }, 'paddle'),
 		init() {
-			this.object.body.applyTransform((vec) => vec.add(-23.5 / 4.125, 0, 0));
+			this.object.body.x.assign(-23.5 / 2.125, 0, 0);
 			animatedScene.physics.registerForce(this.object.forceApplier);
 		}
 	},
@@ -81,10 +82,11 @@ animatedScene.registerGameObject(
 		key: 'paddleIJKL',
 		object: new Paddle(
 			{ color: 0xff0000, linewidth: 4 },
+			'paddle',
 			new KeyboardController('yz', ['KeyJ', 'KeyL', 'KeyI', 'KeyK'])
 		),
 		init() {
-			this.object.body.applyTransform((vec) => vec.add(23.5 / 4.125, 0, 0));
+			this.object.body.x.assign(23.5 / 2.125, 0, 0);
 			animatedScene.physics.registerForce(this.object.forceApplier);
 		}
 	}
@@ -92,14 +94,10 @@ animatedScene.registerGameObject(
 
 animatedScene.registerGameObject({
 	key: 'ball',
-	object: new Ball(
-		animatedScene.getGameObject('paddleWASD'),
-		animatedScene.getGameObject('paddleIJKL'),
-		animatedScene.getGameObject('infoDiv').scores
-	),
+	object: new Ball(animatedScene.getGameObject('infoDiv').scores),
 	init() {
 		this.object.reset();
 	}
 });
 
-animatedScene.animate();
+animatedScene.start();

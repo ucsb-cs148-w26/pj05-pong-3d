@@ -2,17 +2,25 @@ import * as MATH from './math.js';
 import * as COLLIDERS from './collider.js';
 
 export class RigidBody {
-	constructor(mass, collider) {
+	constructor(mass, isTrigger = false) {
 		this.m = mass;
-		this.x = MATH.ZERO.clone();
 		this.v = MATH.ZERO.clone();
 		this.f = MATH.ZERO.clone();
-		this.col = collider;
+		this.transform = new COLLIDERS.Transform();
+		this.col = undefined;
+		this.isTrigger = isTrigger;
 	}
 
-	applyTransform(transform) {
-		transform(this.x);
-		this.col?.applyTransform(transform);
+	get x() {
+		return this.transform.position;
+	}
+
+	get rotation() {
+		return this.transform.rotation;
+	}
+
+	get scale() {
+		return this.transform.scale;
 	}
 }
 
@@ -53,11 +61,7 @@ export class PhysicsEngine {
 	updateState(dx) {
 		let j = 0;
 		for (const body of this.bodies.values()) {
-			let dx_x = dx.get(j++);
-			let dx_y = dx.get(j++);
-			let dx_z = dx.get(j++);
-
-			body.applyTransform((vec) => vec.add(dx_x, dx_y, dx_z));
+			body.x.add(dx.get(j++), dx.get(j++), dx.get(j++));
 			body.v.add(dx.get(j++), dx.get(j++), dx.get(j++));
 		}
 	}
@@ -94,7 +98,7 @@ export class PhysicsEngine {
 				let result = bodies[i].col.checkCollision(bodies[j].col);
 				if (result === undefined) {
 					i_then_j = false;
-					result = bodies[j].col.checkCollision(bodies[j].col);
+					result = bodies[j].col.checkCollision(bodies[i].col);
 					if (result === undefined)
 						throw new Error(
 							`Some two collision objects don't support collision against each other`
@@ -113,7 +117,14 @@ export class PhysicsEngine {
 					B = bodies[i];
 				}
 
-				COLLIDERS.resolveCollision(A, B, result.normal);
+				A.col.onCollisionCallback?.(A, B);
+				B.col.onCollisionCallback?.(B, A);
+
+				if (A.isTrigger || B.isTrigger) continue;
+
+				const [normal, depth] = COLLIDERS.EPA(result.simplex, A.col, B.col);
+
+				COLLIDERS.resolveImpulseCollision(A, B, normal, depth);
 			}
 		}
 	}
