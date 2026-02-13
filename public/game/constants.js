@@ -1,5 +1,7 @@
 export const STATIC_MASS = 999999;
 
+export const SIMULATION_RATE = 120; // must be ~same between client and server
+
 export const PADDLE_THICKNESS = 0.5;
 export const PADDLE_HEIGHT = 3;
 export const PADDLE_DEPTH = 3;

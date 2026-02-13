@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import * as Constants from '../constants.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Scene } from '../common/Scene.js';
 
@@ -34,7 +35,8 @@ export class AnimatedScene extends Scene {
 		// Orbit controls is the camera spinning around the center of the arena
 		this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
-		this.clock = new THREE.Clock();
+		this.physicsClock = new THREE.Clock();
+		this.physicsInterval = null;
 
 		this._isRunning = false;
 		this._hiddenHtml = new Map();
@@ -62,6 +64,11 @@ export class AnimatedScene extends Scene {
 		return super.deleteGameObject(key);
 	}
 
+	simulate() {
+		const delta = this.physicsClock.getDelta();
+		this.step(Math.min(delta, 2 / Constants.SIMULATION_RATE));
+	}
+
 	animate() {
 		if (!this._isRunning) {
 			this.renderer.clear();
@@ -69,9 +76,6 @@ export class AnimatedScene extends Scene {
 		}
 
 		requestAnimationFrame(() => this.animate());
-
-		const delta = this.clock.getDelta();
-		this.step(delta);
 		this.renderer.render(this.scene, this.camera);
 	}
 
@@ -79,7 +83,13 @@ export class AnimatedScene extends Scene {
 		if (this._isRunning) return;
 		this._isRunning = true;
 		this._showNonThreeElements();
-		this.clock.getDelta();
+
+		// FIXME: this is not precise
+		this.physicsInterval = setInterval(
+			() => this.simulate(),
+			1000 / Constants.SIMULATION_RATE
+		);
+
 		this.animate();
 	}
 
@@ -88,6 +98,8 @@ export class AnimatedScene extends Scene {
 		this._isRunning = false;
 		this._hideNonThreeElements();
 		this.renderer.render(this.scene, this.camera);
+
+		if (this.physicsInterval) clearInterval(this.physicsInterval);
 	}
 
 	// deprecated? can add back in later, not needed for MVP
