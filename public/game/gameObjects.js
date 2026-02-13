@@ -22,7 +22,7 @@ export class Paddle {
 		this.body.ballIdentifier = bodyIdentifier;
 		this.body.col = new BoxCollider(0.5, 3, 3, this.body.transform);
 		this.controller = controller;
-		this.accel = 40;
+		this.accel = 60;
 		this.forceApplier = new BodyForceApplier(this.body, (vec) => {});
 	}
 
@@ -39,9 +39,12 @@ export class Paddle {
 		let direction = this.controller.checkMoveInputs();
 		if (direction === null) direction = new Vec3();
 
+		// drag force
 		direction.addVec(this.body.v.clone().scale(-0.25));
+		
+		const speedFactor = this.scores ? this.scores.ballSpeed / 5 : 1;
+		direction.scale(this.accel * this.body.m * speedFactor);
 
-		direction.scale(this.accel * this.body.m);
 		this.forceApplier.applier = (f) => {
 			f.addVec(direction);
 		};
@@ -110,6 +113,9 @@ export class Ball {
 		this.scores = scores;
 		this.needsToReset = false;
 		this.body = new RigidBody(3);
+		
+		this.serveDirection = 1; // 1 = right, -1 = left
+
 		this.body.col = new SphereCollider(
 			0.5,
 			this.body.transform,
@@ -118,8 +124,18 @@ export class Ball {
 
 				switch (other.ballIdentifier) {
 					case 'paddle': {
-						const tinyV = this.body.v.clone().normalize().scale(0.1);
-						this.body.v.addVec(tinyV);
+						// // Increase paddle's acceleration temporarily
+						// other.accel *= 1.5;  // paddle is 'other' here
+						// setTimeout(() => { other.accel /= 1.5 }, 200); // reset after 0.2s
+
+						// Always keep the current speed (or slightly increase it)
+						const rallySpeed = Math.max(this.body.v.norm() + 0.3, 5); // optional increase per rally
+						const dir = this.body.v.clone().normalize();
+						this.body.v.assign(
+							dir.x * rallySpeed,
+							dir.y * rallySpeed,
+							dir.z * rallySpeed
+						);
 						return;
 					}
 
@@ -144,19 +160,16 @@ export class Ball {
 
 		let theta = (Math.random() * PI) / 2 + PI / 4;
 
-		const thetaDir = 2 * Math.floor(Math.random() * 2) - 1;
-
-		theta *= thetaDir;
-
 		let phi = (Math.random() * PI) / 2 + PI / 4;
 
 		this.body.v
 			.assign(
-				Math.sin(theta) * Math.sin(phi),
+				Math.sin(theta) * Math.sin(phi) * this.serveDirection,
 				Math.cos(phi),
 				Math.cos(theta) * Math.sin(phi)
 			)
 			.scale(5);
+    	this.serveDirection *= -1;
 	}
 
 	update(dt) {
@@ -164,7 +177,8 @@ export class Ball {
 
 		if (this.needsToReset) {
 			this.needsToReset = false;
-			this.reset();
+			this.reset(this.flipServeNextReset);
+			this.flipServeNextReset = false;      // reset it
 		}
 	}
 

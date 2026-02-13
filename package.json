@@ -2,7 +2,8 @@
 	"name": "express",
 	"type": "module",
 	"scripts": {
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"build": "echo 'No build needed'"
 	},
 	"dependencies": {
 		"dotenv": "^17.2.4",
@@ -13,6 +14,7 @@
 		"passport": "^0.7.0",
 		"passport-google-oauth20": "^2.0.0",
 		"sqlite3": "^5.1.7",
+		"vercel": "^50.14.1",
 		"ws": "^8.19.0"
 	},
 	"devDependencies": {

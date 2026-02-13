@@ -57,6 +57,18 @@ animatedScene.registerGameObject(
 			document.body.appendChild(this.self);
 		},
 		update(dt) {
+			const paddle1 = animatedScene.getGameObject('paddleWASD');
+			const paddle2 = animatedScene.getGameObject('paddleIJKL');
+
+			const p1Speed = paddle1 && paddle1.body
+				? paddle1.body.v.norm().toFixed(2)
+				: '--';
+
+			const p2Speed = paddle2 && paddle2.body
+				? paddle2.body.v.norm().toFixed(2)
+				: '--';
+
+
 			const pingText =
 				this.socket?.lastLatencyMs == null
 					? 'Ping: -- ms'
@@ -67,6 +79,9 @@ animatedScene.registerGameObject(
 				Scroll wheel zooms in and out
 				Score: Green [${this.scores.WASD}], Red [${this.scores.IJKL}]
 				Ball Speed: ${this.scores.ballSpeed.toFixed(2)}
+				
+				Paddle Green Speed: ${p1Speed}
+				Paddle Red Speed: ${p2Speed}
 				${pingText}`;
 		}
 	},
