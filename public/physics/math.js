@@ -23,7 +23,9 @@ export class Vector {
 	}
 
 	normalize() {
-		return this.scale(1 / this.norm());
+		const norm = this.norm();
+		if (norm === 0) return this;
+		return this.scale(1 / norm);
 	}
 
 	load(idx, vec) {

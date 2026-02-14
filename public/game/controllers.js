@@ -64,8 +64,6 @@ export class KeyboardController {
 		const up = this.keys.has(this.codes[2]);
 		const down = this.keys.has(this.codes[3]);
 
-		if (![left, right, up, down].some((elem) => elem)) return new MATH.Vec3();
-
 		const [e1, e2] = KeyboardController.dirFromPlane(this.plane);
 
 		const retDirection = new MATH.Vec3();

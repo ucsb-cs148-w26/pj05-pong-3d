@@ -34,14 +34,15 @@ export class PaddleCommon extends GameObjectBase {
 	update(dt) {
 		const direction = this.controller.getDirection();
 
-		direction.addVec(
-			this.body.v.clone().scale(Constants.PADDLE_VELOCITY_DAMPING)
-		);
-
-		const speedFactor = this.ball
+		let speedFactor = this.ball
 			? this.ball.speed / Constants.BALL_INITIAL_SPEED
 			: 1;
-		direction.scale(this.accel * this.body.m * speedFactor);
+		speedFactor = Math.max(speedFactor, 0.1);
+
+		const force = this.accel * this.body.m;
+		const damping = force / (speedFactor * Constants.PADDLE_INITIAL_SPEED);
+		direction.scale(force);
+		direction.addVec(this.body.v.clone().scale(-damping));
 
 		this.forceApplier.applier = (f) => {
 			f.addVec(direction);
