@@ -1,5 +1,8 @@
 import * as THREE from 'three';
 
+/**
+ * Camera controller for following the target paddle, looking at the ball, and allowing for camera-shake behavior. (to make collisions or goals more impactful feeling)
+*/
 export class CameraController {
     constructor(camera, followTarget, lookTarget, config = {}) {
         this.camera = camera;
