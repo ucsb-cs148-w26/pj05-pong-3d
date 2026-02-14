@@ -9,6 +9,11 @@ import { CameraController } from './game/cameraController.js';
 
 import PongSocketClient from './socket.js';
 import { initChat } from './chat.js';
+import { startGoalExplosionDemo } from './game/goalExplosionDemo.js';
+//Temporary flag to allow viewing of goalExplosionDemo by devs
+if (false) {
+	startGoalExplosionDemo();
+}
 
 const socket = new PongSocketClient();
 initChat(socket);
