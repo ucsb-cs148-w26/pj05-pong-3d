@@ -1,9 +1,9 @@
 import * as THREE from 'three';
-import { AnimatedScene } from './animatedScene.js';
+import { AnimatedScene } from './client/AnimatedScene.js';
 import { GOAL_EXPLOSION_STYLES } from './shaders/goalAnimationsRegistry.js';
 import { GoalAnimationSpawner } from './shaders/goalAnimationSpawner.js';
 
-/* 
+/*
 /  This is a Demo Scene to show off the various Goal Explosion Animations
 /  Right now this is only for Development purposes, but time-permiting might can this to be usable as a User-facing Cosmetic Viewing UI Page
 /  It also serves as a developer guide that shows how to use the goalExplosion system in the main game
