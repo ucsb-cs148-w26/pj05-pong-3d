@@ -5,6 +5,8 @@ import { Arena } from './game/client/Arena.js';
 import { Ball } from './game/client/Ball.js';
 import { Paddle } from './game/client/Paddle.js';
 import { KeyboardController } from './game/controllers.js';
+import { CameraController } from './game/cameraController.js';
+
 import PongSocketClient from './socket.js';
 import { initChat } from './chat.js';
 
@@ -25,18 +27,24 @@ animatedScene.registerGameObject(
 		visual: new THREE.PointLight(0xffffff, 1000, 100),
 		init() {
 			this.visual.position.set(0, 0, 0);
+			this.visual.castShadow = true;
+			this.visual.shadow.mapSize.set(1024, 1024);
 		}
 	}),
 	new GameObjectCustom('light2', {
 		visual: new THREE.PointLight(0xffffff, 1000, 100),
 		init() {
 			this.visual.position.set(-8, 0, 0);
+			this.visual.castShadow = true;
+			this.visual.shadow.mapSize.set(1024, 1024);
 		}
 	}),
 	new GameObjectCustom('light3', {
 		visual: new THREE.PointLight(0xffffff, 1000, 100),
 		init() {
 			this.visual.position.set(8, 0, 0);
+			this.visual.castShadow = true;
+			this.visual.shadow.mapSize.set(1024, 1024);
 		}
 	}),
 	new GameObjectCustom('infoDiv', {
@@ -69,7 +77,7 @@ animatedScene.registerGameObject(
 			this.self.innerText = `P1: WASD
 				P2: IJKL
 				Camera: ${animatedScene.camera.position.x.toFixed(1)}, ${animatedScene.camera.position.y.toFixed(1)}, ${animatedScene.camera.position.z.toFixed(1)}
-				Scroll wheel zooms in and out
+				Follow camera tracks the ball
 				Score: Green [${this.scores.WASD}], Red [${this.scores.IJKL}]
 				Ball Speed: ${this.scores.ballSpeed.toFixed(2)}
 				
@@ -96,6 +104,22 @@ animatedScene.registerGameObject(
 	// 	{ color: 0xff0000, linewidth: 4 },
 	// 	new KeyboardController(['KeyJ', 'KeyL', 'KeyI', 'KeyK'])
 	// )
+);
+
+animatedScene.registerGameObject(
+	new GameObjectCustom('cameraController', {
+		controller: new CameraController(
+			animatedScene.camera,
+			animatedScene.getGameObject('paddleWASD'),
+			animatedScene.getGameObject('ball'),
+			{
+				offset: new THREE.Vector3(-4, 3, 0)
+			}
+		),
+		update(dt) {
+			this.controller.update(dt);
+		}
+	})
 );
 
 animatedScene.start();

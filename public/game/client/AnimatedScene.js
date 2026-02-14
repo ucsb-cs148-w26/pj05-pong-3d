@@ -12,6 +12,8 @@ export class AnimatedScene extends Scene {
 
 		this.renderer = new THREE.WebGLRenderer();
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
+		this.renderer.shadowMap.enabled = true;
+		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 		document.body.appendChild(this.renderer.domElement);
 
 		this.scene = new THREE.Scene();
@@ -31,9 +33,6 @@ export class AnimatedScene extends Scene {
 		this.camera.position.set(-16, 0, 0);
 		this.camera.up.set(0, 1, 0);
 		this.camera.lookAt(0, 0, 0);
-
-		// Orbit controls is the camera spinning around the center of the arena
-		this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 
 		this.physicsClock = new THREE.Clock();
 		this.physicsInterval = null;
@@ -103,22 +102,6 @@ export class AnimatedScene extends Scene {
 
 		if (this.physicsInterval) clearInterval(this.physicsInterval);
 		this.physicsInterval = null;
-	}
-
-	// deprecated? can add back in later, not needed for MVP
-	toggleCameraMode() {
-		this.isOrbiting = !this.isOrbiting;
-		this.controls.enabled = this.isOrbiting;
-
-		if (this.isOrbiting) {
-			this.camera.position.set(-37.5, 15, 22.5);
-			this.camera.up.set(0, 1, 0);
-			this.camera.lookAt(0, 0, 0);
-			this.controls.target.set(0, 0, 0);
-		} else {
-			this.camera.position.set(0, 0, 0);
-			this.camera.up.set(0, 0, 1);
-		}
 	}
 
 	_hideNonThreeElements() {
