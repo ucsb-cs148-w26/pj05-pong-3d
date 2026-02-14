@@ -28,13 +28,11 @@ export class BallCommon extends GameObjectBase {
 							.scale(Constants.BALL_TINY_V_SCALE);
 						this.body.v.addVec(tinyV);
 
-						const rallySpeed = Math.max(this.body.v.norm() + 0.3, 5); // optional increase per rally
-						const dir = this.body.v.clone().normalize();
-						this.body.v.assign(
-							dir.x * rallySpeed,
-							dir.y * rallySpeed,
-							dir.z * rallySpeed
+						const rallySpeed = Math.max(
+							this.body.v.norm() + 0.3,
+							Constants.BALL_INITIAL_SPEED
 						);
+						this.body.v.normalize().scale(rallySpeed);
 
 						return;
 					}
