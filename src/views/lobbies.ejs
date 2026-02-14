@@ -101,6 +101,14 @@
 
 			<div>
 				<input id="name-field" placeholder="Lobby name" style="margin-bottom: 1rem" />
+				<div style="margin-top: 0.5rem">
+					<label for="ball-skin" style="margin-right: 0.5rem">Ball:</label>
+					<select id="ball-skin">
+						<option value="classic" selected>Classic</option>
+						<option value="neon_blue">Neon Blue</option>
+						<option value="hot_pink">Hot Pink</option>
+					</select>
+				</div>
 				<button id="create-button">Create Lobby</button>
 			</div>
 
@@ -130,6 +138,14 @@
 		</div>
 
 		<script>
+			const ballSkinField = document.getElementById('ball-skin');
+
+			function getSelectedCosmetics() {
+				return {
+					ball: { skinId: ballSkinField?.value || 'classic' }
+				};
+			};
+
 			function logout() {
 				fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' })
 					.then(() => {
@@ -147,7 +163,8 @@
 					fetch('/api/lobbies', {
 						method: 'POST',
 						body: JSON.stringify({
-							name: nameField.value.length ? nameField.value : undefined
+							name: nameField.value.length ? nameField.value : undefined,
+							cosmetics: getSelectedCosmetics()
 						}),
 						headers: {
 							'Content-Type': 'application/json'
