@@ -64,9 +64,7 @@ function normalizeRotationEntries(rotationSpeeds) {
 	if (Array.isArray(rotationSpeeds)) return rotationSpeeds;
 	return Object.entries(rotationSpeeds).map(([target, speed]) => ({
 		target,
-		...(typeof speed === 'number'
-			? { x: 0, y: speed, z: 0 }
-			: speed)
+		...(typeof speed === 'number' ? { x: 0, y: speed, z: 0 } : speed)
 	}));
 }
 
@@ -163,7 +161,8 @@ export class ConfigurableGoalAnimation extends GoalAnimationSystem {
 			const points = this[pointsKey];
 			if (!points) continue;
 
-			const prefix = config.prefix ??
+			const prefix =
+				config.prefix ??
 				(pointsKey.endsWith('Points') ? pointsKey.slice(0, -6) : pointsKey);
 			const positions = this[config.positionsKey ?? `${prefix}Positions`];
 			const velocities = this[config.velocitiesKey ?? `${prefix}Velocities`];
@@ -198,9 +197,7 @@ export class ConfigurableGoalAnimation extends GoalAnimationSystem {
 		this.assetInitialStates.clear();
 
 		const trackedKeys = new Set(
-			(this.config.assets ?? [])
-				.map((asset) => asset?.key)
-				.filter(Boolean)
+			(this.config.assets ?? []).map((asset) => asset?.key).filter(Boolean)
 		);
 
 		for (const key of this.config.additionalTrackedAssets ?? []) {
@@ -275,9 +272,7 @@ export class ConfigurableGoalAnimation extends GoalAnimationSystem {
 					scalar * (rule.multiplier.z ?? 1.0)
 				);
 			} else {
-				target.scale.setScalar(
-					scalar * (rule.multiplier ?? 1.0)
-				);
+				target.scale.setScalar(scalar * (rule.multiplier ?? 1.0));
 			}
 		}
 

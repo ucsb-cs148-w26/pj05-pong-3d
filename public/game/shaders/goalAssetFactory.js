@@ -2,8 +2,7 @@ import * as THREE from 'three';
 
 export class GoalAssetFactory {
 	static createCore(geometry, material) {
-		const coreGeometry =
-			geometry ?? new THREE.IcosahedronGeometry(1.2, 4);
+		const coreGeometry = geometry ?? new THREE.IcosahedronGeometry(1.2, 4);
 		return new THREE.Mesh(coreGeometry, material);
 	}
 
@@ -33,14 +32,8 @@ export class GoalAssetFactory {
 		const sizes = new Float32Array(count);
 
 		const geometry = new THREE.BufferGeometry();
-		geometry.setAttribute(
-			'position',
-			new THREE.BufferAttribute(positions, 3)
-		);
-		geometry.setAttribute(
-			'aSize',
-			new THREE.BufferAttribute(sizes, 1)
-		);
+		geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+		geometry.setAttribute('aSize', new THREE.BufferAttribute(sizes, 1));
 
 		const points = new THREE.Points(geometry, material);
 		return {

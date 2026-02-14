@@ -207,7 +207,9 @@ export function startGoalExplosionDemo() {
 					if (selectedValue === 'base') {
 						demoLoop.self.overrideColor = null;
 					} else {
-						demoLoop.self.overrideColor = new THREE.Color(Number(selectedValue));
+						demoLoop.self.overrideColor = new THREE.Color(
+							Number(selectedValue)
+						);
 					}
 					demoLoop.self.cooldown = demoLoop.self.delay;
 					demoLoop.self.runTime = 0.0;

@@ -15,11 +15,7 @@ function toVector3(position) {
 		);
 	}
 	if (position && typeof position === 'object') {
-		return new THREE.Vector3(
-			position.x ?? 0,
-			position.y ?? 0,
-			position.z ?? 0
-		);
+		return new THREE.Vector3(position.x ?? 0, position.y ?? 0, position.z ?? 0);
 	}
 	return new THREE.Vector3(0, 0, 0);
 }
@@ -135,5 +131,9 @@ export function getDefaultGoalAnimationSpawner() {
 }
 
 export function spawnGoalAnimation(animationKey, color, position) {
-	return defaultGoalAnimationSpawner.spawnGoalAnimation(animationKey, color, position);
+	return defaultGoalAnimationSpawner.spawnGoalAnimation(
+		animationKey,
+		color,
+		position
+	);
 }

@@ -267,10 +267,7 @@ export function joinShaderChunks(...chunks) {
 const TEMPLATE_TOKEN = /{{\s*([A-Z0-9_]+)\s*}}/g;
 
 function injectShaderTemplate(source, injections = {}) {
-	return source.replace(
-		TEMPLATE_TOKEN,
-		(_, token) => injections[token] ?? ''
-	);
+	return source.replace(TEMPLATE_TOKEN, (_, token) => injections[token] ?? '');
 }
 
 function resolveTemplateSpec(templateKeyOrSpec) {
