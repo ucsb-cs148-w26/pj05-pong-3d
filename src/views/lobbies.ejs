@@ -81,12 +81,14 @@
 		</style>
 	</head>
 	<body>
-		<% if (user) { %>
-			<span>Logged in as <%= user.display_name %></span>
-			<button onclick="logout()">Log out</button>
-		<% } else { %>
-			<a href="/auth/google">Log in with Google</a>
-		<% } %>
+		<div>
+			<% if (user) { %>
+				<span>Logged in as <%= user.display_name %></span>
+				<button onclick="logout()">Log out</button>
+			<% } else { %>
+				<a href="/auth/google">Log in with Google</a>
+			<% } %>
+		</div>
 
 		<h1>Lobbies</h1>
 
