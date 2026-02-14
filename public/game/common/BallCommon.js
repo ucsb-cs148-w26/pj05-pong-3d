@@ -9,8 +9,10 @@ import { GameObjectBase } from './GameObject.js';
 export class BallCommon extends GameObjectBase {
 	constructor(key, scores) {
 		super(key);
+		this.speed = 0;
 		this.scores = scores;
 		this.needsToReset = false;
+		this.serveDirection = 1; // 1 = right, -1 = left
 		this.body = new RigidBody(Constants.BALL_MASS);
 		this.body.col = new SphereCollider(
 			Constants.BALL_RADIUS,
@@ -25,6 +27,13 @@ export class BallCommon extends GameObjectBase {
 							.normalize()
 							.scale(Constants.BALL_TINY_V_SCALE);
 						this.body.v.addVec(tinyV);
+
+						const rallySpeed = Math.max(
+							this.body.v.norm() + 0.3,
+							Constants.BALL_INITIAL_SPEED
+						);
+						this.body.v.normalize().scale(rallySpeed);
+
 						return;
 					}
 
@@ -45,7 +54,8 @@ export class BallCommon extends GameObjectBase {
 	}
 
 	update(dt) {
-		this.scores.ballSpeed = this.body.v.norm();
+		this.speed = this.body.v.norm();
+		this.scores.ballSpeed = this.speed;
 
 		if (this.needsToReset) {
 			this.needsToReset = false;
@@ -66,18 +76,15 @@ export class BallCommon extends GameObjectBase {
 
 		let theta = (Math.random() * Math.PI) / 2 + Math.PI / 4;
 
-		const thetaDir = 2 * Math.floor(Math.random() * 2) - 1;
-
-		theta *= thetaDir;
-
 		let phi = (Math.random() * Math.PI) / 2 + Math.PI / 4;
 
 		this.body.v
 			.assign(
-				Math.sin(theta) * Math.sin(phi),
+				Math.sin(theta) * Math.sin(phi) * this.serveDirection,
 				Math.cos(phi),
 				Math.cos(theta) * Math.sin(phi)
 			)
 			.scale(Constants.BALL_INITIAL_SPEED);
+		this.serveDirection *= -1;
 	}
 }

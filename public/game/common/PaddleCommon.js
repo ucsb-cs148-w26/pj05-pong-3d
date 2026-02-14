@@ -1,5 +1,4 @@
 import { BoxCollider } from '../../physics/collider.js';
-import { Vec3 } from '../../physics/math.js';
 import { RigidBody } from '../../physics/engine.js';
 import { BodyForceApplier } from '../../physics/forces.js';
 import * as Constants from '../constants.js';
@@ -28,17 +27,23 @@ export class PaddleCommon extends GameObjectBase {
 	}
 
 	init(scene) {
+		this.ball = scene.getGameObject('ball');
 		scene.physics.registerForce(this.forceApplier);
 	}
 
 	update(dt) {
 		const direction = this.controller.getDirection();
 
-		direction.addVec(
-			this.body.v.clone().scale(Constants.PADDLE_VELOCITY_DAMPING)
-		);
+		let speedFactor = this.ball
+			? this.ball.speed / Constants.BALL_INITIAL_SPEED
+			: 1;
+		speedFactor = Math.max(speedFactor, 0.1);
 
-		direction.scale(this.accel * this.body.m);
+		const force = this.accel * this.body.m;
+		const damping = force / (speedFactor * Constants.PADDLE_INITIAL_SPEED);
+		direction.scale(force);
+		direction.addVec(this.body.v.clone().scale(-damping));
+
 		this.forceApplier.applier = (f) => {
 			f.addVec(direction);
 		};
