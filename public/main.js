@@ -1,11 +1,6 @@
 import * as THREE from 'three';
 import { AnimatedScene } from './game/client/AnimatedScene.js';
 import { GameObjectCustom } from './game/common/GameObject.js';
-import { Arena } from './game/client/Arena.js';
-import { Ball } from './game/client/Ball.js';
-import { Paddle } from './game/client/Paddle.js';
-import { KeyboardController } from './game/controllers.js';
-import { CameraController } from './game/cameraController.js';
 
 import PongSocketClient from './socket.js';
 import { initChat } from './chat.js';
@@ -54,7 +49,6 @@ animatedScene.registerGameObject(
 	}),
 	new GameObjectCustom('infoDiv', {
 		self: document.createElement('div'),
-		scores: { WASD: 0, IJKL: 0, ballSpeed: 0 },
 		socket,
 		init() {
 			this.self.style.position = 'absolute';
@@ -66,63 +60,26 @@ animatedScene.registerGameObject(
 			document.body.appendChild(this.self);
 		},
 		update(dt) {
-			const paddle1 = animatedScene.getGameObject('paddleWASD');
-			const paddle2 = animatedScene.getGameObject('paddleIJKL');
-
-			const p1Speed =
-				paddle1 && paddle1.body ? paddle1.body.v.norm().toFixed(2) : '--';
-
-			const p2Speed =
-				paddle2 && paddle2.body ? paddle2.body.v.norm().toFixed(2) : '--';
-
+			const ball = animatedScene.getGameObject('ball');
 			const pingText =
 				this.socket?.lastLatencyMs == null
-					? 'Ping: -- ms'
-					: `Ping: ${this.socket.lastLatencyMs.toFixed(0)} ms`;
-			this.self.innerText = `P1: WASD
-				P2: IJKL
+					? '-- ms'
+					: `${this.socket.lastLatencyMs.toFixed(0)} ms`;
+			const scoresText =
+				animatedScene.scores && Object.keys(animatedScene.scores).length
+					? Object.entries(animatedScene.scores)
+							.map(([name, score]) => `${name}: ${score}`)
+							.join(', ')
+					: 'N/A';
+			this.self.innerText = `Control with WASD
+				Camera tracks the ball
+				Score: ${scoresText}
+				Ball Speed: ${ball.body.v.norm().toFixed(2)}
+
 				Camera: ${animatedScene.camera.position.x.toFixed(1)}, ${animatedScene.camera.position.y.toFixed(1)}, ${animatedScene.camera.position.z.toFixed(1)}
-				Follow camera tracks the ball
-				Score: Green [${this.scores.WASD}], Red [${this.scores.IJKL}]
-				Ball Speed: ${this.scores.ballSpeed.toFixed(2)}
-				
-				Paddle Green Speed: ${p1Speed}
-				Paddle Red Speed: ${p2Speed}
-				${pingText}`;
-		}
-	})
-);
 
-// Order matters: Sync with ServerScene.js
-animatedScene.registerGameObject(
-	new Arena('gameArena'),
-	new Ball('ball', animatedScene.getGameObject('infoDiv').config.scores),
-	new Paddle('paddleWASD', 'paddle', -23.5 / 2.125, {
-		color: 0x00ff00,
-		linewidth: 4
-	})
-	// new Paddle(
-	// 	'paddleIJKL',
-	// 	'yz',
-	// 	'paddle',
-	// 	23.5 / 2.125,
-	// 	{ color: 0xff0000, linewidth: 4 },
-	// 	new KeyboardController(['KeyJ', 'KeyL', 'KeyI', 'KeyK'])
-	// )
-);
-
-animatedScene.registerGameObject(
-	new GameObjectCustom('cameraController', {
-		controller: new CameraController(
-			animatedScene.camera,
-			animatedScene.getGameObject('paddleWASD'),
-			animatedScene.getGameObject('ball'),
-			{
-				offset: new THREE.Vector3(-4, 3, 0)
-			}
-		),
-		update(dt) {
-			this.controller.update(dt);
+                FPS: ${(1 / dt).toFixed(0)}
+				Ping: ${pingText}`;
 		}
 	})
 );

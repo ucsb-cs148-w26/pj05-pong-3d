@@ -1,15 +1,23 @@
 import * as THREE from 'three';
 import * as Constants from '../constants.js';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Scene } from '../common/Scene.js';
+import { Paddle } from './Paddle.js';
+import { KeyboardController } from '../controllers.js';
+import { Arena } from './Arena.js';
+import { Ball } from './Ball.js';
+import { CameraController } from './CameraController.js';
 
 /**
  * Scene with rendering capabilities. Uses the `visual` on each game object.
  */
 export class AnimatedScene extends Scene {
+	#ball = null;
+	#paddles = [];
+
 	constructor(socket) {
 		super();
 
+		this.scores = null;
 		this.renderer = new THREE.WebGLRenderer();
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		this.renderer.shadowMap.enabled = true;
@@ -41,6 +49,23 @@ export class AnimatedScene extends Scene {
 		this._hiddenHtml = new Map();
 
 		socket.addHandler(this.#socketHandler.bind(this));
+
+		// Order matters: Sync with ServerScene.js
+		this.registerGameObject(new Arena('gameArena'));
+
+		this.#ball = new Ball('ball', null);
+		this.registerGameObject(this.#ball);
+
+		this.registerGameObject(
+			new CameraController(
+				'cameraController',
+				null,
+				this.getGameObject('ball'),
+				{
+					offset: new THREE.Vector3(-4, 3, 0)
+				}
+			)
+		);
 	}
 
 	registerGameObject(...objs) {
@@ -144,6 +169,50 @@ export class AnimatedScene extends Scene {
 	#socketHandler(msg, respond) {
 		if (msg.type === 'sync') {
 			this.physicsLoad(msg.ts, msg.physics);
+			this.scores = msg.scores;
+			this.#ball.enabled = msg.active;
+			return true;
+		}
+
+		if (msg.type === 'paddleSync') {
+			const cameraController = this.getGameObject('cameraController');
+			if (cameraController) cameraController.followTarget = null;
+
+			for (const paddle of this.#paddles) {
+				this.deleteGameObject(paddle.key);
+			}
+
+			this.#paddles = [];
+
+			for (const paddle of msg.paddles) {
+				// TODO: this is silly
+				const controller =
+					paddle.pos[0] < 0
+						? new KeyboardController()
+						: new KeyboardController(['KeyD', 'KeyA', 'KeyW', 'KeyS']);
+				const obj = new Paddle(
+					paddle.key,
+					'paddle',
+					paddle.pos[0],
+					{
+						color: 0xffffff,
+						linewidth: 4
+					},
+					paddle.remote ? null : controller
+				);
+				this.registerGameObject(obj);
+				this.#paddles.push(obj);
+
+				if (!paddle.remote && cameraController) {
+					cameraController.followTarget = obj;
+					if (paddle.pos[0] < 0) {
+						cameraController.offset = new THREE.Vector3(-4, 3, 0);
+					} else {
+						cameraController.offset = new THREE.Vector3(4, 3, 0);
+					}
+				}
+			}
+
 			return true;
 		}
 	}

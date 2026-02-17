@@ -32,6 +32,7 @@ export class PaddleCommon extends GameObjectBase {
 	}
 
 	update(dt) {
+		if (!this.controller) return;
 		const direction = this.controller.getDirection();
 
 		let speedFactor = this.ball

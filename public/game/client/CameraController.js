@@ -1,15 +1,17 @@
 import * as THREE from 'three';
+import { GameObjectBase } from '../common/GameObject.js';
 
 /**
  * Camera controller for following the target paddle, looking at the ball, and allowing for camera-shake behavior. (to make collisions or goals more impactful feeling)
  */
-export class CameraController {
-	constructor(camera, followTarget, lookTarget, config = {}) {
-		this.camera = camera;
+export class CameraController extends GameObjectBase {
+	constructor(key, followTarget, lookTarget, config = {}) {
+		super(key);
+
 		this.followTarget = followTarget;
 		this.lookTarget = lookTarget;
 
-		this.offset = config.offset?.clone?.() ?? new THREE.Vector3(-6, 3, 0);
+		this.offset = config.offset ?? new THREE.Vector3(-6, 3, 0);
 		this.lookLerpSpeed = config.lookLerpSpeed ?? 2;
 		this.shakeSpeed = config.shakeSpeed ?? 28;
 		this.shakeDecay = config.shakeDecay ?? 8;
@@ -23,6 +25,10 @@ export class CameraController {
 		this._tmpFollowTarget = new THREE.Vector3();
 		this._tmpLookTarget = new THREE.Vector3();
 		this._currentLookAt = new THREE.Vector3();
+	}
+
+	init(scene) {
+		this.camera = scene.camera;
 	}
 
 	static _copyPosition(source, out) {

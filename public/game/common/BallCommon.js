@@ -7,10 +7,11 @@ import { GameObjectBase } from './GameObject.js';
  * Ball containing physics logic and collision detection
  */
 export class BallCommon extends GameObjectBase {
+	#enabled = false;
+
 	constructor(key, scores) {
 		super(key);
 		this.speed = 0;
-		this.scores = scores;
 		this.needsToReset = false;
 		this.serveDirection = 1; // 1 = right, -1 = left
 		this.body = new RigidBody(Constants.BALL_MASS);
@@ -38,12 +39,12 @@ export class BallCommon extends GameObjectBase {
 					}
 
 					case 'greenWall':
-						this.scores.IJKL += 1;
+						if (scores) scores[1] += 1;
 						this.needsToReset = true;
 						return;
 
 					case 'redWall':
-						this.scores.WASD += 1;
+						if (scores) scores[0] += 1;
 						this.needsToReset = true;
 						return;
 				}
@@ -53,9 +54,25 @@ export class BallCommon extends GameObjectBase {
 		this.reset();
 	}
 
+	get enabled() {
+		return this.#enabled;
+	}
+
+	set enabled(enabled) {
+		if (this.#enabled == enabled) return;
+
+		this.#enabled = enabled;
+		if (enabled) this.reset();
+	}
+
 	update(dt) {
+		if (!this.#enabled) {
+			this.body.x.assign(0, 0, 0);
+			this.body.v.assign(0, 0, 0);
+			return;
+		}
+
 		this.speed = this.body.v.norm();
-		this.scores.ballSpeed = this.speed;
 
 		if (this.needsToReset) {
 			this.needsToReset = false;

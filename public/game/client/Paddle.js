@@ -44,6 +44,7 @@ export class Paddle extends PaddleCommon {
 	update(dt) {
 		super.update(dt);
 
+		if (!this.controller) return;
 		this.#socket?.send({
 			type: 'move',
 			ts: Date.now(),
