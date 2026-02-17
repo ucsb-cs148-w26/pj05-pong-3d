@@ -5,7 +5,7 @@ import { Arena } from './game/client/Arena.js';
 import { Ball } from './game/client/Ball.js';
 import { Paddle } from './game/client/Paddle.js';
 import { KeyboardController } from './game/controllers.js';
-import { CameraController } from './game/cameraController.js';
+import { CameraController } from './game/client/CameraController.js';
 
 import PongSocketClient from './socket.js';
 import { initChat } from './chat.js';
@@ -85,7 +85,7 @@ animatedScene.registerGameObject(
 				Follow camera tracks the ball
 				Score: Green [${this.scores.WASD}], Red [${this.scores.IJKL}]
 				Ball Speed: ${this.scores.ballSpeed.toFixed(2)}
-				
+
 				Paddle Green Speed: ${p1Speed}
 				Paddle Red Speed: ${p2Speed}
 				${pingText}`;
@@ -103,7 +103,6 @@ animatedScene.registerGameObject(
 	})
 	// new Paddle(
 	// 	'paddleIJKL',
-	// 	'yz',
 	// 	'paddle',
 	// 	23.5 / 2.125,
 	// 	{ color: 0xff0000, linewidth: 4 },
@@ -112,19 +111,14 @@ animatedScene.registerGameObject(
 );
 
 animatedScene.registerGameObject(
-	new GameObjectCustom('cameraController', {
-		controller: new CameraController(
-			animatedScene.camera,
-			animatedScene.getGameObject('paddleWASD'),
-			animatedScene.getGameObject('ball'),
-			{
-				offset: new THREE.Vector3(-4, 3, 0)
-			}
-		),
-		update(dt) {
-			this.controller.update(dt);
+	new CameraController(
+		'cameraController',
+		animatedScene.getGameObject('paddleWASD'),
+		animatedScene.getGameObject('ball'),
+		{
+			offset: new THREE.Vector3(-4, 3, 0)
 		}
-	})
+	)
 );
 
 animatedScene.start();
