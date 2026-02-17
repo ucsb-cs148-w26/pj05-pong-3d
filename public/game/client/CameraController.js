@@ -11,7 +11,7 @@ export class CameraController extends GameObjectBase {
 		this.followTarget = followTarget;
 		this.lookTarget = lookTarget;
 
-		this.offset = config.offset?.clone?.() ?? new THREE.Vector3(-6, 3, 0);
+		this.offset = config.offset ?? new THREE.Vector3(-6, 3, 0);
 		this.lookLerpSpeed = config.lookLerpSpeed ?? 2;
 		this.shakeSpeed = config.shakeSpeed ?? 28;
 		this.shakeDecay = config.shakeDecay ?? 8;
