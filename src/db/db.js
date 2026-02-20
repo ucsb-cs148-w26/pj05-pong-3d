@@ -2,7 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import sqlite3 from 'sqlite3';
 
-const dbPath = path.resolve(import.meta.dirname, '..', 'db', 'pong.db');
+const dbPath = path.resolve(import.meta.dirname, '..', '..', 'db', 'pong.db');
 fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 
 const db = new sqlite3.Database(dbPath, (err) => {

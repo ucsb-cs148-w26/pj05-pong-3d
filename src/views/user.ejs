@@ -1,0 +1,236 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title><%= user.display_name || user.email %> • Profile</title>
+	<style>
+		* { box-sizing: border-box; }
+
+		body {
+			margin: 0 auto;
+			padding: 3rem;
+			width: 80ch;
+			max-width: 100%;
+			font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+			color: rgba(255, 255, 255, 0.92);
+			background: linear-gradient(180deg,#0b1020,#0a1226);
+		}
+
+		h1, h2 { margin-top: 0; }
+		h1 { font-size: 3rem; margin-bottom: 1.2rem; }
+
+		.card {
+			background: rgba(255,255,255,.06);
+			border: 0.1rem solid rgba(255,255,255,.10);
+			border-radius: 1.1rem;
+			box-shadow: 0 0.75rem 2.25rem rgba(0,0,0,.35);
+			padding: 1.25rem;
+			margin-bottom: 1rem;
+		}
+
+		.item-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+		.item {
+			border: 0.1rem solid rgba(255,255,255,.18);
+			border-radius: 0.75rem;
+			padding: 0.75rem;
+			background: rgba(255,255,255,.08);
+			min-width: 120px;
+			text-align: center;
+			cursor: pointer;
+			transition: transform .08s, background .15s, opacity .15s;
+		}
+		.item.locked {
+			opacity: 0.35;
+			cursor: not-allowed;
+		}
+		.item:hover:not(.locked) { transform: translateY(-2px); background: rgba(0,229,255,.12); }
+		.avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 1rem; }
+		button { cursor: pointer; }
+	</style>
+</head>
+<body>
+	<div class="card">
+		<h1>Profile</h1>
+
+		<% if (user.avatar_url) { %>
+			<img src="<%= user.avatar_url %>" alt="Avatar" class="avatar" style="width: 100px; height: 100px; border-radius: 50%; margin-bottom: 1rem;">
+		<% } %>
+
+		<p>
+			<strong>Name:</strong>
+			<input
+				type="text"
+				id="display-name"
+				value="<%= user.display_name || '' %>"
+				placeholder="Enter display name"
+				style="padding: 0.5rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: white; width: 200px;"
+			/>
+			<button id="update-display-name" style="padding: 0.5rem 1rem; border-radius: 0.5rem; margin-left: 0.5rem;">
+				Update Name
+			</button>
+		</p>
+
+		<p id="update-msg" style="color: lightgreen; margin-top: 0.5rem;"></p>
+
+		<p><strong>Email:</strong> <%= user.email %></p>
+	</div>
+
+	<div class="card">
+		<h2>Equipped Items</h2>
+		<div class="item-list">
+			<div class="item">
+				<strong>Paddle Skin:</strong><br>
+				<%= equipped.paddle_skin_key || 'Default Paddle' %>
+			</div>
+			<div class="item" id="equipped-ball-skin" data-label="Ball Skin">
+				<strong>Ball Skin:</strong><br>
+				<%= equipped.ball_skin_name || 'Default Ball' %>
+			</div>
+			<div class="item" id="equipped-goal-explosion" data-label="Goal Explosion">
+				<strong>Goal Explosion:</strong><br>
+				<%= equipped.goal_explosion_name || 'Default Goal' %>
+			</div>
+		</div>
+	</div>
+
+	<div class="card">
+		<h2>Ball Skins</h2>
+		<% if (ballSkins.length > 0) { %>
+			<div class="item-list" id="ball-skins">
+				<% ballSkins.forEach(skin => { %>
+					<div class="item <%= skin.unlocked_at ? '' : 'locked' %>" data-item-id="<%= skin.id %>">
+						<strong><%= skin.display_name %></strong><br>
+						<%= skin.unlocked_at ? '✅ Unlocked' : '🔒 Locked' %>
+					</div>
+				<% }) %>
+			</div>
+		<% } else { %>
+			<p>No ball skins available.</p>
+		<% } %>
+	</div>
+
+	<div class="card">
+		<h2>Goal Explosions</h2>
+		<% if (goalExplosions.length > 0) { %>
+			<div class="item-list" id="goal-explosions">
+				<% goalExplosions.forEach(exp => { %>
+					<div class="item <%= exp.unlocked_at ? '' : 'locked' %>" data-item-id="<%= exp.id %>">
+						<strong><%= exp.display_name %></strong><br>
+						<%= exp.unlocked_at ? '✅ Unlocked' : '🔒 Locked' %>
+					</div>
+				<% }) %>
+			</div>
+		<% } else { %>
+			<p>No goal explosions available.</p>
+		<% } %>
+	</div>
+
+	<div style="margin-top:1rem; text-align:center; display: flex; gap: 0.5rem; justify-content: center;">
+		<button id="debug-unlock-ball" style="padding:0.5rem 1rem; border-radius:0.5rem;">
+			Debug: Unlock Random Ball Skin
+		</button>
+		<button id="debug-unlock-goal" style="padding:0.5rem 1rem; border-radius:0.5rem;">
+			Debug: Unlock Random Goal Explosion
+		</button>
+	</div>
+
+	<script>
+		function equipItem(el, slot, displayEl) {
+			el.addEventListener('click', () => {
+				if (el.classList.contains('locked')) return;
+
+				const itemId = el.dataset.itemId;
+				const name = el.querySelector('strong').innerText;
+
+				fetch('/user/items/equipItem', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					credentials: 'same-origin',
+					body: JSON.stringify({ itemId, slot })
+				})
+				.then(res => res.json())
+				.then(data => {
+					if (data.ok) {
+						displayEl.innerHTML = `<strong>${displayEl.dataset.label}:</strong><br>${name}`;
+						const container = el.closest('.item-list');
+						container.querySelectorAll('.item').forEach(i => i.style.borderColor = 'rgba(255,255,255,.18)');
+						el.style.borderColor = 'rgb(0, 229, 255)';
+					}
+				});
+			});
+		}
+
+		document.querySelectorAll('#ball-skins .item').forEach(el => equipItem(el, 'ball_skin', document.getElementById('equipped-ball-skin')));
+		document.querySelectorAll('#goal-explosions .item').forEach(el => equipItem(el, 'goal_explosion', document.getElementById('equipped-goal-explosion')));
+
+		document.getElementById('debug-unlock-ball')?.addEventListener('click', () => {
+			fetch('/user/debug/unlockRandomBallSkin', {
+				method: 'POST',
+				credentials: 'same-origin'
+			})
+			.then(res => res.json())
+			.then(data => {
+				alert(data.message);
+				window.location.reload();
+			});
+		});
+
+		document.getElementById('debug-unlock-goal')?.addEventListener('click', () => {
+			fetch('/user/debug/unlockRandomGoalExplosion', {
+				method: 'POST',
+				credentials: 'same-origin'
+			})
+			.then(res => res.json())
+			.then(data => {
+				alert(data.message);
+				window.location.reload();
+			});
+		});
+
+		const equippedBallSkinName = '<%= equipped.ball_skin_name || "" %>';
+		document.querySelectorAll('#ball-skins .item').forEach(el => {
+			if (el.querySelector('strong').innerText === equippedBallSkinName) {
+				el.style.borderColor = 'rgb(0, 229, 255)';
+			}
+		});
+
+		const equippedGoalName = '<%= equipped.goal_explosion_name || "" %>';
+		document.querySelectorAll('#goal-explosions .item').forEach(el => {
+			if (el.querySelector('strong').innerText === equippedGoalName) {
+				el.style.borderColor = 'rgb(0, 229, 255)';
+			}
+		});
+
+		document.getElementById('update-display-name').addEventListener('click', async () => {
+			const input = document.getElementById('display-name');
+			const newName = input.value.trim();
+			const msg = document.getElementById('update-msg');
+
+			if (!newName) {
+				msg.style.color = 'red';
+				msg.textContent = 'Display name cannot be empty.';
+				return;
+			}
+
+			try {
+				const res = await fetch('/user/updateDisplayName', {
+					method: 'POST',
+					headers: { 'Content-Type': 'application/json' },
+					body: JSON.stringify({ display_name: newName })
+				});
+
+				if (!res.ok) {
+					const data = await res.json();
+					throw new Error(data?.message || 'Failed to update display name.');
+				}
+
+				msg.style.color = 'lightgreen';
+				msg.textContent = `Display name updated successfully to ${newName}!`;
+			} catch (err) {
+				msg.style.color = 'red';
+				msg.textContent = err.message;
+			}
+		});
+	</script>
+</body>
+</html>
