@@ -4,8 +4,12 @@ dotenv.config();
 import express from 'express';
 import path from 'path';
 import createLobbyRouter from './lobby/router.js';
+import createUserRouter from './user/router.js';
 import setupAuth from './auth/index.js';
-import './db.js';
+import './db/db.js';
+
+import { initializeGoalExplosions } from './db/initializeGoalExplosions.js';
+import { initializeBallSkins } from './db/initializeBallSkins.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -18,8 +22,12 @@ app.use(express.static(path.join(import.meta.dirname, '../public')));
 
 setupAuth(app);
 
+initializeGoalExplosions();
+initializeBallSkins();
+
 const server = app.listen(PORT);
 
 app.use('/', createLobbyRouter(server));
+app.use('/user', createUserRouter());
 
 export default app;
