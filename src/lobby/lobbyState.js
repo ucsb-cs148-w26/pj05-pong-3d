@@ -1,6 +1,11 @@
 import PongSocketServer from '../socket.js';
 import chatHandler from './chat.js';
 import ServerScene from '../game/ServerScene.js';
+import {
+	GOAL_EXPLOSION_STYLES,
+	normalizeGoalExplosionColorId,
+	normalizeGoalExplosionStyleValue
+} from '../../public/game/shaders/goalExplosionOptions.js';
 
 let nextLobbyId = 1;
 const EMPTY_LOBBY_DELETE_TIME = 60_000;
@@ -18,18 +23,31 @@ function generateCode() {
 }
 
 const DEFAULT_COSMETICS = Object.freeze({
-	ball: { skinId: 'classic' }
+	ball: { skinId: 'classic' },
+	goalExplosion: {
+		styleValue: GOAL_EXPLOSION_STYLES[0].value,
+		colorId: 'base'
+	}
 });
 
 const ALLOWED_BALL_SKINS = new Set(['classic', 'neon_blue', 'hot_pink']);
 
 function normalizeCosmetics(input) {
 	const skinId = input?.ball?.skinId;
+	const styleValue = normalizeGoalExplosionStyleValue(
+		input?.goalExplosion?.styleValue
+	);
+	const colorId = normalizeGoalExplosionColorId(input?.goalExplosion?.colorId);
 	return {
 		ball: {
 			skinId: ALLOWED_BALL_SKINS.has(skinId)
 				? skinId
 				: DEFAULT_COSMETICS.ball.skinId
+		},
+		goalExplosion: {
+			styleValue:
+				styleValue ?? DEFAULT_COSMETICS.goalExplosion.styleValue,
+			colorId: colorId ?? DEFAULT_COSMETICS.goalExplosion.colorId
 		}
 	};
 }
@@ -93,7 +111,7 @@ export default class LobbyState {
 		socket.addHandler(chatHandler);
 		this.sockets.set(lobbyId, socket);
 
-		const scene = new ServerScene(socket);
+		const scene = new ServerScene(socket, lobby.cosmetics);
 		scene.start();
 		this.scenes.set(lobbyId, scene);
 

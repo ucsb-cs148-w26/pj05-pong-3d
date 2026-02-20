@@ -8,6 +8,7 @@ import { GameObjectBase } from './GameObject.js';
  */
 export class BallCommon extends GameObjectBase {
 	#enabled = false;
+	#pendingGoalEvent = null;
 
 	constructor(key, scores) {
 		super(key);
@@ -40,11 +41,27 @@ export class BallCommon extends GameObjectBase {
 
 					case 'greenWall':
 						if (scores) scores[1] += 1;
+						this.#pendingGoalEvent = {
+							wall: 'greenWall',
+							position: {
+								x: this.body.x.x,
+								y: this.body.x.y,
+								z: this.body.x.z
+							}
+						};
 						this.needsToReset = true;
 						return;
 
 					case 'redWall':
 						if (scores) scores[0] += 1;
+						this.#pendingGoalEvent = {
+							wall: 'redWall',
+							position: {
+								x: this.body.x.x,
+								y: this.body.x.y,
+								z: this.body.x.z
+							}
+						};
 						this.needsToReset = true;
 						return;
 				}
@@ -103,5 +120,11 @@ export class BallCommon extends GameObjectBase {
 			)
 			.scale(Constants.BALL_INITIAL_SPEED);
 		this.serveDirection *= -1;
+	}
+
+	consumeGoalEvent() {
+		const event = this.#pendingGoalEvent;
+		this.#pendingGoalEvent = null;
+		return event;
 	}
 }

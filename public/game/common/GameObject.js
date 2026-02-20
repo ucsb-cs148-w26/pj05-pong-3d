@@ -95,6 +95,10 @@ export class GameObjectCustom extends GameObjectBase {
 		return this.config.visual;
 	}
 
+	get self() {
+		return this.config.self;
+	}
+
 	get bodies() {
 		return this.config.bodies || [];
 	}

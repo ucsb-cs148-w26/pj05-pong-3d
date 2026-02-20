@@ -4,17 +4,13 @@ import { GameObjectCustom } from './game/common/GameObject.js';
 
 import PongSocketClient from './socket.js';
 import { initChat } from './chat.js';
-import { startGoalExplosionDemo } from './game/goalExplosionDemo.js';
-//Temporary flag to allow viewing of goalExplosionDemo by devs
-if (false) {
-	startGoalExplosionDemo();
-}
 
 const socket = new PongSocketClient();
 initChat(socket);
 socket.connect();
 
-const animatedScene = new AnimatedScene(socket);
+const initialCosmetics = window.__PONG_BOOTSTRAP__?.cosmetics;
+const animatedScene = new AnimatedScene(socket, initialCosmetics);
 window.animatedScene = animatedScene;
 
 animatedScene.registerGameObject(new GameObjectCustom('socket', { socket }));

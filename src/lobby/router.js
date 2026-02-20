@@ -56,7 +56,11 @@ export default function createLobbyRouter(server) {
 			return res.status(400).send('Username is taken');
 		}
 
-		res.render('game', { code, username });
+		res.render('game', {
+			code,
+			username,
+			cosmetics: lobby.cosmetics
+		});
 	});
 
 	router.get('/', (req, res) => {

@@ -109,6 +109,18 @@
 						<option value="hot_pink">Hot Pink</option>
 					</select>
 				</div>
+				<div style="margin-top: 0.5rem">
+					<label for="goal-explosion-style" style="margin-right: 0.5rem"
+						>Goal Explosion:</label
+					>
+					<select id="goal-explosion-style"></select>
+				</div>
+				<div style="margin-top: 0.5rem">
+					<label for="goal-explosion-color" style="margin-right: 0.5rem"
+						>Goal Color:</label
+					>
+					<select id="goal-explosion-color"></select>
+				</div>
 				<button id="create-button">Create Lobby</button>
 			</div>
 
@@ -137,21 +149,50 @@
 			</div>
 		</div>
 
-		<script>
+		<script type="module">
+			import {
+				GOAL_EXPLOSION_STYLES,
+				GOAL_EXPLOSION_COLOR_OPTIONS
+			} from '/game/shaders/goalExplosionOptions.js';
+
 			const ballSkinField = document.getElementById('ball-skin');
+			const goalExplosionStyleField = document.getElementById(
+				'goal-explosion-style'
+			);
+			const goalExplosionColorField = document.getElementById(
+				'goal-explosion-color'
+			);
+
+			for (const style of GOAL_EXPLOSION_STYLES) {
+				const option = document.createElement('option');
+				option.value = String(style.value);
+				option.textContent = style.label;
+				goalExplosionStyleField.appendChild(option);
+			}
+
+			for (const color of GOAL_EXPLOSION_COLOR_OPTIONS) {
+				const option = document.createElement('option');
+				option.value = color.id;
+				option.textContent = color.label;
+				goalExplosionColorField.appendChild(option);
+			}
 
 			function getSelectedCosmetics() {
 				return {
-					ball: { skinId: ballSkinField?.value || 'classic' }
+					ball: { skinId: ballSkinField?.value || 'classic' },
+					goalExplosion: {
+						styleValue: Number(goalExplosionStyleField?.value ?? 0),
+						colorId: goalExplosionColorField?.value || 'base'
+					}
 				};
-			};
+			}
 
-			function logout() {
+			window.logout = function logout() {
 				fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' })
 					.then(() => {
 						window.location.reload();
 					});
-			}
+			};
 
 			const usernameField = document.getElementById('username-field');
 			const nameField = document.getElementById('name-field');
@@ -181,10 +222,10 @@
 				window.location = `/game?code=${codeField.value}&username=${usernameField.value}`;
 			});
 
-			function join(code) {
+			window.join = function join(code) {
 				if (!usernameField.value.length) return;
 				window.location = `/game?code=${code}&username=${usernameField.value}`;
-			}
+			};
 		</script>
 	</body>
 </html>

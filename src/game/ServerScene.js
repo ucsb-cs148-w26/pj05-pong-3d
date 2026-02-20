@@ -13,11 +13,14 @@ export default class ServerScene extends Scene {
 	#ball = null;
 	#paddles = [];
 	#clientToPaddle = new Map();
+	#cosmetics = null;
+	#pendingGoalEvent = null;
 
-	constructor(socket) {
+	constructor(socket, cosmetics) {
 		super();
 
 		this.#socket = socket;
+		this.#cosmetics = cosmetics ?? null;
 
 		this.#resetScore();
 
@@ -60,6 +63,18 @@ export default class ServerScene extends Scene {
 			const delta = (now - lastTime) / 1000;
 
 			this.step(delta);
+			const goalEvent = this.#ball.consumeGoalEvent?.() ?? null;
+			if (goalEvent) {
+				const payload = {
+					...goalEvent,
+					serverTs: Date.now()
+				};
+				this.#pendingGoalEvent ??= payload;
+				this.#socket.broadcast({
+					type: 'goalEvent',
+					goalEvent: payload
+				});
+			}
 
 			const scoresByClient = {};
 			for (const [clientId, paddleIdx] of this.#clientToPaddle) {
@@ -76,9 +91,12 @@ export default class ServerScene extends Scene {
 						ts,
 						active: this.#ball.enabled,
 						physics: Array.from(this.physicsDump()),
-						scores: scoresByClient
+						scores: scoresByClient,
+						cosmetics: this.#cosmetics,
+						goalEvent: this.#pendingGoalEvent
 					});
 				});
+				this.#pendingGoalEvent = null;
 			}
 
 			lastTime = now;

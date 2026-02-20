@@ -50,15 +50,17 @@ export function createGoalMaterial({
 		...features.map((feature) => FEATURE_CHUNKS[feature]).filter(Boolean)
 	);
 
-	const material = new THREE.ShaderMaterial({
+	const materialParams = {
 		uniforms,
 		vertexShader: buildShader(chunkSource, vertexShader),
 		fragmentShader: buildShader(chunkSource, fragmentShader),
 		transparent,
 		depthWrite,
-		blending,
-		side
-	});
+		blending
+	};
+	if (side !== undefined) materialParams.side = side;
+
+	const material = new THREE.ShaderMaterial(materialParams);
 
 	return material;
 }
