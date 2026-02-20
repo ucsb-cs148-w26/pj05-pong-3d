@@ -1,4 +1,4 @@
-import db from '../db.js';
+import db from '../db/db.js';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
 
@@ -37,9 +37,8 @@ export default function setupGoogleStrategy() {
 
 							if (existingUser) {
 								db.run(
-									`UPDATE users SET email = ?, display_name = ?, avatar_url = ?
-									WHERE google_sub = ?`,
-									[email, displayName, avatarUrl, googleSub],
+									`UPDATE users SET email = ?, avatar_url = ? WHERE google_sub = ?`,
+									[email, avatarUrl, googleSub],
 									(updateErr) => {
 										if (updateErr) return done(updateErr);
 										return done(null, existingUser);

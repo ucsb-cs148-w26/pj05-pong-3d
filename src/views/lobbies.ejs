@@ -83,8 +83,14 @@
 	<body>
 		<div>
 			<% if (user) { %>
-				<span>Logged in as <%= user.display_name %></span>
-				<button onclick="logout()">Log out</button>
+				<div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;">
+					<button onclick="window.location='/user'" style="width: auto; padding: 0.5rem 1rem;">
+						Logged in as <%= user.display_name %> — My Profile
+					</button>
+					<button onclick="logout()" style="width: auto; padding: 0.5rem 1rem;">
+						Log out
+					</button>
+				</div>
 			<% } else { %>
 				<a href="/auth/google">Log in with Google</a>
 			<% } %>
@@ -101,26 +107,6 @@
 
 			<div>
 				<input id="name-field" placeholder="Lobby name" style="margin-bottom: 1rem" />
-				<div style="margin-top: 0.5rem">
-					<label for="ball-skin" style="margin-right: 0.5rem">Ball:</label>
-					<select id="ball-skin">
-						<option value="classic" selected>Classic</option>
-						<option value="neon_blue">Neon Blue</option>
-						<option value="hot_pink">Hot Pink</option>
-					</select>
-				</div>
-				<div style="margin-top: 0.5rem">
-					<label for="goal-explosion-style" style="margin-right: 0.5rem"
-						>Goal Explosion:</label
-					>
-					<select id="goal-explosion-style"></select>
-				</div>
-				<div style="margin-top: 0.5rem">
-					<label for="goal-explosion-color" style="margin-right: 0.5rem"
-						>Goal Color:</label
-					>
-					<select id="goal-explosion-color"></select>
-				</div>
 				<button id="create-button">Create Lobby</button>
 			</div>
 
@@ -149,41 +135,12 @@
 			</div>
 		</div>
 
-		<script type="module">
-			import {
-				GOAL_EXPLOSION_STYLES,
-				GOAL_EXPLOSION_COLOR_OPTIONS
-			} from '/game/shaders/goalExplosionOptions.js';
-
-			const ballSkinField = document.getElementById('ball-skin');
-			const goalExplosionStyleField = document.getElementById(
-				'goal-explosion-style'
-			);
-			const goalExplosionColorField = document.getElementById(
-				'goal-explosion-color'
-			);
-
-			for (const style of GOAL_EXPLOSION_STYLES) {
-				const option = document.createElement('option');
-				option.value = String(style.value);
-				option.textContent = style.label;
-				goalExplosionStyleField.appendChild(option);
-			}
-
-			for (const color of GOAL_EXPLOSION_COLOR_OPTIONS) {
-				const option = document.createElement('option');
-				option.value = color.id;
-				option.textContent = color.label;
-				goalExplosionColorField.appendChild(option);
-			}
+		<script>
+			const equippedBallSkin = '<%= user && user.equipped_ball_skin_key ? user.equipped_ball_skin_key : "classic" %>';
 
 			function getSelectedCosmetics() {
 				return {
-					ball: { skinId: ballSkinField?.value || 'classic' },
-					goalExplosion: {
-						styleValue: Number(goalExplosionStyleField?.value ?? 0),
-						colorId: goalExplosionColorField?.value || 'base'
-					}
+					ball: { skinId: equippedBallSkin }
 				};
 			}
 

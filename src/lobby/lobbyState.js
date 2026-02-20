@@ -22,36 +22,6 @@ function generateCode() {
 	return out;
 }
 
-const DEFAULT_COSMETICS = Object.freeze({
-	ball: { skinId: 'classic' },
-	goalExplosion: {
-		styleValue: GOAL_EXPLOSION_STYLES[0].value,
-		colorId: 'base'
-	}
-});
-
-const ALLOWED_BALL_SKINS = new Set(['classic', 'neon_blue', 'hot_pink']);
-
-function normalizeCosmetics(input) {
-	const skinId = input?.ball?.skinId;
-	const styleValue = normalizeGoalExplosionStyleValue(
-		input?.goalExplosion?.styleValue
-	);
-	const colorId = normalizeGoalExplosionColorId(input?.goalExplosion?.colorId);
-	return {
-		ball: {
-			skinId: ALLOWED_BALL_SKINS.has(skinId)
-				? skinId
-				: DEFAULT_COSMETICS.ball.skinId
-		},
-		goalExplosion: {
-			styleValue:
-				styleValue ?? DEFAULT_COSMETICS.goalExplosion.styleValue,
-			colorId: colorId ?? DEFAULT_COSMETICS.goalExplosion.colorId
-		}
-	};
-}
-
 export default class LobbyState {
 	#server = null;
 
@@ -66,13 +36,11 @@ export default class LobbyState {
 
 	createLobby(arg = undefined) {
 		let name = 'My Lobby';
-		let cosmetics = undefined;
 
 		if (typeof arg === 'string' || arg === undefined || arg === null) {
 			name = arg ?? 'My Lobby';
 		} else if (typeof arg === 'object') {
 			name = arg.name ?? 'My Lobby';
-			cosmetics = arg.cosmetics;
 		}
 
 		const lobbyId = String(nextLobbyId++);
@@ -80,7 +48,6 @@ export default class LobbyState {
 		const lobby = {
 			lobbyId,
 			name,
-			cosmetics: normalizeCosmetics(cosmetics),
 			members: new Map(),
 			emptySince: Date.now(),
 			code: generateCode()
