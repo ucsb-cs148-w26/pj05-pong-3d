@@ -83,8 +83,14 @@
 	<body>
 		<div>
 			<% if (user) { %>
-				<span>Logged in as <%= user.display_name %></span>
-				<button onclick="logout()">Log out</button>
+				<div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;">
+					<button onclick="window.location='/user'" style="width: auto; padding: 0.5rem 1rem;">
+						Logged in as <%= user.display_name %> — My Profile
+					</button>
+					<button onclick="logout()" style="width: auto; padding: 0.5rem 1rem;">
+						Log out
+					</button>
+				</div>
 			<% } else { %>
 				<a href="/auth/google">Log in with Google</a>
 			<% } %>
@@ -139,11 +145,11 @@
 		</div>
 
 		<script>
-			const ballSkinField = document.getElementById('ball-skin');
+			const equippedBallSkin = '<%= user && user.equipped_ball_skin_key ? user.equipped_ball_skin_key : "classic" %>';
 
 			function getSelectedCosmetics() {
 				return {
-					ball: { skinId: ballSkinField?.value || 'classic' }
+					ball: { skinId: equippedBallSkin }
 				};
 			};
 

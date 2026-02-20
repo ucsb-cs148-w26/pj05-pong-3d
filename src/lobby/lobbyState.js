@@ -53,13 +53,11 @@ export default class LobbyState {
 
 	createLobby(arg = undefined) {
 		let name = 'My Lobby';
-		let cosmetics = undefined;
 
 		if (typeof arg === 'string' || arg === undefined || arg === null) {
 			name = arg ?? 'My Lobby';
 		} else if (typeof arg === 'object') {
 			name = arg.name ?? 'My Lobby';
-			cosmetics = arg.cosmetics;
 		}
 
 		const lobbyId = String(nextLobbyId++);
@@ -67,7 +65,6 @@ export default class LobbyState {
 		const lobby = {
 			lobbyId,
 			name,
-			cosmetics: normalizeCosmetics(cosmetics),
 			members: new Map(),
 			emptySince: Date.now(),
 			code: generateCode()

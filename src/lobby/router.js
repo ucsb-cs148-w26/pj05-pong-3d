@@ -15,8 +15,7 @@ export default function createLobbyRouter(server) {
 
 	router.post('/api/lobbies', (req, res) => {
 		const name = req.body?.name;
-		const cosmetics = req.body?.cosmetics;
-		const lobby = lobbyState.createLobby({ name, cosmetics });
+		const lobby = lobbyState.createLobby(name);
 		res.json({ lobby });
 	});
 
