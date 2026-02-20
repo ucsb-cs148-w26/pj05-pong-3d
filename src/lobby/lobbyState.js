@@ -21,7 +21,12 @@ const DEFAULT_COSMETICS = Object.freeze({
 	ball: { skinId: 'classic' }
 });
 
-const ALLOWED_BALL_SKINS = new Set(['classic', 'neon_blue', 'hot_pink']);
+const ALLOWED_BALL_SKINS = new Set([
+	'classic',
+	'neon_blue',
+	'hot_pink',
+	'basketball'
+]);
 
 function normalizeCosmetics(input) {
 	const skinId = input?.ball?.skinId;
@@ -76,6 +81,13 @@ export default class LobbyState {
 		socket.on('client:connect', (clientId) => {
 			// FIXME: No protection for duplicate name joining
 			this.joinLobby(lobbyId, clientId);
+
+			const lobby = this.lobbies.get(lobbyId);
+			socket.sendTo(clientId, {
+				type: 'lobby:cosmetics',
+				cosmetics: lobby.cosmetics
+			});
+
 			socket.broadcast({
 				type: 'chat',
 				content: `[System] ${clientId} joined`
