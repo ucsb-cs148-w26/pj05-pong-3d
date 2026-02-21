@@ -1,7 +1,7 @@
-import * as THREE from 'three';
 import * as Constants from '../constants.js';
 import { KeyboardController } from '../controllers.js';
 import { PaddleCommon } from '../common/PaddleCommon.js';
+import { PADDLE_STYLE_CATALOG, PaddleSkin } from '../shaders/paddleSkin.js';
 
 /**
  * Client-side Paddle with THREE.js rendering
@@ -10,28 +10,24 @@ import { PaddleCommon } from '../common/PaddleCommon.js';
 export class Paddle extends PaddleCommon {
 	#visual = null;
 	#socket = null;
+	#skin = null;
 
 	constructor(
 		key,
 		bodyIdentifier,
 		initialX,
-		meshSettings,
 		controller = new KeyboardController()
 	) {
 		super(key, controller, bodyIdentifier, initialX);
 
-		// Create THREE.js visual representation
-		const geometry = new THREE.EdgesGeometry(
-			new THREE.BoxGeometry(
-				Constants.PADDLE_THICKNESS,
-				Constants.PADDLE_HEIGHT,
-				Constants.PADDLE_DEPTH
-			)
-		);
-
-		const material = new THREE.LineBasicMaterial(meshSettings);
-
-		this.#visual = new THREE.LineSegments(geometry, material);
+		this.#skin = new PaddleSkin({
+			dimensions: {
+				width: Constants.PADDLE_THICKNESS,
+				height: Constants.PADDLE_HEIGHT,
+				depth: Constants.PADDLE_DEPTH
+			}
+		});
+		this.#visual = this.#skin.visual;
 		this.#visual.castShadow = true;
 		this.#visual.receiveShadow = true;
 	}
@@ -44,6 +40,8 @@ export class Paddle extends PaddleCommon {
 	update(dt) {
 		super.update(dt);
 
+		this.#skin.update(dt, this.body.v.norm());
+
 		if (!this.controller) return;
 		this.#socket?.send({
 			type: 'move',
@@ -52,7 +50,31 @@ export class Paddle extends PaddleCommon {
 		});
 	}
 
+	setSkinStyle(styleIndex, options = {}) {
+		return this.#skin.setStyle(styleIndex, options);
+	}
+
+	setSkinColor(color) {
+		this.#skin.setColor(color);
+	}
+
+	resetSkinColor() {
+		this.#skin.resetColor();
+	}
+
+	kill() {
+		this.#skin.dispose();
+	}
+
 	get visual() {
 		return this.#visual;
+	}
+
+	get styleIndex() {
+		return this.#skin.styleIndex;
+	}
+
+	get styleCatalog() {
+		return PADDLE_STYLE_CATALOG;
 	}
 }

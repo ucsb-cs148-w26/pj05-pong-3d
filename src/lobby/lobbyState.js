@@ -92,6 +92,7 @@ export default class LobbyState {
 		socket.on('client:connect', (clientId) => {
 			// FIXME: No protection for duplicate name joining
 			this.joinLobby(lobbyId, clientId);
+
 			socket.broadcast({
 				type: 'chat',
 				content: `[System] ${clientId} joined`

@@ -187,6 +187,58 @@ export const ShaderLibrary = {
 			return diffuse + base * fresnel * 0.2;
 		}
 	`,
+	PaddleFaceUvChunks: `
+		uniform vec3 uHalfExtents;
+
+		float paddleAxisUv(float value, float halfExtent) {
+			return clamp((value + halfExtent) / max(halfExtent * 2.0, 1e-5), 0.0, 1.0);
+		}
+
+		vec2 resolvePaddleFaceUv(in vec3 localPos, in vec3 localNormal) {
+			vec3 n = normalize(localNormal);
+			vec3 an = abs(n);
+
+			if (an.x >= an.y && an.x >= an.z) {
+				if (n.x >= 0.0) {
+					return vec2(
+						paddleAxisUv(-localPos.z, uHalfExtents.z),
+						paddleAxisUv(localPos.y, uHalfExtents.y)
+					);
+				}
+
+				return vec2(
+					paddleAxisUv(localPos.z, uHalfExtents.z),
+					paddleAxisUv(localPos.y, uHalfExtents.y)
+				);
+			}
+
+			if (an.y >= an.x && an.y >= an.z) {
+				if (n.y >= 0.0) {
+					return vec2(
+						paddleAxisUv(localPos.x, uHalfExtents.x),
+						paddleAxisUv(-localPos.z, uHalfExtents.z)
+					);
+				}
+
+				return vec2(
+					paddleAxisUv(localPos.x, uHalfExtents.x),
+					paddleAxisUv(localPos.z, uHalfExtents.z)
+				);
+			}
+
+			if (n.z >= 0.0) {
+				return vec2(
+					paddleAxisUv(localPos.x, uHalfExtents.x),
+					paddleAxisUv(localPos.y, uHalfExtents.y)
+				);
+			}
+
+			return vec2(
+				paddleAxisUv(-localPos.x, uHalfExtents.x),
+				paddleAxisUv(localPos.y, uHalfExtents.y)
+			);
+		}
+	`,
 	ShaderTemplates: {
 		STANDARD_PARTICLE_SHADER: {
 			vertexShader: `
