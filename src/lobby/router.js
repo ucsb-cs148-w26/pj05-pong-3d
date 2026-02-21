@@ -52,9 +52,9 @@ export default function createLobbyRouter(server) {
 			return res.status(404).send('Lobby not found');
 		}
 
-		if (lobby.members.get(username)) {
-			return res.status(400).send('Username is taken');
-		}
+		// if (lobby.members.get(username)) {
+		// 	return res.status(400).send('Username is taken');
+		// }
 
 		res.render('game', { code, username });
 	});

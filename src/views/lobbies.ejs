@@ -128,7 +128,8 @@
 						<div>Join Code: <code><%= lobbies[i].code %></code></div>
 						<div>Players: <%= lobbies[i].memberCount %></div>
 
-						<button onclick="join('<%= lobbies[i].code %>')">Join</button>
+						<!-- <button onclick="join('<%= lobbies[i].code %>')">Join</button> -->
+						 <button>Join</button>
 					</div>
 					<% } %>
 				<% } else { %>
@@ -137,54 +138,73 @@
 			</div>
 		</div>
 
-		<script>
-			const ballSkinField = document.getElementById('ball-skin');
-
-			function getSelectedCosmetics() {
-				return {
-					ball: { skinId: ballSkinField?.value || 'classic' }
-				};
-			};
-
-			function logout() {
-				fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' })
-					.then(() => {
-						window.location.reload();
-					});
-			}
+		<script type="module">
+			import WaitingScreen from '/game/common/WaitingScreen.js';
 
 			const usernameField = document.getElementById('username-field');
 			const nameField = document.getElementById('name-field');
-			document
-				.getElementById('create-button')
-				.addEventListener('click', (e) => {
-					if (!usernameField.value.length) return;
+			const codeField = document.getElementById('code-field');
 
-					fetch('/api/lobbies', {
-						method: 'POST',
-						body: JSON.stringify({
-							name: nameField.value.length ? nameField.value : undefined,
-							cosmetics: getSelectedCosmetics()
-						}),
-						headers: {
-							'Content-Type': 'application/json'
-						}
-					}).then(async (res) => {
-						const { lobby } = await res.json();
-						window.location = `/game?code=${lobby.code}&username=${usernameField.value}`;
-					});
+			// Create WebSocket and join a specific lobby immediately
+			function joinLobbySocket(username, code) {
+				// Connect to the lobby-specific WebSocket path
+				const ws = new WebSocket(`ws://${location.host}/lobby/${code}?clientId=${username}`);
+
+				ws.addEventListener('open', () => {
+					console.log(`Connected to lobby ${code}`);
+					// Tell server to join the lobby (if needed)
+					ws.send(JSON.stringify({
+						type: 'joinLobby',
+						lobbyCode: code,
+						clientId: username
+					}));
 				});
 
-			const codeField = document.getElementById('code-field');
-			document.getElementById('join-button').addEventListener('click', (e) => {
-				if (!usernameField.value.length || !codeField.value.length) return;
-				window.location = `/game?code=${codeField.value}&username=${usernameField.value}`;
+				return ws;
+			}
+
+			// Create Lobby button
+			document.getElementById('create-button').addEventListener('click', async () => {
+				const username = usernameField.value;
+				if (!username) return;
+
+				const res = await fetch('/api/lobbies', {
+					method: 'POST',
+					body: JSON.stringify({
+						name: nameField.value || undefined,
+						cosmetics: {
+							ball: { skinId: document.getElementById('ball-skin').value || 'classic' }
+						}
+					}),
+					headers: { 'Content-Type': 'application/json' }
+				});
+
+				const { lobby } = await res.json();
+				const socket = joinLobbySocket(username, lobby.code);
+				new WaitingScreen(socket, lobby.code, true, [{ clientId: username }], username);
 			});
 
-			function join(code) {
-				if (!usernameField.value.length) return;
-				window.location = `/game?code=${code}&username=${usernameField.value}`;
-			}
+			// Join by code input
+			document.getElementById('join-button').addEventListener('click', () => {
+				const username = usernameField.value;
+				const code = codeField.value;
+				if (!username || !code) return;
+
+				const socket = joinLobbySocket(username, code);
+				new WaitingScreen(socket, code, false, [{ clientId: username }], username);
+			});
+
+			// Open lobby join buttons
+			document.querySelectorAll('.lobby button').forEach(btn => {
+				btn.addEventListener('click', () => {
+					const username = usernameField.value;
+					if (!username) return;
+
+					const code = btn.closest('.lobby').querySelector('code').textContent;
+					const socket = joinLobbySocket(username, code);
+					new WaitingScreen(socket, code, false, [{ clientId: username }], username);
+				});
+			});
 		</script>
 	</body>
 </html>

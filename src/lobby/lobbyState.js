@@ -74,14 +74,12 @@ export default class LobbyState {
 		const socket = new PongSocketServer(this.#server, `/lobby/${lobby.code}`);
 
 		socket.on('client:connect', (clientId) => {
-			// FIXME: No protection for duplicate name joining
 			this.joinLobby(lobbyId, clientId);
 			socket.broadcast({
 				type: 'chat',
 				content: `[System] ${clientId} joined`
 			});
 		});
-
 		socket.on('client:disconnect', (clientId) => {
 			this.leaveLobby(lobbyId, clientId);
 			socket.broadcast({
@@ -91,6 +89,40 @@ export default class LobbyState {
 		});
 
 		socket.addHandler(chatHandler);
+		// Handle joinLobby messages
+		socket.addHandler((server, clientId, ws, msg, respond) => {
+			if (msg.type === 'joinLobby') {
+				const targetLobby = this.getLobbyFromCode(msg.lobbyCode);
+				if (!targetLobby) {
+					respond({ type: 'error', message: 'Lobby not found' });
+					return true;
+				}
+
+				this.joinLobby(targetLobby.lobbyId, msg.clientId);
+
+				respond({
+					type: 'joinedLobby',
+					lobbyCode: targetLobby.code,
+					players: Array.from(targetLobby.members.values())
+				});
+
+				socket.broadcast({
+					type: 'lobbyUpdate',
+					players: Array.from(targetLobby.members.values()),
+					lobbyCode: targetLobby.code
+				});
+
+				return true;
+			}
+		});
+
+		// Handle startGame messages
+		socket.addHandler((server, clientId, ws, msg, respond) => {
+			if (msg.type === 'startGame') {
+				socket.broadcast({ type: 'startGame' });
+				return true;
+			}
+		});
 		this.sockets.set(lobbyId, socket);
 
 		const scene = new ServerScene(socket);
@@ -123,6 +155,13 @@ export default class LobbyState {
 			clientId
 		});
 		lobby.emptySince = null;
+		const socket = this.sockets.get(lobbyId);
+
+		socket.broadcast({
+			type: 'lobbyUpdate',
+			players: Array.from(lobby.members.values()),
+			lobbyCode: lobby.code
+		});
 	}
 
 	leaveLobby(lobbyId, clientId) {
@@ -133,6 +172,13 @@ export default class LobbyState {
 
 		lobby.members.delete(clientId);
 
+		const socket = this.sockets.get(lobbyId);
+		
+		socket.broadcast({
+			type: 'lobbyUpdate',
+			players: Array.from(lobby.members.values()),
+			lobbyCode: lobby.code
+		});	
 		if (lobby.members.size === 0) {
 			lobby.emptySince = Date.now();
 		}
