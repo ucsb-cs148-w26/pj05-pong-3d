@@ -194,12 +194,11 @@ export class AnimatedScene extends Scene {
 					paddle.key,
 					'paddle',
 					paddle.pos[0],
-					{
-						color: 0xffffff,
-						linewidth: 4
-					},
 					paddle.remote ? null : controller
 				);
+				if (paddle.pos[0] > 0) {
+					obj.visual.rotation.y = Math.PI;
+				}
 				this.registerGameObject(obj);
 				this.#paddles.push(obj);
 
