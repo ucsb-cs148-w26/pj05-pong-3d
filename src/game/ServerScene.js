@@ -65,15 +65,10 @@ export default class ServerScene extends Scene {
 			this.step(delta);
 			const goalEvent = this.#ball.consumeGoalEvent?.() ?? null;
 			if (goalEvent) {
-				const payload = {
+				this.#pendingGoalEvent ??= {
 					...goalEvent,
 					serverTs: Date.now()
 				};
-				this.#pendingGoalEvent ??= payload;
-				this.#socket.broadcast({
-					type: 'goalEvent',
-					goalEvent: payload
-				});
 			}
 
 			const scoresByClient = {};

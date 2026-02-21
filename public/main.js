@@ -9,8 +9,7 @@ const socket = new PongSocketClient();
 initChat(socket);
 socket.connect();
 
-const initialCosmetics = window.__PONG_BOOTSTRAP__?.cosmetics;
-const animatedScene = new AnimatedScene(socket, initialCosmetics);
+const animatedScene = new AnimatedScene(socket);
 window.animatedScene = animatedScene;
 
 animatedScene.registerGameObject(new GameObjectCustom('socket', { socket }));

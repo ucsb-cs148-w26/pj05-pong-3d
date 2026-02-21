@@ -1,11 +1,7 @@
 import PongSocketServer from '../socket.js';
 import chatHandler from './chat.js';
 import ServerScene from '../game/ServerScene.js';
-import {
-	GOAL_EXPLOSION_STYLES,
-	normalizeGoalExplosionColorId,
-	normalizeGoalExplosionStyleValue
-} from '../../public/game/shaders/goalExplosionOptions.js';
+import { GOAL_EXPLOSION_STYLES } from '../../public/game/shaders/goalExplosionOptions.js';
 
 let nextLobbyId = 1;
 const EMPTY_LOBBY_DELETE_TIME = 60_000;
@@ -22,6 +18,38 @@ function generateCode() {
 	return out;
 }
 
+const DEFAULT_COSMETICS = Object.freeze({
+	ball: { skinId: 'classic' },
+	goalExplosion: {
+		styleValue: GOAL_EXPLOSION_STYLES[0].value,
+		colorId: 'base'
+	}
+});
+
+const ALLOWED_BALL_SKINS = new Set(['classic', 'neon_blue', 'hot_pink']);
+
+function normalizeCosmetics(input) {
+	const skinId = input?.ball?.skinId;
+	const styleValue = Number(input?.goalExplosion?.styleValue);
+	const colorId = input?.goalExplosion?.colorId;
+	return {
+		ball: {
+			skinId: ALLOWED_BALL_SKINS.has(skinId)
+				? skinId
+				: DEFAULT_COSMETICS.ball.skinId
+		},
+		goalExplosion: {
+			styleValue: Number.isFinite(styleValue)
+				? styleValue
+				: DEFAULT_COSMETICS.goalExplosion.styleValue,
+			colorId:
+				typeof colorId === 'string' && colorId.length > 0
+					? colorId
+					: DEFAULT_COSMETICS.goalExplosion.colorId
+		}
+	};
+}
+
 export default class LobbyState {
 	#server = null;
 
@@ -36,11 +64,13 @@ export default class LobbyState {
 
 	createLobby(arg = undefined) {
 		let name = 'My Lobby';
+		let cosmetics = DEFAULT_COSMETICS;
 
 		if (typeof arg === 'string' || arg === undefined || arg === null) {
 			name = arg ?? 'My Lobby';
 		} else if (typeof arg === 'object') {
 			name = arg.name ?? 'My Lobby';
+			cosmetics = normalizeCosmetics(arg.cosmetics);
 		}
 
 		const lobbyId = String(nextLobbyId++);
@@ -50,7 +80,8 @@ export default class LobbyState {
 			name,
 			members: new Map(),
 			emptySince: Date.now(),
-			code: generateCode()
+			code: generateCode(),
+			cosmetics
 		};
 
 		this.lobbies.set(lobbyId, lobby);

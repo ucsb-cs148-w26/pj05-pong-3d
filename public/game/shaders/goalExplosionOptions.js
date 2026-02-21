@@ -38,30 +38,3 @@ export const GOAL_EXPLOSION_COLOR_OPTIONS = [
 	{ id: 'seafoam', label: 'Seafoam', value: 0x78ffd6 },
 	{ id: 'ice', label: 'Ice', value: 0xb8f1ff }
 ];
-
-const VALID_COLOR_IDS = new Set(
-	GOAL_EXPLOSION_COLOR_OPTIONS.map((option) => option.id)
-);
-const VALID_STYLE_VALUES = new Set(
-	GOAL_EXPLOSION_STYLES.map((style) => style.value)
-);
-
-export function normalizeGoalExplosionStyleValue(input) {
-	const parsed = Number(input);
-	return VALID_STYLE_VALUES.has(parsed) ? parsed : GOAL_EXPLOSION_STYLES[0].value;
-}
-
-export function normalizeGoalExplosionColorId(input) {
-	const id = String(input ?? 'base')
-		.trim()
-		.toLowerCase();
-	return VALID_COLOR_IDS.has(id) ? id : 'base';
-}
-
-export function getGoalExplosionColorValueById(input) {
-	const colorId = normalizeGoalExplosionColorId(input);
-	return (
-		GOAL_EXPLOSION_COLOR_OPTIONS.find((option) => option.id === colorId)?.value ??
-		null
-	);
-}

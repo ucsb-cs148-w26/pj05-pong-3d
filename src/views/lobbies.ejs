@@ -1,188 +1,226 @@
 <!doctype html>
 <html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<title>Lobbies • 3D Pong</title>
-		<style>
-			* {
-				box-sizing: border-box;
-			}
 
-			body {
-				margin: 0 auto;
-				padding: 3rem;
-				width: 80ch;
-				max-width: 100%;
-				font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-				color: rgba(255, 255, 255, 0.92);
-				background: linear-gradient(180deg,#0b1020,#0a1226);
-			}
+<head>
+	<meta charset="utf-8" />
+	<title>Lobbies • 3D Pong</title>
+	<style>
+		* {
+			box-sizing: border-box;
+		}
 
-			input {
-				display: block;
-				width: 100%;
-				padding: 0.75rem;
-				border-radius: 0.75rem;
-				border: 0.1rem solid rgba(255,255,255,.18);
-				background: rgba(0,0,0,.25);
-				color: rgba(255,255,255,.92);
-				outline: none;
-				transition: border .15s, box-shadow .15s;
-			}
+		body {
+			margin: 0 auto;
+			padding: 3rem;
+			width: 80ch;
+			max-width: 100%;
+			font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+			color: rgba(255, 255, 255, 0.92);
+			background: linear-gradient(180deg, #0b1020, #0a1226);
+		}
 
-			input::placeholder {
-				color: rgba(255,255,255,.45);
-			}
+		input {
+			display: block;
+			width: 100%;
+			padding: 0.75rem;
+			border-radius: 0.75rem;
+			border: 0.1rem solid rgba(255, 255, 255, .18);
+			background: rgba(0, 0, 0, .25);
+			color: rgba(255, 255, 255, .92);
+			outline: none;
+			transition: border .15s, box-shadow .15s;
+		}
 
-			input:focus {
-				border-color: rgba(255,255,255,.22);
-				box-shadow: 0 0 0 0.25rem rgba(0,229,255,.12);
-			}
+		input::placeholder {
+			color: rgba(255, 255, 255, .45);
+		}
 
-			button {
-				display: block;
-				width: 100%;
-				padding: 0.9rem 1rem;
-				border-radius: 0.75rem;
-				border: 0.1rem solid rgba(0, 0, 0, 0.12);
-				background: white;
-				color: #0b1020;
-				font-weight: 700;
-				cursor: pointer;
-				box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.18);
-				transition: transform .08s, background .15s;
-			}
+		input:focus {
+			border-color: rgba(255, 255, 255, .22);
+			box-shadow: 0 0 0 0.25rem rgba(0, 229, 255, .12);
+		}
 
-			button:hover {
-				background: rgba(255,255,255,.92);
-			}
+		button {
+			display: block;
+			width: 100%;
+			padding: 0.9rem 1rem;
+			border-radius: 0.75rem;
+			border: 0.1rem solid rgba(0, 0, 0, 0.12);
+			background: white;
+			color: #0b1020;
+			font-weight: 700;
+			cursor: pointer;
+			box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.18);
+			transition: transform .08s, background .15s;
+		}
 
-			button:active {
-				transform: translateY(1px);
-			}
+		button:hover {
+			background: rgba(255, 255, 255, .92);
+		}
 
-			h1 {
-				font-size: 3rem;
-				margin-bottom: 1.2rem;
-			}
+		button:active {
+			transform: translateY(1px);
+		}
 
-			h2 {
-				margin-top: 0;
-			}
+		h1 {
+			font-size: 3rem;
+			margin-bottom: 1.2rem;
+		}
 
-			.card {
-				background: rgba(255,255,255,.06);
-				border: 0.1rem solid rgba(255,255,255,.10);
-				border-radius: 1.1rem;
-				box-shadow: 0 0.75rem 2.25rem rgba(0,0,0,.35);
-				padding: 1.25rem;
-				margin-bottom: 1rem;
-			}
-		</style>
-	</head>
-	<body>
-		<div>
-			<% if (user) { %>
-				<div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;">
-					<button onclick="window.location='/user'" style="width: auto; padding: 0.5rem 1rem;">
-						Logged in as <%= user.display_name %> — My Profile
-					</button>
-					<button onclick="logout()" style="width: auto; padding: 0.5rem 1rem;">
-						Log out
-					</button>
-				</div>
+		h2 {
+			margin-top: 0;
+		}
+
+		.card {
+			background: rgba(255, 255, 255, .06);
+			border: 0.1rem solid rgba(255, 255, 255, .10);
+			border-radius: 1.1rem;
+			box-shadow: 0 0.75rem 2.25rem rgba(0, 0, 0, .35);
+			padding: 1.25rem;
+			margin-bottom: 1rem;
+		}
+	</style>
+</head>
+
+<body>
+	<div>
+		<% if (user) { %>
+			<div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;">
+				<button onclick="window.location='/user'" style="width: auto; padding: 0.5rem 1rem;">
+					Logged in as <%= user.display_name %> — My Profile
+				</button>
+				<button onclick="logout()" style="width: auto; padding: 0.5rem 1rem;">
+					Log out
+				</button>
+			</div>
 			<% } else { %>
 				<a href="/auth/google">Log in with Google</a>
-			<% } %>
+				<% } %>
+	</div>
+
+	<h1>Lobbies</h1>
+
+	<div class="card" style="display: flex; flex-direction: column; gap: 1.5rem;">
+		<input id="username-field" placeholder="Username" style="margin-bottom: 0.5rem" />
+		<div>
+			<input id="name-field" placeholder="Lobby name" style="margin-bottom: 1rem" />
+			<div style="margin-top: 0.5rem">
+				<label for="ball-skin" style="margin-right: 0.5rem">Ball:</label>
+				<select id="ball-skin">
+					<option value="classic" selected>Classic</option>
+					<option value="neon_blue">Neon Blue</option>
+					<option value="hot_pink">Hot Pink</option>
+				</select>
+			</div>
+			<div style="margin-top: 0.5rem">
+				<label for="goal-explosion-style" style="margin-right: 0.5rem">Goal Explosion:</label>
+				<select id="goal-explosion-style">
+					<% goalExplosionStyles.forEach((style, index) => { %>
+						<option value="<%= style.value %>" <%= index === 0 ? 'selected' : '' %>>
+							<%= style.label %>
+						</option>
+					<% }) %>
+				</select>
+			</div>
+			<div style="margin-top: 0.5rem">
+				<label for="goal-explosion-color" style="margin-right: 0.5rem">Goal Color:</label>
+				<select id="goal-explosion-color">
+					<% goalExplosionColors.forEach((color) => { %>
+						<option value="<%= color.id %>" <%= color.id === 'base' ? 'selected' : '' %>>
+							<%= color.label %>
+						</option>
+					<% }) %>
+				</select>
+			</div>
+			<button id="create-button">Create Lobby</button>
 		</div>
 
-		<h1>Lobbies</h1>
-
-		<div class="card" style="display: flex; flex-direction: column; gap: 1.5rem;">
-			<input
-				id="username-field"
-				placeholder="Username"
-				style="margin-bottom: 0.5rem"
-			/>
-
-			<div>
-				<input id="name-field" placeholder="Lobby name" style="margin-bottom: 1rem" />
-				<button id="create-button">Create Lobby</button>
-			</div>
-
-			<div>
-				<input id="code-field" placeholder="Join Code" style="margin-bottom: 1rem" />
-				<button id="join-button">Join</button>
-			</div>
+		<div>
+			<input id="code-field" placeholder="Join Code" style="margin-bottom: 1rem" />
+			<button id="join-button">Join</button>
 		</div>
+	</div>
 
-		<div class="card">
-			<h2>Open Lobbies</h2>
-			<div id="lobbies-list">
-				<% if (lobbies && lobbies.length > 0) { %>
-					<% for (let i = 0; i < lobbies.length; i++) { %>
+	<div class="card">
+		<h2>Open Lobbies</h2>
+		<div id="lobbies-list">
+			<% if (lobbies && lobbies.length> 0) { %>
+				<% for (let i=0; i < lobbies.length; i++) { %>
 					<div class="lobby">
-						<div><strong><%= lobbies[i].name || 'Unnamed Lobby' %></strong></div>
+						<div><strong>
+								<%= lobbies[i].name || 'Unnamed Lobby' %>
+							</strong></div>
 						<div>Join Code: <code><%= lobbies[i].code %></code></div>
-						<div>Players: <%= lobbies[i].memberCount %></div>
+						<div>Players: <%= lobbies[i].memberCount %>
+						</div>
 
 						<button onclick="join('<%= lobbies[i].code %>')">Join</button>
 					</div>
 					<% } %>
-				<% } else { %>
-					<p class="no-lobbies">No open lobbies currently.</p>
-				<% } %>
-			</div>
+						<% } else { %>
+							<p class="no-lobbies">No open lobbies currently.</p>
+							<% } %>
 		</div>
+	</div>
 
-		<script>
-			const equippedBallSkin = '<%= user && user.equipped_ball_skin_key ? user.equipped_ball_skin_key : "classic" %>';
+	<script>
+		const equippedBallSkin = '<%= user && user.equipped_ball_skin_key ? user.equipped_ball_skin_key : "classic" %>';
+		const ballSkinSelect = document.getElementById('ball-skin');
+		const goalExplosionStyleSelect = document.getElementById('goal-explosion-style');
+		const goalExplosionColorSelect = document.getElementById('goal-explosion-color');
 
-			function getSelectedCosmetics() {
-				return {
-					ball: { skinId: equippedBallSkin }
-				};
-			}
+		ballSkinSelect.value = equippedBallSkin;
 
-			window.logout = function logout() {
-				fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' })
-					.then(() => {
-						window.location.reload();
-					});
+		function getSelectedCosmetics() {
+			return {
+				ball: { skinId: ballSkinSelect.value || 'classic' },
+				goalExplosion: {
+					styleValue: Number(goalExplosionStyleSelect.value),
+					colorId: goalExplosionColorSelect.value || 'base'
+				}
 			};
+		}
 
-			const usernameField = document.getElementById('username-field');
-			const nameField = document.getElementById('name-field');
-			document
-				.getElementById('create-button')
-				.addEventListener('click', (e) => {
-					if (!usernameField.value.length) return;
-
-					fetch('/api/lobbies', {
-						method: 'POST',
-						body: JSON.stringify({
-							name: nameField.value.length ? nameField.value : undefined,
-							cosmetics: getSelectedCosmetics()
-						}),
-						headers: {
-							'Content-Type': 'application/json'
-						}
-					}).then(async (res) => {
-						const { lobby } = await res.json();
-						window.location = `/game?code=${lobby.code}&username=${usernameField.value}`;
-					});
+		window.logout = function logout() {
+			fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' })
+				.then(() => {
+					window.location.reload();
 				});
+		};
 
-			const codeField = document.getElementById('code-field');
-			document.getElementById('join-button').addEventListener('click', (e) => {
-				if (!usernameField.value.length || !codeField.value.length) return;
-				window.location = `/game?code=${codeField.value}&username=${usernameField.value}`;
+		const usernameField = document.getElementById('username-field');
+		const nameField = document.getElementById('name-field');
+		document
+			.getElementById('create-button')
+			.addEventListener('click', (e) => {
+				if (!usernameField.value.length) return;
+
+				fetch('/api/lobbies', {
+					method: 'POST',
+					body: JSON.stringify({
+						name: nameField.value.length ? nameField.value : undefined,
+						cosmetics: getSelectedCosmetics()
+					}),
+					headers: {
+						'Content-Type': 'application/json'
+					}
+				}).then(async (res) => {
+					const { lobby } = await res.json();
+					window.location = `/game?code=${lobby.code}&username=${usernameField.value}`;
+				});
 			});
 
-			window.join = function join(code) {
-				if (!usernameField.value.length) return;
-				window.location = `/game?code=${code}&username=${usernameField.value}`;
-			};
-		</script>
-	</body>
+		const codeField = document.getElementById('code-field');
+		document.getElementById('join-button').addEventListener('click', (e) => {
+			if (!usernameField.value.length || !codeField.value.length) return;
+			window.location = `/game?code=${codeField.value}&username=${usernameField.value}`;
+		});
+
+		window.join = function join(code) {
+			if (!usernameField.value.length) return;
+			window.location = `/game?code=${code}&username=${usernameField.value}`;
+		};
+	</script>
+</body>
+
 </html>

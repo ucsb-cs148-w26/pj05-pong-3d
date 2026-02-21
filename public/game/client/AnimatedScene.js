@@ -8,11 +8,7 @@ import { Ball } from './Ball.js';
 import { CameraController } from './CameraController.js';
 import { GameObjectCustom } from '../common/GameObject.js';
 import { GoalAnimationSpawner } from '../shaders/goalAnimationSpawner.js';
-import {
-	getGoalExplosionColorValueById,
-	normalizeGoalExplosionColorId,
-	normalizeGoalExplosionStyleValue
-} from '../shaders/goalExplosionOptions.js';
+import { GOAL_EXPLOSION_COLOR_OPTIONS } from '../shaders/goalExplosionOptions.js';
 
 /**
  * Scene with rendering capabilities. Uses the `visual` on each game object.
@@ -22,7 +18,6 @@ export class AnimatedScene extends Scene {
 	#paddles = [];
 	#goalExplosionStyleValue = 0;
 	#goalExplosionColorId = 'base';
-	#lastGoalEventServerTs = null;
 
 	constructor(socket, cosmetics = null) {
 		super();
@@ -193,14 +188,11 @@ export class AnimatedScene extends Scene {
 	}
 
 	#applyCosmetics(cosmetics) {
-		const styleValue = normalizeGoalExplosionStyleValue(
-			cosmetics?.goalExplosion?.styleValue
-		);
-		const colorId = normalizeGoalExplosionColorId(
-			cosmetics?.goalExplosion?.colorId
-		);
-		this.#goalExplosionStyleValue = styleValue;
-		this.#goalExplosionColorId = colorId;
+		const styleValue = Number(cosmetics?.goalExplosion?.styleValue);
+		const colorId = cosmetics?.goalExplosion?.colorId;
+		this.#goalExplosionStyleValue = Number.isFinite(styleValue) ? styleValue : 0;
+		this.#goalExplosionColorId =
+			typeof colorId === 'string' && colorId.length > 0 ? colorId : 'base';
 	}
 
 	#triggerGoalExplosion(goalEvent) {
@@ -208,7 +200,8 @@ export class AnimatedScene extends Scene {
 		if (wall !== 'greenWall' && wall !== 'redWall') return;
 
 		const goalExplosion = this.getGameObject('goalExplosion');
-		if (!goalExplosion?.self) return;
+		const goalExplosionSpawner = goalExplosion?.config?.self;
+		if (!goalExplosionSpawner) return;
 
 		const position = goalEvent?.position ?? {};
 		const fallbackX =
@@ -235,10 +228,13 @@ export class AnimatedScene extends Scene {
 			adjusted: { x, y, z }
 		});
 
-		const colorValue = getGoalExplosionColorValueById(this.#goalExplosionColorId);
+		const colorValue =
+			GOAL_EXPLOSION_COLOR_OPTIONS.find(
+				(option) => option.id === this.#goalExplosionColorId
+			)?.value ?? null;
 		const color = colorValue == null ? null : new THREE.Color(colorValue);
 
-		goalExplosion.self.trigger(
+		goalExplosionSpawner.trigger(
 			new THREE.Vector3(x, y, z),
 			color,
 			this.#goalExplosionStyleValue
@@ -251,24 +247,7 @@ export class AnimatedScene extends Scene {
 			this.scores = msg.scores;
 			this.#ball.enabled = msg.active;
 			if (msg.cosmetics) this.#applyCosmetics(msg.cosmetics);
-			if (
-				msg.goalEvent &&
-				msg.goalEvent.serverTs !== this.#lastGoalEventServerTs
-			) {
-				this.#lastGoalEventServerTs = msg.goalEvent.serverTs ?? null;
-				this.#triggerGoalExplosion(msg.goalEvent);
-			}
-			return true;
-		}
-
-		if (msg.type === 'goalEvent') {
-			if (
-				msg.goalEvent &&
-				msg.goalEvent.serverTs !== this.#lastGoalEventServerTs
-			) {
-				this.#lastGoalEventServerTs = msg.goalEvent.serverTs ?? null;
-				this.#triggerGoalExplosion(msg.goalEvent);
-			}
+			if (msg.goalEvent) this.#triggerGoalExplosion(msg.goalEvent);
 			return true;
 		}
 
