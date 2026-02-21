@@ -1,4 +1,4 @@
 .env
 .vercel
 node_modules
-/db/pong.db
+db/pong.db*

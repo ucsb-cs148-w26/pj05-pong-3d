@@ -1,4 +1,4 @@
-import db from '../db.js';
+import db from '../db/db.js';
 import session from 'express-session';
 import passport from 'passport';
 import setupGoogleStrategy from './google.js';
