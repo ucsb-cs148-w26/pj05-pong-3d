@@ -6,6 +6,9 @@ import { KeyboardController } from '../controllers.js';
 import { Arena } from './Arena.js';
 import { Ball } from './Ball.js';
 import { CameraController } from './CameraController.js';
+import { GameObjectCustom } from '../common/GameObject.js';
+import { GoalAnimationSpawner } from '../shaders/goalAnimationSpawner.js';
+import { GOAL_EXPLOSION_COLOR_OPTIONS } from '../shaders/goalExplosionOptions.js';
 
 /**
  * Scene with rendering capabilities. Uses the `visual` on each game object.
@@ -13,8 +16,10 @@ import { CameraController } from './CameraController.js';
 export class AnimatedScene extends Scene {
 	#ball = null;
 	#paddles = [];
+	#goalExplosionStyleValue = 0;
+	#goalExplosionColorId = 'base';
 
-	constructor(socket) {
+	constructor(socket, cosmetics = null) {
 		super();
 
 		this.scores = null;
@@ -55,6 +60,20 @@ export class AnimatedScene extends Scene {
 
 		this.#ball = new Ball('ball', null);
 		this.registerGameObject(this.#ball);
+		const goalExplosionSpawner = new GoalAnimationSpawner({
+			initialPoolSize: 1,
+			maxPoolSize: 6
+		});
+		goalExplosionSpawner.visual.scale.setScalar(0.45);
+		this.registerGameObject(
+			new GameObjectCustom('goalExplosion', {
+				self: goalExplosionSpawner,
+				visual: goalExplosionSpawner.visual,
+				update(dt) {
+					this.self.update(dt);
+				}
+			})
+		);
 
 		this.registerGameObject(
 			new CameraController(
@@ -66,6 +85,8 @@ export class AnimatedScene extends Scene {
 				}
 			)
 		);
+
+		this.#applyCosmetics(cosmetics);
 	}
 
 	registerGameObject(...objs) {
@@ -166,11 +187,67 @@ export class AnimatedScene extends Scene {
 		mat.dispose?.();
 	}
 
+	#applyCosmetics(cosmetics) {
+		const styleValue = Number(cosmetics?.goalExplosion?.styleValue);
+		const colorId = cosmetics?.goalExplosion?.colorId;
+		this.#goalExplosionStyleValue = Number.isFinite(styleValue) ? styleValue : 0;
+		this.#goalExplosionColorId =
+			typeof colorId === 'string' && colorId.length > 0 ? colorId : 'base';
+	}
+
+	#triggerGoalExplosion(goalEvent) {
+		const wall = goalEvent?.wall;
+		if (wall !== 'greenWall' && wall !== 'redWall') return;
+
+		const goalExplosion = this.getGameObject('goalExplosion');
+		const goalExplosionSpawner = goalExplosion?.config?.self;
+		if (!goalExplosionSpawner) return;
+
+		const position = goalEvent?.position ?? {};
+		const fallbackX =
+			wall === 'greenWall'
+				? -(Constants.ARENA_DEPTH / 2 - 1.0)
+				: Constants.ARENA_DEPTH / 2 - 1.0;
+		const rawX = Number.isFinite(position.x) ? position.x : fallbackX;
+		const rawY = Number.isFinite(position.y) ? position.y : 0;
+		const rawZ = Number.isFinite(position.z) ? position.z : 0;
+
+		// Stick the effect to the visible arena wall plane.
+		const wallX =
+			wall === 'greenWall'
+				? -(Constants.ARENA_DEPTH / 2 - 0.05)
+				: Constants.ARENA_DEPTH / 2 - 0.05;
+		const maxY = Constants.ARENA_SIZE / 2 - 0.8;
+		const maxZ = Constants.ARENA_SIZE / 2 - 0.8;
+		const x = wallX;
+		const y = Math.max(-maxY, Math.min(maxY, rawY));
+		const z = Math.max(-maxZ, Math.min(maxZ, rawZ));
+		console.log('[goalExplosion] position', {
+			wall,
+			raw: { x: rawX, y: rawY, z: rawZ },
+			adjusted: { x, y, z }
+		});
+
+		const colorValue =
+			GOAL_EXPLOSION_COLOR_OPTIONS.find(
+				(option) => option.id === this.#goalExplosionColorId
+			)?.value ?? null;
+		const color = colorValue == null ? null : new THREE.Color(colorValue);
+
+		goalExplosionSpawner.trigger(
+			new THREE.Vector3(x, y, z),
+			color,
+			this.#goalExplosionStyleValue
+		);
+	}
+
 	#socketHandler(msg, respond) {
 		if (msg.type === 'sync') {
 			this.physicsLoad(msg.ts, msg.physics);
 			this.scores = msg.scores;
 			this.#ball.enabled = msg.active;
+			if (msg.cosmetics) this.#applyCosmetics(msg.cosmetics);
+			if (msg.goalEvent) this.#triggerGoalExplosion(msg.goalEvent);
 			return true;
 		}
 

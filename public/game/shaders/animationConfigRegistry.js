@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { GoalAssetFactory } from './goalAssetFactory.js';
 import { TWEEN } from './tweening.js';
+import { GOAL_EXPLOSION_STYLES } from './goalExplosionOptions.js';
+export { GOAL_EXPLOSION_STYLES };
 
 const BLACK_HOLE_SCALE = 4.0;
 
@@ -2961,22 +2963,6 @@ export const GOAL_ANIMATION_CONFIGS = [
 	CRYSTAL_SPIRE_CONFIG,
 	GRAVITY_WELL_CONFIG,
 	SPOOKY_CONFIG
-];
-
-export const GOAL_EXPLOSION_STYLES = [
-	{ id: 'NOVA', label: 'Nova', value: 0 },
-	{ id: 'PIXEL_BURST', label: 'Pixel Burst', value: 1 },
-	{ id: 'VORTEX', label: 'Vortex', value: 2 },
-	{ id: 'BOOM_HEADSHOT', label: 'Boom Headshot', value: 3 },
-	{ id: 'BLACK_HOLE', label: 'Black Hole', value: 4 },
-	{ id: 'MONSOON', label: 'Monsoon', value: 5 },
-	{ id: 'ORBITAL_STRIKE', label: 'Orbital Strike', value: 6 },
-	{ id: 'SHATTERED_REALITY', label: 'Shattered Reality', value: 7 },
-	{ id: 'BASS_DROP', label: 'Bass Drop', value: 8 },
-	{ id: 'TOXIC_BLOOM', label: 'Toxic Bloom', value: 9 },
-	{ id: 'CRYSTAL_SPIRE', label: 'Crystal Spire', value: 10 },
-	{ id: 'GRAVITY_WELL', label: 'Gravity Well', value: 11 },
-	{ id: 'SPOOKY', label: 'Spooky', value: 12 }
 ];
 
 const CONFIGS_BY_ID = new Map(

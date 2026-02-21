@@ -1,5 +1,9 @@
 import { Router } from 'express';
 import LobbyState from './lobbyState.js';
+import {
+	GOAL_EXPLOSION_COLOR_OPTIONS,
+	GOAL_EXPLOSION_STYLES
+} from '../../public/game/shaders/goalExplosionOptions.js';
 
 export default function createLobbyRouter(server) {
 	const router = Router();
@@ -15,7 +19,8 @@ export default function createLobbyRouter(server) {
 
 	router.post('/api/lobbies', (req, res) => {
 		const name = req.body?.name;
-		const lobby = lobbyState.createLobby(name);
+		const cosmetics = req.body?.cosmetics;
+		const lobby = lobbyState.createLobby({ name, cosmetics });
 		res.json({ lobby });
 	});
 
@@ -55,13 +60,19 @@ export default function createLobbyRouter(server) {
 			return res.status(400).send('Username is taken');
 		}
 
-		res.render('game', { code, username });
+		res.render('game', {
+			code,
+			username,
+			cosmetics: lobby.cosmetics
+		});
 	});
 
 	router.get('/', (req, res) => {
 		res.render('lobbies', {
 			lobbies: lobbyState.listLobbies(),
-			user: req.user
+			user: req.user,
+			goalExplosionStyles: GOAL_EXPLOSION_STYLES,
+			goalExplosionColors: GOAL_EXPLOSION_COLOR_OPTIONS
 		});
 	});
 
