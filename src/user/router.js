@@ -88,7 +88,9 @@ export default function createUserRouter() {
 		const newName = req.body?.display_name?.trim();
 
 		if (!newName) {
-			return res.status(400).json({ ok: false, message: 'Display name cannot be empty' });
+			return res
+				.status(400)
+				.json({ ok: false, message: 'Display name cannot be empty' });
 		}
 
 		db.run(
@@ -148,7 +150,7 @@ export default function createUserRouter() {
 		const columnMap = {
 			paddle_skin: 'paddle_skin_item_id',
 			ball_skin: 'ball_skin_item_id',
-			goal_explosion: 'goal_explosion_item_id',
+			goal_explosion: 'goal_explosion_item_id'
 		};
 		const column = columnMap[slot];
 
@@ -161,7 +163,8 @@ export default function createUserRouter() {
 		`;
 
 		db.run(sql, [userId, itemId], function (err) {
-			if (err) return res.status(500).json({ ok: false, error: 'Database error' });
+			if (err)
+				return res.status(500).json({ ok: false, error: 'Database error' });
 			res.json({ ok: true });
 		});
 	});
@@ -179,14 +182,18 @@ export default function createUserRouter() {
 			[userId],
 			(err, row) => {
 				if (err) return res.status(500).json({ error: 'Database error' });
-				if (!row) return res.json({ message: 'All goal explosions already unlocked!' });
+				if (!row)
+					return res.json({ message: 'All goal explosions already unlocked!' });
 
 				db.run(
 					`INSERT INTO user_unlocks (user_id, item_id, unlocked_at) VALUES (?, ?, CURRENT_TIMESTAMP)`,
 					[userId, row.id],
 					(err2) => {
 						if (err2) return res.status(500).json({ error: 'Database error' });
-						res.json({ message: 'Unlocked a new goal explosion!', itemId: row.id });
+						res.json({
+							message: 'Unlocked a new goal explosion!',
+							itemId: row.id
+						});
 					}
 				);
 			}
@@ -206,7 +213,8 @@ export default function createUserRouter() {
 			[userId],
 			(err, row) => {
 				if (err) return res.status(500).json({ error: 'Database error' });
-				if (!row) return res.json({ message: 'All ball skins already unlocked!' });
+				if (!row)
+					return res.json({ message: 'All ball skins already unlocked!' });
 
 				db.run(
 					`INSERT INTO user_unlocks (user_id, item_id, unlocked_at) VALUES (?, ?, CURRENT_TIMESTAMP)`,
