@@ -6,7 +6,6 @@ import { KeyboardController } from '../controllers.js';
 import { Arena } from './Arena.js';
 import { Ball } from './Ball.js';
 import { CameraController } from './CameraController.js';
-import { initCosmetics, registerBall } from '../cosmetics.js';
 
 /**
  * Scene with rendering capabilities. Uses the `visual` on each game object.
@@ -50,13 +49,11 @@ export class AnimatedScene extends Scene {
 		this._hiddenHtml = new Map();
 
 		socket.addHandler(this.#socketHandler.bind(this));
-		initCosmetics(socket);
 
 		// Order matters: Sync with ServerScene.js
 		this.registerGameObject(new Arena('gameArena'));
 
 		this.#ball = new Ball('ball', null);
-		registerBall(this.#ball);
 		this.registerGameObject(this.#ball);
 
 		this.registerGameObject(

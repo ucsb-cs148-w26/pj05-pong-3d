@@ -117,12 +117,6 @@ export default class PongSocketServer extends EventEmitter {
 		}
 	}
 
-	sendTo(clientId, obj) {
-		const ws = this.#wsByClientId.get(clientId);
-		if (!ws) return;
-		this.safeSend(ws, obj);
-	}
-
 	addHandler(func) {
 		this.#handlers.push(func);
 	}

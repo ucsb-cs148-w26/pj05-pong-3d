@@ -20,16 +20,39 @@ export class Ball extends BallCommon {
 
 		this.#visual = new THREE.Mesh(geometry, material);
 		this.#visual.castShadow = true;
+
+		this.#loadEquippedSkin();
 	}
 
-	applyCosmetics(cosmetics) {
-		const skinId = cosmetics?.ball?.skinId ?? 'classic';
+	async #loadEquippedSkin() {
+		try {
+			const response = await fetch('/user/items/equipped', {
+				method: 'GET',
+				credentials: 'same-origin'
+			});
 
-		const mat = this.#visual?.material;
+			if (!response.ok) throw new Error();
+
+			const data = await response.json();
+
+			if (data.ball_skin_key) {
+				this.applySkin(data.ball_skin_key);
+			} else {
+				this.applySkin('default');
+			}
+		} catch (err) {
+			console.error('Failed to load equipped ball skin');
+			this.applySkin('default');
+		}
+	}
+
+	applySkin(skinId) {
+		const mat = this.#visual.material;
 		if (!mat) return;
 
 		mat.map = null;
 
+		// TODO: Hardcoded for now, fix with updated ball skin logic
 		if (skinId === 'neon_blue') {
 			mat.color.set(0x00aaff);
 		} else if (skinId === 'hot_pink') {
