@@ -12,8 +12,13 @@ We created tests for public/physics/math.js in public/physics/math.test.js
   - Quaternion: fromAxisAngle and rotateVec3InPlace.
 
 ## Integration test implemented
-We created tests for
-`TODO: ADD TEST AFTER DONE`
+We created an end-to-end test for the physics engine. This is simultaneously testing the colliders and transform logc, dynamics (differential equation solver) logic, collision check logic, collision resolution logic, and collision callback logic all in one comprehensive tests via a simple Physics simulation. We spawn 4 cubes each with width/length/height of 1 all on the same line, and direct the inner two blocks to have velocity towards each other. It looks like:
+[]   []-->   <--[]   []
+There should be a total of three collisions given the proper velocity, following this flow:
+[]   []-->   <--[]   [] 0 init
+[]   <--[][]-->   [] 1 collision
+<--[][]-->   <--[][]--> 2 collision (two at the same time)
+<--[]  <--[][]--> []--> 3 collision; float forever after
 
 ## How to run
 We set up our package.json so tests can be run by typing: `npm test`
