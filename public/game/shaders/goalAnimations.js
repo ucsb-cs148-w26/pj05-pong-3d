@@ -1,8 +1,5 @@
 import * as THREE from 'three';
-import { GoalAssetFactory } from './goalAssetFactory.js';
-import { TWEEN } from './tweening.js';
-
-const BLACK_HOLE_SCALE = 4.0;
+import { TWEEN, randomDirection, smoothstep } from './tweening.js';
 
 const DEFAULT_RING_GEOMETRY = {
 	type: 'ring',
@@ -10,170 +7,9 @@ const DEFAULT_RING_GEOMETRY = {
 	rotationAngle: Math.PI / 2
 };
 
-function randomDirection() {
-	return new THREE.Vector3(
-		Math.random() * 2 - 1,
-		Math.random() * 2 - 1,
-		Math.random() * 2 - 1
-	).normalize();
-}
-
-function smoothstep(edge0, edge1, x) {
-	const t = Math.min(1.0, Math.max(0.0, (x - edge0) / (edge1 - edge0)));
-	return t * t * (3.0 - 2.0 * t);
-}
-
-function createBoomSprite() {
-	const canvas = document.createElement('canvas');
-	canvas.width = 512;
-	canvas.height = 256;
-	const ctx = canvas.getContext('2d');
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
-	ctx.fillStyle = 'rgba(0, 0, 0, 0)';
-	ctx.fillRect(0, 0, canvas.width, canvas.height);
-	ctx.font = 'bold 128px sans-serif';
-	ctx.textAlign = 'center';
-	ctx.textBaseline = 'middle';
-	ctx.fillStyle = 'rgba(255, 80, 80, 0.9)';
-	ctx.fillText('Boom!', canvas.width / 2, canvas.height / 2);
-	ctx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
-	ctx.lineWidth = 6;
-	ctx.strokeText('Boom!', canvas.width / 2, canvas.height / 2);
-
-	const texture = new THREE.CanvasTexture(canvas);
-	texture.needsUpdate = true;
-
-	const material = new THREE.SpriteMaterial({
-		map: texture,
-		transparent: true,
-		opacity: 0.0,
-		depthWrite: false,
-		depthTest: false
-	});
-
-	const sprite = new THREE.Sprite(material);
-	sprite.scale.set(5.5, 2.8, 1.0);
-	sprite.renderOrder = 10;
-	sprite.visible = false;
-	return sprite;
-}
-
-function createReticleSprite() {
-	const canvas = document.createElement('canvas');
-	canvas.width = 256;
-	canvas.height = 256;
-	const ctx = canvas.getContext('2d');
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-	const center = canvas.width / 2;
-	ctx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
-	ctx.lineWidth = 10;
-	ctx.beginPath();
-	ctx.arc(center, center, 88, 0, Math.PI * 2);
-	ctx.stroke();
-
-	ctx.lineWidth = 6;
-	ctx.beginPath();
-	ctx.arc(center, center, 26, 0, Math.PI * 2);
-	ctx.stroke();
-
-	const texture = new THREE.CanvasTexture(canvas);
-	texture.needsUpdate = true;
-
-	const material = new THREE.SpriteMaterial({
-		map: texture,
-		transparent: true,
-		opacity: 0.0,
-		depthWrite: false,
-		depthTest: false
-	});
-
-	const sprite = new THREE.Sprite(material);
-	sprite.scale.set(4.2, 4.2, 1.0);
-	sprite.renderOrder = 10;
-	sprite.visible = false;
-	return sprite;
-}
-
-function createCloudTexture() {
-	const canvas = document.createElement('canvas');
-	canvas.width = 512;
-	canvas.height = 256;
-	const ctx = canvas.getContext('2d');
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-	const drawPuff = (x, y, r, alpha) => {
-		const gradient = ctx.createRadialGradient(x, y, 0, x, y, r);
-		gradient.addColorStop(0, `rgba(185, 210, 255, ${alpha})`);
-		gradient.addColorStop(0.6, `rgba(140, 175, 235, ${alpha * 0.8})`);
-		gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-		ctx.fillStyle = gradient;
-		ctx.beginPath();
-		ctx.arc(x, y, r, 0, Math.PI * 2);
-		ctx.fill();
-	};
-
-	drawPuff(160, 150, 120, 0.55);
-	drawPuff(260, 120, 140, 0.6);
-	drawPuff(350, 150, 120, 0.5);
-	drawPuff(220, 170, 130, 0.55);
-	drawPuff(120, 170, 90, 0.45);
-	drawPuff(420, 170, 90, 0.45);
-	drawPuff(80, 130, 80, 0.4);
-	drawPuff(200, 110, 95, 0.45);
-	drawPuff(300, 185, 110, 0.5);
-	drawPuff(430, 130, 85, 0.4);
-	drawPuff(380, 95, 70, 0.35);
-
-	const texture = new THREE.CanvasTexture(canvas);
-	texture.needsUpdate = true;
-	return texture;
-}
-
-function createSpookyEyesSprite() {
-	const canvas = document.createElement('canvas');
-	canvas.width = 256;
-	canvas.height = 128;
-	const ctx = canvas.getContext('2d');
-	ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-	const drawEye = (x) => {
-		const gradient = ctx.createRadialGradient(x, 64, 2, x, 64, 30);
-		gradient.addColorStop(0.0, 'rgba(255, 255, 255, 0.95)');
-		gradient.addColorStop(0.12, 'rgba(255, 120, 120, 1.0)');
-		gradient.addColorStop(0.5, 'rgba(220, 20, 40, 0.85)');
-		gradient.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
-		ctx.fillStyle = gradient;
-		ctx.beginPath();
-		ctx.ellipse(x, 64, 32, 22, 0, 0, Math.PI * 2);
-		ctx.fill();
-	};
-
-	drawEye(90);
-	drawEye(166);
-
-	const texture = new THREE.CanvasTexture(canvas);
-	texture.needsUpdate = true;
-
-	const material = new THREE.SpriteMaterial({
-		map: texture,
-		transparent: true,
-		opacity: 0.0,
-		depthWrite: false,
-		depthTest: false,
-		blending: THREE.AdditiveBlending
-	});
-
-	const sprite = new THREE.Sprite(material);
-	sprite.scale.set(1.6, 0.8, 1.0);
-	sprite.visible = false;
-	sprite.renderOrder = 14;
-	return sprite;
-}
-
 const NOVA_CONFIG = {
-	id: 'NOVA',
 	styleIndex: 0,
+	label: 'Nova',
 	duration: 4.0,
 	baseColor: 0xff6f61,
 	shaders: {
@@ -372,8 +208,8 @@ const NOVA_CONFIG = {
 };
 
 const PIXEL_BURST_CONFIG = {
-	id: 'PIXEL_BURST',
 	styleIndex: 1,
+	label: 'Pixel Burst',
 	duration: 4.0,
 	baseColor: 0x5cffb5,
 	shaders: {
@@ -456,21 +292,27 @@ const PIXEL_BURST_CONFIG = {
 			count: 160,
 			visible: false
 		},
-		{ key: 'flareSprite', type: 'flare', visible: false }
+		{ key: 'flareSprite', type: 'flare', visible: false },
+		{ key: 'extraFlareA', type: 'flare', visible: false },
+		{ key: 'extraFlareB', type: 'flare', visible: false }
 	],
 	particleSystems: [
 		{ pointsKey: 'particlePoints', systemKey: 'particleSystem', drag: 0.98 },
 		{ pointsKey: 'sparkPoints', systemKey: 'sparkSystem', drag: 0.965 }
 	],
 	setup(animation) {
-		const flareA = GoalAssetFactory.createFlare();
-		const flareB = GoalAssetFactory.createFlare();
+		const flareA = animation.extraFlareA;
+		const flareB = animation.extraFlareB;
+		if (!flareA || !flareB) {
+			animation.extraFlares = [];
+			return;
+		}
+
 		flareA.scale.set(2.6, 2.6, 1.0);
 		flareB.scale.set(4.0, 4.0, 1.0);
 		flareA.visible = false;
 		flareB.visible = false;
 		animation.extraFlares = [flareA, flareB];
-		animation.visual.add(flareA, flareB);
 	},
 	configureVisibility(animation) {
 		if (animation.coreMesh) animation.coreMesh.visible = true;
@@ -546,8 +388,8 @@ const PIXEL_BURST_CONFIG = {
 };
 
 const VORTEX_CONFIG = {
-	id: 'VORTEX',
 	styleIndex: 2,
+	label: 'Vortex',
 	duration: 3.5,
 	autoParticles: false,
 	shaders: {
@@ -791,8 +633,8 @@ const VORTEX_CONFIG = {
 };
 
 const BOOM_HEADSHOT_CONFIG = {
-	id: 'BOOM_HEADSHOT',
 	styleIndex: 3,
+	label: 'Boom Headshot',
 	duration: 4.0,
 	shaders: {
 		core: {
@@ -860,8 +702,68 @@ const BOOM_HEADSHOT_CONFIG = {
 		{ pointsKey: 'sparkPoints', systemKey: 'sparkSystem', drag: 0.965 }
 	],
 	setup(animation) {
-		animation.boomText = createBoomSprite();
-		animation.flareSprite = createReticleSprite();
+		const boomCanvas = document.createElement('canvas');
+		boomCanvas.width = 512;
+		boomCanvas.height = 256;
+		const boomCtx = boomCanvas.getContext('2d');
+		boomCtx.clearRect(0, 0, boomCanvas.width, boomCanvas.height);
+		boomCtx.fillStyle = 'rgba(0, 0, 0, 0)';
+		boomCtx.fillRect(0, 0, boomCanvas.width, boomCanvas.height);
+		boomCtx.font = 'bold 128px sans-serif';
+		boomCtx.textAlign = 'center';
+		boomCtx.textBaseline = 'middle';
+		boomCtx.fillStyle = 'rgba(255, 80, 80, 0.9)';
+		boomCtx.fillText('Boom!', boomCanvas.width / 2, boomCanvas.height / 2);
+		boomCtx.strokeStyle = 'rgba(255, 255, 255, 0.9)';
+		boomCtx.lineWidth = 6;
+		boomCtx.strokeText('Boom!', boomCanvas.width / 2, boomCanvas.height / 2);
+
+		const boomTexture = new THREE.CanvasTexture(boomCanvas);
+		boomTexture.needsUpdate = true;
+		const boomMaterial = new THREE.SpriteMaterial({
+			map: boomTexture,
+			transparent: true,
+			opacity: 0.0,
+			depthWrite: false,
+			depthTest: false
+		});
+		animation.boomText = new THREE.Sprite(boomMaterial);
+		animation.boomText.scale.set(5.5, 2.8, 1.0);
+		animation.boomText.renderOrder = 10;
+		animation.boomText.visible = false;
+
+		const reticleCanvas = document.createElement('canvas');
+		reticleCanvas.width = 256;
+		reticleCanvas.height = 256;
+		const reticleCtx = reticleCanvas.getContext('2d');
+		reticleCtx.clearRect(0, 0, reticleCanvas.width, reticleCanvas.height);
+
+		const center = reticleCanvas.width / 2;
+		reticleCtx.strokeStyle = 'rgba(255, 255, 255, 0.95)';
+		reticleCtx.lineWidth = 10;
+		reticleCtx.beginPath();
+		reticleCtx.arc(center, center, 88, 0, Math.PI * 2);
+		reticleCtx.stroke();
+
+		reticleCtx.lineWidth = 6;
+		reticleCtx.beginPath();
+		reticleCtx.arc(center, center, 26, 0, Math.PI * 2);
+		reticleCtx.stroke();
+
+		const reticleTexture = new THREE.CanvasTexture(reticleCanvas);
+		reticleTexture.needsUpdate = true;
+		const reticleMaterial = new THREE.SpriteMaterial({
+			map: reticleTexture,
+			transparent: true,
+			opacity: 0.0,
+			depthWrite: false,
+			depthTest: false
+		});
+		animation.flareSprite = new THREE.Sprite(reticleMaterial);
+		animation.flareSprite.scale.set(4.2, 4.2, 1.0);
+		animation.flareSprite.renderOrder = 10;
+		animation.flareSprite.visible = false;
+
 		animation.visual.add(animation.boomText, animation.flareSprite);
 	},
 	configureVisibility(animation) {
@@ -929,8 +831,8 @@ const BOOM_HEADSHOT_CONFIG = {
 };
 
 const BLACK_HOLE_CONFIG = {
-	id: 'BLACK_HOLE',
 	styleIndex: 4,
+	label: 'Black Hole',
 	duration: 4.0,
 	baseColor: 0xff6bd6,
 	autoParticles: false,
@@ -1207,13 +1109,10 @@ const BLACK_HOLE_CONFIG = {
 			animation.lensMesh,
 			animation.gammaBurstMesh
 		);
-		animation.registerColorUniformGroups([
-			animation.gammaBurstMaterial.uniforms
-		]);
 	},
 	configureVisibility(animation) {
 		if (animation.visual?.scale)
-			animation.visual.scale.setScalar(BLACK_HOLE_SCALE);
+			animation.visual.scale.setScalar(4.0);
 		animation.ringMesh.visible = true;
 		animation.ringMesh2.visible = true;
 		animation.blackHoleMesh.visible = true;
@@ -1233,6 +1132,9 @@ const BLACK_HOLE_CONFIG = {
 		if (animation.ringMesh2?.material) {
 			animation.ringMesh2.material.side = THREE.DoubleSide;
 			animation.ringMesh2.material.needsUpdate = true;
+		}
+		if (animation.gammaBurstMaterial?.uniforms?.uColor?.value?.copy) {
+			animation.gammaBurstMaterial.uniforms.uColor.value.copy(animation.color);
 		}
 		if (animation.sparkPoints) animation.sparkPoints.visible = false;
 		if (animation.particlePoints) {
@@ -1421,7 +1323,7 @@ const BLACK_HOLE_CONFIG = {
 		if (animation.gammaBurstMesh?.rotation)
 			animation.gammaBurstMesh.rotation.set(0, 0, 0);
 		if (animation.visual?.scale)
-			animation.visual.scale.setScalar(BLACK_HOLE_SCALE);
+			animation.visual.scale.setScalar(4.0);
 		if (animation.blackHoleMesh) animation.blackHoleMesh.scale.setScalar(0);
 		if (animation.ringMesh) animation.ringMesh.scale.setScalar(0);
 		if (animation.ringMesh2) animation.ringMesh2.scale.setScalar(0);
@@ -1440,8 +1342,8 @@ const BLACK_HOLE_CONFIG = {
 };
 
 const MONSOON_CONFIG = {
-	id: 'MONSOON',
 	styleIndex: 5,
+	label: 'Monsoon',
 	duration: 4.0,
 	baseColor: 0x4fa3ff,
 	shaders: {
@@ -1495,7 +1397,37 @@ const MONSOON_CONFIG = {
 	},
 	assets: [],
 	setup(animation, materials) {
-		const cloudTexture = createCloudTexture();
+		const cloudCanvas = document.createElement('canvas');
+		cloudCanvas.width = 512;
+		cloudCanvas.height = 256;
+		const cloudCtx = cloudCanvas.getContext('2d');
+		cloudCtx.clearRect(0, 0, cloudCanvas.width, cloudCanvas.height);
+
+		const drawPuff = (x, y, r, alpha) => {
+			const gradient = cloudCtx.createRadialGradient(x, y, 0, x, y, r);
+			gradient.addColorStop(0, `rgba(185, 210, 255, ${alpha})`);
+			gradient.addColorStop(0.6, `rgba(140, 175, 235, ${alpha * 0.8})`);
+			gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+			cloudCtx.fillStyle = gradient;
+			cloudCtx.beginPath();
+			cloudCtx.arc(x, y, r, 0, Math.PI * 2);
+			cloudCtx.fill();
+		};
+
+		drawPuff(160, 150, 120, 0.55);
+		drawPuff(260, 120, 140, 0.6);
+		drawPuff(350, 150, 120, 0.5);
+		drawPuff(220, 170, 130, 0.55);
+		drawPuff(120, 170, 90, 0.45);
+		drawPuff(420, 170, 90, 0.45);
+		drawPuff(80, 130, 80, 0.4);
+		drawPuff(200, 110, 95, 0.45);
+		drawPuff(300, 185, 110, 0.5);
+		drawPuff(430, 130, 85, 0.4);
+		drawPuff(380, 95, 70, 0.35);
+
+		const cloudTexture = new THREE.CanvasTexture(cloudCanvas);
+		cloudTexture.needsUpdate = true;
 		const cloudOffsets = [
 			new THREE.Vector3(0.0, 2.6, 0.0),
 			new THREE.Vector3(-2.1, 1.6, 0.0),
@@ -1633,8 +1565,8 @@ const MONSOON_CONFIG = {
 };
 
 const ORBITAL_STRIKE_CONFIG = {
-	id: 'ORBITAL_STRIKE',
 	styleIndex: 6,
+	label: 'Orbital Strike',
 	duration: 3.2,
 	baseColor: 0x86d6ff,
 	shaders: {
@@ -1832,8 +1764,8 @@ const ORBITAL_STRIKE_CONFIG = {
 };
 
 const SHATTERED_REALITY_CONFIG = {
-	id: 'SHATTERED_REALITY',
 	styleIndex: 7,
+	label: 'Shattered Reality',
 	duration: 3.8,
 	baseColor: 0xa8a9ff,
 	shaders: {
@@ -1939,8 +1871,8 @@ const SHATTERED_REALITY_CONFIG = {
 };
 
 const BASS_DROP_CONFIG = {
-	id: 'BASS_DROP',
 	styleIndex: 8,
+	label: 'Bass Drop',
 	duration: 3.6,
 	baseColor: 0x6ca8ff,
 	shaders: {
@@ -2113,8 +2045,8 @@ const BASS_DROP_CONFIG = {
 };
 
 const TOXIC_BLOOM_CONFIG = {
-	id: 'TOXIC_BLOOM',
 	styleIndex: 9,
+	label: 'Toxic Bloom',
 	duration: 4.0,
 	autoParticles: false,
 	baseColor: 0x69ff54,
@@ -2253,8 +2185,8 @@ const TOXIC_BLOOM_CONFIG = {
 };
 
 const CRYSTAL_SPIRE_CONFIG = {
-	id: 'CRYSTAL_SPIRE',
 	styleIndex: 10,
+	label: 'Crystal Spire',
 	duration: 3.7,
 	baseColor: 0x77d5ff,
 	shaders: {
@@ -2297,17 +2229,16 @@ const CRYSTAL_SPIRE_CONFIG = {
 		}
 	},
 	assets: [],
-	additionalTrackedAssets: ['baseMesh'],
 	setup(animation, materials) {
 		if (!animation.baseMesh) {
 			const sourceMaterial = materials?.material;
 			const baseMaterial = sourceMaterial?.clone
 				? sourceMaterial.clone()
 				: new THREE.MeshBasicMaterial({
-						color: 0x3f6f8f,
-						transparent: true,
-						opacity: 0.88
-					});
+					color: 0x3f6f8f,
+					transparent: true,
+					opacity: 0.88
+				});
 			baseMaterial.depthWrite = true;
 			baseMaterial.transparent = true;
 			baseMaterial.opacity = 0.88;
@@ -2321,8 +2252,12 @@ const CRYSTAL_SPIRE_CONFIG = {
 			} else if (baseMaterial.color?.clone) {
 				baseMaterial.color = baseMaterial.color.clone().multiplyScalar(0.55);
 			}
-			animation.baseMesh =
-				GoalAssetFactory.createCrystalSpireBase(baseMaterial);
+
+			const baseGeometry = new THREE.IcosahedronGeometry(1.35, 1);
+			animation.baseMesh = new THREE.Mesh(baseGeometry, baseMaterial);
+			animation.baseMesh.position.set(0, -2.0, 0);
+			animation.baseMesh.scale.set(2.7, 0.46, 2.7);
+
 			animation.baseMesh.visible = false;
 			animation.visual.add(animation.baseMesh);
 		}
@@ -2407,12 +2342,12 @@ const CRYSTAL_SPIRE_CONFIG = {
 				localProgress <= 0.0
 					? 0.0
 					: Math.max(
-							0.0,
-							TWEEN.Easing.Elastic.Out(localProgress) +
-								Math.sin(localProgress * Math.PI * 7.0) *
-									(1.0 - localProgress) *
-									0.14
-						);
+						0.0,
+						TWEEN.Easing.Elastic.Out(localProgress) +
+						Math.sin(localProgress * Math.PI * 7.0) *
+						(1.0 - localProgress) *
+						0.14
+					);
 			const width = mesh.userData.widthScale * (0.12 + rise * 0.88);
 			const height = mesh.userData.heightScale * rise;
 			mesh.visible = fade > 0.01;
@@ -2441,8 +2376,8 @@ const CRYSTAL_SPIRE_CONFIG = {
 };
 
 const GRAVITY_WELL_CONFIG = {
-	id: 'GRAVITY_WELL',
 	styleIndex: 11,
+	label: 'Gravity Well',
 	duration: 3.8,
 	autoParticles: false,
 	baseColor: 0x7fd9ff,
@@ -2636,8 +2571,8 @@ const GRAVITY_WELL_CONFIG = {
 };
 
 const SPOOKY_CONFIG = {
-	id: 'SPOOKY',
 	styleIndex: 12,
+	label: 'Spooky',
 	duration: 4.2,
 	autoParticles: false,
 	baseColor: 0x5f6a86,
@@ -2727,7 +2662,44 @@ const SPOOKY_CONFIG = {
 			key: 'watcherSprite',
 			type: 'custom',
 			build() {
-				return createSpookyEyesSprite();
+				const canvas = document.createElement('canvas');
+				canvas.width = 256;
+				canvas.height = 128;
+				const ctx = canvas.getContext('2d');
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+				const drawEye = (x) => {
+					const gradient = ctx.createRadialGradient(x, 64, 2, x, 64, 30);
+					gradient.addColorStop(0.0, 'rgba(255, 255, 255, 0.95)');
+					gradient.addColorStop(0.12, 'rgba(255, 120, 120, 1.0)');
+					gradient.addColorStop(0.5, 'rgba(220, 20, 40, 0.85)');
+					gradient.addColorStop(1.0, 'rgba(0, 0, 0, 0.0)');
+					ctx.fillStyle = gradient;
+					ctx.beginPath();
+					ctx.ellipse(x, 64, 32, 22, 0, 0, Math.PI * 2);
+					ctx.fill();
+				};
+
+				drawEye(90);
+				drawEye(166);
+
+				const texture = new THREE.CanvasTexture(canvas);
+				texture.needsUpdate = true;
+
+				const material = new THREE.SpriteMaterial({
+					map: texture,
+					transparent: true,
+					opacity: 0.0,
+					depthWrite: false,
+					depthTest: false,
+					blending: THREE.AdditiveBlending
+				});
+
+				const sprite = new THREE.Sprite(material);
+				sprite.scale.set(1.6, 0.8, 1.0);
+				sprite.visible = false;
+				sprite.renderOrder = 14;
+				return sprite;
 			},
 			transform: {
 				position: [0, -0.82, 0]
@@ -2963,101 +2935,20 @@ export const GOAL_ANIMATION_CONFIGS = [
 	SPOOKY_CONFIG
 ];
 
-export const GOAL_EXPLOSION_STYLES = [
-	{ id: 'NOVA', label: 'Nova', value: 0 },
-	{ id: 'PIXEL_BURST', label: 'Pixel Burst', value: 1 },
-	{ id: 'VORTEX', label: 'Vortex', value: 2 },
-	{ id: 'BOOM_HEADSHOT', label: 'Boom Headshot', value: 3 },
-	{ id: 'BLACK_HOLE', label: 'Black Hole', value: 4 },
-	{ id: 'MONSOON', label: 'Monsoon', value: 5 },
-	{ id: 'ORBITAL_STRIKE', label: 'Orbital Strike', value: 6 },
-	{ id: 'SHATTERED_REALITY', label: 'Shattered Reality', value: 7 },
-	{ id: 'BASS_DROP', label: 'Bass Drop', value: 8 },
-	{ id: 'TOXIC_BLOOM', label: 'Toxic Bloom', value: 9 },
-	{ id: 'CRYSTAL_SPIRE', label: 'Crystal Spire', value: 10 },
-	{ id: 'GRAVITY_WELL', label: 'Gravity Well', value: 11 },
-	{ id: 'SPOOKY', label: 'Spooky', value: 12 }
-];
+export const GOAL_EXPLOSION_STYLES = GOAL_ANIMATION_CONFIGS.map((config) => ({
+	styleIndex: config.styleIndex,
+	label: config.label
+}));
 
-const CONFIGS_BY_ID = new Map(
-	GOAL_ANIMATION_CONFIGS.map((config) => [config.id, config])
+const CONFIGS_BY_STYLE_INDEX = new Map(
+	GOAL_ANIMATION_CONFIGS.map((config) => [config.styleIndex, config])
 );
-const STYLE_VALUE_TO_ID = new Map(
-	GOAL_EXPLOSION_STYLES.map((style) => [style.value, style.id])
-);
+const DEFAULT_GOAL_CONFIG = GOAL_ANIMATION_CONFIGS[0];
 
-function normalizeId(value) {
-	return String(value ?? '')
-		.trim()
-		.toUpperCase()
-		.replaceAll(' ', '_');
-}
-
-function resolveIdFromClassReference(animationKey) {
-	const directId = animationKey?.animationId ?? animationKey?.id;
-	if (directId && CONFIGS_BY_ID.has(directId)) return directId;
-
-	const className = animationKey?.name ?? '';
-	const normalizedName = normalizeId(className.replace('_GOALANIMATION', ''));
-	if (CONFIGS_BY_ID.has(normalizedName)) return normalizedName;
-	return null;
-}
-
-export function getGoalAnimationConfigById(id) {
-	return CONFIGS_BY_ID.get(id) ?? null;
-}
-
-export function getGoalAnimationConfigByStyleValue(styleValue) {
-	const id = STYLE_VALUE_TO_ID.get(styleValue);
-	return id ? (CONFIGS_BY_ID.get(id) ?? null) : null;
-}
-
-export function resolveGoalAnimationConfig(animationKey) {
-	if (animationKey === undefined || animationKey === null) {
-		return GOAL_ANIMATION_CONFIGS[0];
+export function resolveGoalAnimationConfig(styleIndex) {
+	if (!Number.isFinite(styleIndex)) {
+		return DEFAULT_GOAL_CONFIG;
 	}
 
-	if (typeof animationKey === 'number') {
-		return (
-			getGoalAnimationConfigByStyleValue(animationKey) ??
-			GOAL_ANIMATION_CONFIGS[0]
-		);
-	}
-
-	if (typeof animationKey === 'string') {
-		const normalized = normalizeId(animationKey);
-		if (CONFIGS_BY_ID.has(normalized)) return CONFIGS_BY_ID.get(normalized);
-		const style = GOAL_EXPLOSION_STYLES.find(
-			(entry) =>
-				normalizeId(entry.label) === normalized ||
-				String(entry.value) === animationKey
-		);
-		if (style) return CONFIGS_BY_ID.get(style.id) ?? GOAL_ANIMATION_CONFIGS[0];
-		return GOAL_ANIMATION_CONFIGS[0];
-	}
-
-	if (typeof animationKey === 'function') {
-		const id = resolveIdFromClassReference(animationKey);
-		return id
-			? (CONFIGS_BY_ID.get(id) ?? GOAL_ANIMATION_CONFIGS[0])
-			: GOAL_ANIMATION_CONFIGS[0];
-	}
-
-	if (typeof animationKey === 'object') {
-		if (animationKey.id && CONFIGS_BY_ID.has(animationKey.id)) {
-			return CONFIGS_BY_ID.get(animationKey.id);
-		}
-		if (
-			animationKey.styleIndex !== undefined &&
-			STYLE_VALUE_TO_ID.has(animationKey.styleIndex)
-		) {
-			return getGoalAnimationConfigByStyleValue(animationKey.styleIndex);
-		}
-		const id = resolveIdFromClassReference(animationKey.constructor);
-		return id
-			? (CONFIGS_BY_ID.get(id) ?? GOAL_ANIMATION_CONFIGS[0])
-			: GOAL_ANIMATION_CONFIGS[0];
-	}
-
-	return GOAL_ANIMATION_CONFIGS[0];
+	return CONFIGS_BY_STYLE_INDEX.get(styleIndex) ?? DEFAULT_GOAL_CONFIG;
 }

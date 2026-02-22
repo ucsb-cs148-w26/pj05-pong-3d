@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { AnimatedScene } from './client/AnimatedScene.js';
-import { GOAL_EXPLOSION_STYLES } from './shaders/goalAnimationsRegistry.js';
+import { GOAL_EXPLOSION_STYLES } from './shaders/goalAnimations.js';
 import { GoalAnimationSpawner } from './shaders/goalAnimationSpawner.js';
 
 /*
@@ -79,7 +79,7 @@ export function startGoalExplosionDemo() {
 				runTime: 0.0,
 				runDuration: 2.2,
 				hasTriggered: false,
-				styleIndex: GOAL_EXPLOSION_STYLES[0]?.value ?? 0,
+				styleIndex: GOAL_EXPLOSION_STYLES[0]?.styleIndex ?? 0,
 				baseColor: new THREE.Color(0xffffff),
 				overrideColor: null
 			},
@@ -149,7 +149,7 @@ export function startGoalExplosionDemo() {
 				const select = document.createElement('select');
 				for (const style of GOAL_EXPLOSION_STYLES) {
 					const option = document.createElement('option');
-					option.value = style.value;
+					option.value = style.styleIndex;
 					option.textContent = style.label;
 					select.appendChild(option);
 				}
