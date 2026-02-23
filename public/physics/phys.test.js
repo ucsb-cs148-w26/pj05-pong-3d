@@ -5,9 +5,9 @@ let BoxCollider;
 let PhysicsEngine;
 
 beforeAll(async () => {
-	( { RigidBody, PhysicsEngine } = await import('./engine.js') );
-	( { BoxCollider } = await import('./collider.js') );
-})
+	({ RigidBody, PhysicsEngine } = await import('./engine.js'));
+	({ BoxCollider } = await import('./collider.js'));
+});
 
 describe('collision end-to-end test', () => {
 	test('four boxes, three collisions', () => {
@@ -16,9 +16,9 @@ describe('collision end-to-end test', () => {
 		const uniqueCollisions = new Set();
 
 		const collisionCallback = () => {
-			uniqueCollisions.add( String(engine.t) );
-			log("collision occured at time: ", engine.t);
-		}
+			uniqueCollisions.add(String(engine.t));
+			log('collision occured at time: ', engine.t);
+		};
 
 		const box1 = new RigidBody(5);
 		box1.col = new BoxCollider(1, 1, 1, box1.transform, collisionCallback);
@@ -42,7 +42,7 @@ describe('collision end-to-end test', () => {
 		box1.v.assign(-3, 0, 0);
 		box2.v.assign(3, 0, 0);
 
-		const dt = 1/120;
+		const dt = 1 / 120;
 		const end = dt * 120 * 3; // 3 seconds simulated
 
 		for (let i = 0; i < end; ++i) {
@@ -50,9 +50,6 @@ describe('collision end-to-end test', () => {
 			engine.checkColliders();
 		}
 
-		
 		expect(uniqueCollisions.size === 3);
-
 	});
 });
-
