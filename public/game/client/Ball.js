@@ -9,8 +9,8 @@ import { BallCommon } from '../common/BallCommon.js';
 export class Ball extends BallCommon {
 	#visual = null;
 
-	constructor(key, scores) {
-		super(key, scores);
+	constructor(key) {
+		super(key);
 
 		// Create THREE.js visual representation
 		const geometry = new THREE.SphereGeometry(Constants.BALL_RADIUS);

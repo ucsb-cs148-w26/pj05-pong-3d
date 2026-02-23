@@ -9,6 +9,7 @@ export class RigidBody {
 		this.transform = new COLLIDERS.Transform();
 		this.col = undefined;
 		this.isTrigger = isTrigger;
+		this.forces = new Map();
 	}
 
 	get x() {
@@ -28,7 +29,7 @@ export class RigidBody {
 // It is helpful to inherit from Force for clarity, but as long as an applyForce is exposed,
 // it can serve as a Force.
 export class Force {
-	applyForce() {
+	apply(forceAcc) {
 		throw new Error('Method applyForce() needs to be implemented.');
 	}
 }
@@ -36,7 +37,6 @@ export class Force {
 export class PhysicsEngine {
 	constructor() {
 		this.bodies = new Map();
-		this.forces = [];
 		this.t = 0.0;
 	}
 
@@ -58,18 +58,20 @@ export class PhysicsEngine {
 		return ret;
 	}
 
-	updateState(dx) {
+	setState(xv) {
 		let j = 0;
 		for (const body of this.bodies.values()) {
-			body.x.add(dx.get(j++), dx.get(j++), dx.get(j++));
-			body.v.add(dx.get(j++), dx.get(j++), dx.get(j++));
+			body.x.assign(xv.get(j++), xv.get(j++), xv.get(j++));
+			body.v.assign(xv.get(j++), xv.get(j++), xv.get(j++));
 		}
 	}
 
 	getDerivative() {
 		for (const body of this.bodies.values()) body.f.zero();
 
-		for (const force of this.forces) force.applyForce();
+		for (const body of this.bodies.values()) {
+			for (const force of body.forces.values()) force.apply(body.f);
+		}
 
 		const ret = new MATH.Vector(this.dim);
 		let j = 0;
@@ -132,13 +134,9 @@ export class PhysicsEngine {
 	// improve accuracy later, ok for now
 
 	step(dt) {
-		this.updateState(this.getDerivative().scale(dt));
+		this.setState( this.getState().addVec(this.getDerivative().scale(dt)) );
 
 		this.t += dt;
-	}
-
-	registerForce(...force) {
-		this.forces.push(...force);
 	}
 
 	registerBody(key, body) {

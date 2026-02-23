@@ -5,10 +5,11 @@ export default class PongSocketClient {
 	#lastPingTs = null;
 	#lastLatencyMs = null;
 
-	#handlers = [];
+	#handlers = new Map();
 
 	constructor() {
-		this.addHandler(this.#baseMessageHandler.bind(this));
+		this.addHandler('pong', this.#pong.bind(this));
+		this.addHandler('error', this.#error);
 	}
 
 	connect() {
@@ -47,11 +48,14 @@ export default class PongSocketClient {
 				return;
 			}
 
-			for (const handler of this.#handlers) {
-				if (handler(msg, this.send.bind(this))) {
-					break;
-				}
+			const handler = this.#handlers.get(msg.type);
+			if (handler === undefined) {
+				console.warn('[ws] unknown message type: ', msg);
+				return;
 			}
+			const reply = handler(msg);
+			if (reply === undefined || reply.type === undefined) return;
+			this.send(reply);
 		};
 
 		this.#ws.onclose = () => {
@@ -86,8 +90,8 @@ export default class PongSocketClient {
 		this.#ws.send(JSON.stringify(obj));
 	}
 
-	addHandler(func) {
-		this.#handlers.push(func);
+	addHandler(type, func) {
+		this.#handlers.set(type, func);
 	}
 
 	get lastLatencyMs() {
@@ -100,21 +104,16 @@ export default class PongSocketClient {
 		const url = new URL(
 			`${scheme}://${location.host}/lobby/${locationUrl.searchParams.get('code')}`
 		);
-		url.searchParams.set('clientId', locationUrl.searchParams.get('username'));
+		url.searchParams.set('username', locationUrl.searchParams.get('username'));
 		return url.toString();
 	}
 
-	#baseMessageHandler(msg, respond) {
-		if (msg.type === 'pong') {
-			if (typeof msg.clientTs === 'number') {
-				this.#lastLatencyMs = Date.now() - msg.clientTs;
-			}
-			return true;
-		}
-		if (msg.type === 'error') {
-			console.warn('[ws] server error:', msg.message);
-			return true;
-		}
+	#pong(msg) {
+		if (typeof msg.clientTs === 'number') this.#lastLatencyMs = Date.now() - msg.clientTs;
+	}
+
+	#error(msg) {
+		console.warn('[ws] server error:', msg.message);
 	}
 
 	#sendPing() {

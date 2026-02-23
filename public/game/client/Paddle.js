@@ -9,7 +9,6 @@ import { PADDLE_STYLE_CATALOG, PaddleSkin } from '../shaders/paddleSkin.js';
  */
 export class Paddle extends PaddleCommon {
 	#visual = null;
-	#socket = null;
 	#skin = null;
 
 	constructor(
@@ -19,6 +18,7 @@ export class Paddle extends PaddleCommon {
 		controller = new KeyboardController()
 	) {
 		super(key, controller, bodyIdentifier, initialX);
+		this.socket = null;
 
 		this.#skin = new PaddleSkin({
 			dimensions: {
@@ -34,7 +34,6 @@ export class Paddle extends PaddleCommon {
 
 	init(scene) {
 		super.init(scene);
-		this.#socket = scene.getGameObject('socket')?.config.socket;
 	}
 
 	update(dt) {
@@ -43,7 +42,7 @@ export class Paddle extends PaddleCommon {
 		this.#skin.update(dt, this.body.v.norm());
 
 		if (!this.controller) return;
-		this.#socket?.send({
+		this.socket?.send({
 			type: 'move',
 			ts: Date.now(),
 			direction: [...this.controller.getDirection()] // len-3 float array

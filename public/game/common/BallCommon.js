@@ -9,7 +9,7 @@ import { GameObjectBase } from './GameObject.js';
 export class BallCommon extends GameObjectBase {
 	#enabled = false;
 
-	constructor(key, scores) {
+	constructor(key) {
 		super(key);
 		this.speed = 0;
 		this.needsToReset = false;
@@ -39,12 +39,12 @@ export class BallCommon extends GameObjectBase {
 					}
 
 					case 'greenWall':
-						if (scores) scores[1] += 1;
+						console.log('collision');
 						this.needsToReset = true;
 						return;
 
 					case 'redWall':
-						if (scores) scores[0] += 1;
+						console.log('collision');
 						this.needsToReset = true;
 						return;
 				}

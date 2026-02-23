@@ -26,12 +26,10 @@ export function initChat(socket) {
 	});
 
 	let msgs = [];
-	socket.addHandler((msg, respond) => {
-		if (msg.type === 'chat') {
-			msgs.push(msg.content);
-			msgs = msgs.slice(-MAX_CHAT);
-			chatText.innerText = msgs.join('\n');
-			return true;
-		}
+	socket.addHandler('chat', (msg, respond) => {
+		msgs.push(msg.content);
+		msgs = msgs.slice(-MAX_CHAT);
+		chatText.innerText = msgs.join('\n');
+		return true;
 	});
 }
