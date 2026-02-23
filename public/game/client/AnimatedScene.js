@@ -17,7 +17,8 @@ export class AnimatedScene extends Scene {
 	constructor(socket) {
 		super(new GameState());
 
-		this.scores = null;
+		this.host = null;
+		this.username = null;
 		this.renderer = new THREE.WebGLRenderer();
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		this.renderer.shadowMap.enabled = true;
@@ -88,6 +89,10 @@ export class AnimatedScene extends Scene {
 				}
 			)
 		);
+	}
+
+	get active() {
+		return this.#ball.enabled;
 	}
 
 	registerGameObject(...objs) {
@@ -198,7 +203,17 @@ export class AnimatedScene extends Scene {
 		}
 	}
 
+	get isHost() {
+		return this.host === this.username;
+	}
+
+	get enabled() {
+		return this.#ball.enabled;
+	}
+
 	#playerSync(msg) {
+		this.username = msg.username;
+		this.host = msg.host;
 
 		const cameraController = this.getGameObject('cameraController');
 		if (cameraController) cameraController.followTarget = null;
