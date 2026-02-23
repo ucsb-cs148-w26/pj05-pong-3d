@@ -2919,6 +2919,8 @@ const SPOOKY_CONFIG = {
 	}
 };
 
+
+
 export const GOAL_ANIMATION_CONFIGS = [
 	NOVA_CONFIG,
 	PIXEL_BURST_CONFIG,
@@ -2940,10 +2942,10 @@ export const GOAL_EXPLOSION_STYLES = GOAL_ANIMATION_CONFIGS.map((config) => ({
 	label: config.label
 }));
 
+const DEFAULT_GOAL_CONFIG = GOAL_ANIMATION_CONFIGS[0];
 const CONFIGS_BY_STYLE_INDEX = new Map(
 	GOAL_ANIMATION_CONFIGS.map((config) => [config.styleIndex, config])
 );
-const DEFAULT_GOAL_CONFIG = GOAL_ANIMATION_CONFIGS[0];
 
 export function resolveGoalAnimationConfig(styleIndex) {
 	if (!Number.isFinite(styleIndex)) {

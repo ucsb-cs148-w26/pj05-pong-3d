@@ -699,7 +699,7 @@ function updateRuntime(runtime, dt) {
 function disposeRuntime(runtime) {
 	runtime.active = false;
 	if (!runtime.visual) return;
-	
+
 	runtime.visual.traverse((object3d) => {
 		if (object3d.geometry?.dispose) {
 			object3d.geometry.dispose();
@@ -715,6 +715,33 @@ function disposeRuntime(runtime) {
 }
 
 export class GoalAnimationSpawner {
+	/*
+	//GoalAnimationSpawner Usage Guide:
+	
+	//SETUP
+	//Create the spawner instance
+	const goalSpawner = new GoalAnimationSpawner();
+	//Add the visual group to your scene so it renders
+	scene.add(goalSpawner.visual);
+	
+	//USE
+	//Spawns a goal Explosion. 
+	//First value is "Which" explosion based off of GOAL_ANIMATION_CONFIGS.
+	//Second value is color of explosion to spawn.
+	//Third value is the vec3 of where the exposion is to be spawned.
+	goalSpawner.triggerGoalAnimation(
+		1,
+		new THREE.Color(0xff0000),
+		new THREE.Vector3(0, 0, -10)
+	);
+	
+	//Call this in the higher-level update function to progress the goal explosion through its animation
+	goalSpawner.update(dt);
+	
+	//USEFUL MEMBERS
+	//goalSpawner.active -> bool that is true only while an animation is playing. It is false if the animation has finished or not started
+	//goalSpawner.progress -> number between 0.0 and 1.0 that is the completion percentage of the animation 
+	*/
 	constructor() {
 		this.visual = new THREE.Group();
 		this.visual.visible = true;
@@ -724,7 +751,7 @@ export class GoalAnimationSpawner {
 		this.currentAnimation = null;
 	}
 
-	resolveAnimation(styleIndex) {
+	#resolveAnimation(styleIndex) {
 		const config = resolveGoalAnimationConfig(styleIndex);
 
 		if (
@@ -746,8 +773,8 @@ export class GoalAnimationSpawner {
 		return this.currentAnimation;
 	}
 
-	spawnGoalAnimation(styleIndex, color, position) {
-		const instance = this.resolveAnimation(styleIndex);
+	triggerGoalAnimation(styleIndex, color, position) {
+		const instance = this.#resolveAnimation(styleIndex);
 		if (!instance) return null;
 
 		const spawnPosition = toVector3(position);
@@ -756,14 +783,6 @@ export class GoalAnimationSpawner {
 		this.progress = instance.progress;
 		this.color.copy(instance.color);
 		return instance;
-	}
-
-	trigger(
-		position,
-		color,
-		styleIndex = GOAL_EXPLOSION_STYLES[0]?.styleIndex ?? null
-	) {
-		return this.spawnGoalAnimation(styleIndex, color, position);
 	}
 
 	update(dt) {
@@ -779,3 +798,4 @@ export class GoalAnimationSpawner {
 		this.color.copy(this.currentAnimation.color);
 	}
 }
+
