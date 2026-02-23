@@ -1,10 +1,10 @@
 import * as Constants from '../../public/game/constants.js';
 import { Scene } from '../../public/game/common/Scene.js';
 import { ArenaCommon } from '../../public/game/common/ArenaCommon.js';
-import { BallCommon } from '../../public/game/common/BallCommon.js';
 import { PaddleCommon } from '../../public/game/common/PaddleCommon.js';
 import { PaddleController } from './PaddleController.js';
 import { GameState, Player } from '../../public/game/common/GameState.js';
+import { BallServer } from './BallServer.js';
 
 const SYNC_INTERVAL = 5;
 
@@ -21,7 +21,11 @@ export default class ServerScene extends Scene {
 		// Order matters: Sync with public/main.js
 		this.registerGameObject(new ArenaCommon('gameArena'));
 
-		this.#ball = new BallCommon('ball');
+		this.#ball = new BallServer('ball', (ball, wall) => {
+			// Hacky. Should probably change later. 
+			if (wall?.player) wall.player.score += 1;			
+		});
+
 		this.registerGameObject(this.#ball);
 
 		this.registerGameObject(
@@ -54,13 +58,18 @@ export default class ServerScene extends Scene {
 			this.step(delta);
 
 			if (ct % SYNC_INTERVAL === 0) {
+				const gatherData = {};
+				for ( const [username, player] of this.state.players ) gatherData[username] = player.score;
+
 				this.#socket.forEachClient((username, ws) => {
 					const ts = this.state.players.get(username)?.paddle?.controller.lastTs ?? 0;
+					
 					this.#socket.safeSend(ws, {
 						type: 'sync',
 						ts,
 						active: this.#ball.enabled,
 						physics: Array.from(this.physicsDump()),
+						gameInfo: gatherData
 					});
 				});
 			}
@@ -79,7 +88,17 @@ export default class ServerScene extends Scene {
 		// TODO: n-player support
 		if (this.state.players.size >= 2) return;
 		const pid = this.state.players.size;
-		this.state.players.set(username, new Player(username,  this.getGameObject(`paddle${pid + 1}`) ));
+		const myPaddle = this.getGameObject(`paddle${pid + 1}`);
+		const thisPlayer = new Player(username, myPaddle);
+		this.state.players.set(username, thisPlayer);
+		const arena = this.getGameObject('gameArena');
+
+		// Hacky: Injecting the player into the bodies. Should probably see later about changing this.
+		// Consequence of having to conform to the rigid map.
+		if ( myPaddle.body.x.x < 0 ) arena.bodies[4].player = thisPlayer;
+		else arena.bodies[5].player = thisPlayer;
+
+
 
 		this.#updatePaddles();
 	}

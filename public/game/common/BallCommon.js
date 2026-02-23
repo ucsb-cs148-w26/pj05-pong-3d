@@ -18,37 +18,6 @@ export class BallCommon extends GameObjectBase {
 		this.body.col = new SphereCollider(
 			Constants.BALL_RADIUS,
 			this.body.transform,
-			(me, other) => {
-				if (!Object.hasOwn(other, 'ballIdentifier')) return;
-
-				switch (other.ballIdentifier) {
-					case 'paddle': {
-						const tinyV = this.body.v
-							.clone()
-							.normalize()
-							.scale(Constants.BALL_TINY_V_SCALE);
-						this.body.v.addVec(tinyV);
-
-						const rallySpeed = Math.max(
-							this.body.v.norm() + 0.3,
-							Constants.BALL_INITIAL_SPEED
-						);
-						this.body.v.normalize().scale(rallySpeed);
-
-						return;
-					}
-
-					case 'greenWall':
-						console.log('collision');
-						this.needsToReset = true;
-						return;
-
-					case 'redWall':
-						console.log('collision');
-						this.needsToReset = true;
-						return;
-				}
-			}
 		);
 
 		this.reset();

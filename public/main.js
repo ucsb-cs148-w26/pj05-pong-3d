@@ -47,41 +47,41 @@ animatedScene.registerGameObject(
 			this.visual.shadow.mapSize.set(1024, 1024);
 		}
 	}),
-	//new GameObjectCustom('infoDiv', {
-		//self: document.createElement('div'),
-		//socket,
-		//init() {
-			//this.self.style.position = 'absolute';
-			//this.self.style.textAlign = 'right';
-			//this.self.style.top = '10px';
-			//this.self.style.right = '10px';
-			//this.self.style.color = 'white';
-			//this.self.style.fontFamily = 'monospace';
-			//document.body.appendChild(this.self);
-		//},
-		//update(dt) {
-			//const ball = animatedScene.getGameObject('ball');
-			//const pingText =
-				//this.socket?.lastLatencyMs == null
-					//? '-- ms'
-					//: `${this.socket.lastLatencyMs.toFixed(0)} ms`;
-			//const scoresText =
-				//animatedScene.scores && Object.keys(animatedScene.scores).length
-					//? Object.entries(animatedScene.scores)
-							//.map(([name, score]) => `${name}: ${score}`)
-							//.join(', ')
-					//: 'N/A';
-			//this.self.innerText = `Control with WASD
-				//Camera tracks the ball
-				//Score: ${scoresText}
-				//Ball Speed: ${ball.body.v.norm().toFixed(2)}
+	new GameObjectCustom('infoDiv', {
+		self: document.createElement('div'),
+		socket,
+		init() {
+			this.self.style.position = 'absolute';
+			this.self.style.textAlign = 'right';
+			this.self.style.top = '10px';
+			this.self.style.right = '10px';
+			this.self.style.color = 'white';
+			this.self.style.fontFamily = 'monospace';
+			document.body.appendChild(this.self);
+		},
+		update(dt) {
+			const ball = animatedScene.getGameObject('ball');
+			const pingText =
+				this.socket?.lastLatencyMs == null
+					? '-- ms'
+					: `${this.socket.lastLatencyMs.toFixed(0)} ms`;
+			const scoresText =
+				animatedScene.state.players.size > 0
+					? Array.from( animatedScene.state.players )
+						.map(([username, player]) => `${username}: ${player.score}`)
+						.join(', ')
+					: 'N/A';
+			this.self.innerText = `Control with WASD
+				Camera tracks the ball
+				Score: ${scoresText}
+				Ball Speed: ${ball.body.v.norm().toFixed(2)}
 
-				//Camera: ${animatedScene.camera.position.x.toFixed(1)}, ${animatedScene.camera.position.y.toFixed(1)}, ${animatedScene.camera.position.z.toFixed(1)}
+				Camera: ${animatedScene.camera.position.x.toFixed(1)}, ${animatedScene.camera.position.y.toFixed(1)}, ${animatedScene.camera.position.z.toFixed(1)}
 
-                //FPS: ${(1 / dt).toFixed(0)}
-				//Ping: ${pingText}`;
-		//}
-	//})
+                FPS: ${(1 / dt).toFixed(0)}
+				Ping: ${pingText}`;
+		}
+	})
 );
 
 animatedScene.start();

@@ -191,10 +191,14 @@ export class AnimatedScene extends Scene {
 	#sync(msg) {
 		this.physicsLoad(msg.ts, msg.physics);
 		this.#ball.enabled = msg.active;
+
+		for ( const [username, score] of Object.entries( msg.gameInfo ) ) {
+			const player = this.state.players.get(username);
+			if (player) player.score = score;
+		}
 	}
 
 	#playerSync(msg) {
-		console.log(msg);
 
 		const cameraController = this.getGameObject('cameraController');
 		if (cameraController) cameraController.followTarget = null;
@@ -211,16 +215,13 @@ export class AnimatedScene extends Scene {
 				if (player.pos[0] < 0) {
 					cameraController.offset = new THREE.Vector3(-4, 3, 0);
 					paddle.controller = new KeyboardController();
-					console.log(paddle);
 				} else {
 					cameraController.offset = new THREE.Vector3(4, 3, 0);
 					paddle.controller = new KeyboardController(['KeyD', 'KeyA', 'KeyW', 'KeyS']);
-					console.log(paddle);
 				}
 			}
 		}
 	}
-
 
 
 }
