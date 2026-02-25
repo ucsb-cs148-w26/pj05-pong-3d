@@ -17,6 +17,7 @@ export default class ServerScene extends Scene {
 		super(new GameState());
 
 		this.#socket = socket;
+		this.hostUser = null;
 
 		// Order matters: Sync with public/main.js
 		this.registerGameObject(new ArenaCommon('gameArena'));
@@ -45,7 +46,8 @@ export default class ServerScene extends Scene {
 
 		socket.on('client:connect', this.#onConnect.bind(this));
 		socket.on('client:disconnect', this.#onDisconnect.bind(this));
-		socket.addHandler('move', this.#socketHandler.bind(this));
+		socket.addHandler('move', this.#recvMove.bind(this));
+		socket.addHandler('start', this.#startGame.bind(this));
 	}
 
 	start() {
@@ -98,7 +100,7 @@ export default class ServerScene extends Scene {
 		if ( myPaddle.body.x.x < 0 ) arena.bodies[4].player = thisPlayer;
 		else arena.bodies[5].player = thisPlayer;
 
-
+		if ( this.hostUser === null ) this.hostUser = username;		
 
 		this.#updatePaddles();
 	}
@@ -114,7 +116,6 @@ export default class ServerScene extends Scene {
 
 	#updatePaddles() {
 		// TODO: n-player support
-		this.#ball.enabled = this.state.players.size === 2;
 
 		const scores = {};
 		for ( const [username, player] of this.state.players ) scores[username] = player.score;
@@ -135,12 +136,20 @@ export default class ServerScene extends Scene {
 			this.#socket.safeSend(ws, {
 				type: 'playerSync',
 				// order must be the same between client and server
-				players: [...players]
+				players: [...players],
+				host: this.hostUser,
+				username: thisUsername,
 			});
 		});
 	}
 
-	#socketHandler(socket, username, ws, msg, respond) {
+	#startGame(socket, username, ws, msg) {
+		if ( username !== this.hostUser ) return { type: 'error', message: 'bruh u not the host' };
+		if ( this.state.players.size < 2 ) return { type: 'error', message: 'bruh we gotta wait for another person' };
+		this.#ball.enabled = true;
+	}
+
+	#recvMove(socket, username, ws, msg) {
 		this.state.players.get(username)?.paddle.controller.enqueueInput(msg);
 	}
 
