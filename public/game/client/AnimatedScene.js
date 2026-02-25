@@ -7,6 +7,8 @@ import { Arena } from './Arena.js';
 import { Ball } from './Ball.js';
 import { CameraController } from './CameraController.js';
 import { GameState, Player } from '../common/GameState.js';
+import { GoalAnimationSpawner } from '../shaders/goalAnimationSpawner.js';
+import { GameObjectCustom } from '../common/GameObject.js';
 
 /**
  * Scene with rendering capabilities. Uses the `visual` on each game object.
@@ -33,6 +35,9 @@ export class AnimatedScene extends Scene {
 			1000
 		);
 
+		const goalSpawner = new GoalAnimationSpawner('goalSpawner');
+		this.registerGameObject(goalSpawner);
+
 		window.addEventListener('resize', () => {
 			this.camera.aspect = window.innerWidth / window.innerHeight;
 			this.camera.updateProjectionMatrix();
@@ -57,7 +62,7 @@ export class AnimatedScene extends Scene {
 		// Order matters: Sync with ServerScene.js
 		this.registerGameObject(new Arena('gameArena'));
 
-		this.#ball = new Ball('ball', null);
+		this.#ball = new Ball('ball', goalSpawner);
 		this.registerGameObject(this.#ball);
 
 		const p1 = new Paddle('paddle1', socket, 'paddle', -23.5 / 2.125, null);

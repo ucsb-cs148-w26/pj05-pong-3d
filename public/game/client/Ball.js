@@ -8,8 +8,10 @@ import { BallCommon } from '../common/BallCommon.js';
  */
 export class Ball extends BallCommon {
 	#visual = null;
+	#goalSpawner = null;
+	#explosionId = null;
 
-	constructor(key) {
+	constructor(key, spawner) {
 		super(key);
 
 		// Create THREE.js visual representation
@@ -20,11 +22,30 @@ export class Ball extends BallCommon {
 
 		this.#visual = new THREE.Mesh(geometry, material);
 		this.#visual.castShadow = true;
+		this.#goalSpawner = spawner;
 
-		this.#loadEquippedSkin();
+		this.body.col.onCollisionCallback = ((me, other) => {
+			if (this.#explosionId === null) return;
+
+			const identifier = other.ballIdentifier;
+			if (
+				identifier === undefined ||
+				(identifier !== 'greenWall' && identifier !== 'redWall')
+			)
+				return;
+
+			const pos = me.x;
+			this.#goalSpawner.triggerGoalAnimation(
+				this.#explosionId,
+				null,
+				new THREE.Vector3(pos.x, pos.y, pos.z)
+			);
+		}).bind(this);
+
+		this.#loadEquipped();
 	}
 
-	async #loadEquippedSkin() {
+	async #loadEquipped() {
 		try {
 			const response = await fetch('/user/items/equipped', {
 				method: 'GET',
@@ -40,8 +61,12 @@ export class Ball extends BallCommon {
 			} else {
 				this.applySkin('default');
 			}
+
+			if (data.goal_explosion_key) {
+				this.#explosionId = parseInt(data.goal_explosion_key, 10);
+			}
 		} catch (err) {
-			console.error('Failed to load equipped ball skin');
+			console.error('Failed to load: ', err);
 			this.applySkin('default');
 		}
 	}
