@@ -1,9 +1,10 @@
 import * as Constants from '../../public/game/constants.js';
 import { Scene } from '../../public/game/common/Scene.js';
 import { ArenaCommon } from '../../public/game/common/ArenaCommon.js';
-import { BallCommon } from '../../public/game/common/BallCommon.js';
 import { PaddleCommon } from '../../public/game/common/PaddleCommon.js';
 import { PaddleController } from './PaddleController.js';
+import { GameState, Player } from '../../public/game/common/GameState.js';
+import { BallServer } from './BallServer.js';
 
 const SYNC_INTERVAL = 5;
 
@@ -11,23 +12,24 @@ export default class ServerScene extends Scene {
 	#interval = null;
 	#socket = null;
 	#ball = null;
-	#paddles = [];
-	#clientToPaddle = new Map();
 
 	constructor(socket) {
-		super();
+		super(new GameState());
 
 		this.#socket = socket;
-
-		this.#resetScore();
+		this.hostUser = null;
 
 		// Order matters: Sync with public/main.js
 		this.registerGameObject(new ArenaCommon('gameArena'));
 
-		this.#ball = new BallCommon('ball', this.scores);
+		this.#ball = new BallServer('ball', (ball, wall) => {
+			// Hacky. Should probably change later.
+			if (wall?.player) wall.player.score += 1;
+		});
+
 		this.registerGameObject(this.#ball);
 
-		this.#paddles = [
+		this.registerGameObject(
 			new PaddleCommon(
 				'paddle1',
 				new PaddleController(),
@@ -40,16 +42,12 @@ export default class ServerScene extends Scene {
 				'paddle',
 				23.5 / 2.125
 			)
-		];
-
-		for (const paddle of this.#paddles) {
-			// injected in for simplicity
-			paddle.active = false;
-		}
+		);
 
 		socket.on('client:connect', this.#onConnect.bind(this));
 		socket.on('client:disconnect', this.#onDisconnect.bind(this));
-		socket.addHandler(this.#socketHandler.bind(this));
+		socket.addHandler('move', this.#recvMove.bind(this));
+		socket.addHandler('start', this.#startGame.bind(this));
 	}
 
 	start() {
@@ -61,22 +59,23 @@ export default class ServerScene extends Scene {
 
 			this.step(delta);
 
-			const scoresByClient = {};
-			for (const [clientId, paddleIdx] of this.#clientToPaddle) {
-				scoresByClient[clientId] = this.scores[paddleIdx];
-			}
-
 			if (ct % SYNC_INTERVAL === 0) {
-				this.#socket.forEachClient((clientId, ws) => {
-					const idx = this.#clientToPaddle.get(clientId);
-					const paddle = idx !== undefined ? this.#paddles[idx] : null;
-					const ts = paddle?.controller.lastTs ?? 0;
+				const physicsState = this.state.physics.exportState();
+				const gatherData = {};
+				for (const [username, player] of this.state.players)
+					gatherData[username] = player.score;
+
+				this.#socket.forEachClient((username, ws) => {
+					const paddleController =
+						this.state.players.get(username).paddle.controller;
+					const ack = paddleController.ack;
+
 					this.#socket.safeSend(ws, {
 						type: 'sync',
-						ts,
+						ack,
 						active: this.#ball.enabled,
-						physics: Array.from(this.physicsDump()),
-						scores: scoresByClient
+						physics: physicsState,
+						gameInfo: gatherData
 					});
 				});
 			}
@@ -91,69 +90,74 @@ export default class ServerScene extends Scene {
 		this.#interval = null;
 	}
 
-	#onConnect(clientId) {
+	#onConnect(username) {
 		// TODO: n-player support
-		if (this.#clientToPaddle.size >= 2) return;
+		if (this.state.players.size >= 2) return;
+		const pid = this.state.players.size;
+		const myPaddle = this.getGameObject(`paddle${pid + 1}`);
+		const thisPlayer = new Player(username, myPaddle);
+		this.state.players.set(username, thisPlayer);
+		const arena = this.getGameObject('gameArena');
 
-		for (let i = 0; i < this.#paddles.length; i++) {
-			const paddle = this.#paddles[i];
-			if (!paddle.active) {
-				this.registerGameObject(paddle);
-				this.#clientToPaddle.set(clientId, i);
-				paddle.active = true;
-				break;
-			}
-		}
+		// Hacky: Injecting the player into the bodies. Should probably see later about changing this.
+		// Consequence of having to conform to the rigid map.
+		if (myPaddle.body.x.x < 0) arena.bodies[4].player = thisPlayer;
+		else arena.bodies[5].player = thisPlayer;
+
+		if (this.hostUser === null) this.hostUser = username;
 
 		this.#updatePaddles();
 	}
 
-	#onDisconnect(clientId) {
-		const idx = this.#clientToPaddle.get(clientId);
-		if (idx !== undefined) {
-			this.#paddles[idx].active = false;
-			this.deleteGameObject(this.#paddles[idx].key);
-			this.#clientToPaddle.delete(clientId);
-		}
+	#onDisconnect(username) {
+		// TODO:
+		// Currently we have two-hardcoded paddles. First to join gets paddle1, second to join gets paddle2.
+		// Adding reconnect logic is not necessary since it would just require tracking which is "open" which won't be needed in the future.
+		// Hence reconnect is disabled for now.
 
-		this.#updatePaddles();
+		console.warn('Reconnect disabled right now; see ServerScene.#onDisconnect');
 	}
 
 	#updatePaddles() {
 		// TODO: n-player support
-		this.#ball.enabled = this.#clientToPaddle.size === 2;
 
-		this.#socket.forEachClient((clientId, ws) => {
-			const paddles = this.#clientToPaddle
-				.entries()
-				.map(([otherClient, paddleIdx]) => {
-					const paddle = this.#paddles[paddleIdx];
-					return {
-						key: paddle.key,
-						remote: clientId !== otherClient,
-						pos: [...paddle.body.x.data]
-					};
-				});
+		const scores = {};
+		for (const [username, player] of this.state.players)
+			scores[username] = player.score;
+
+		this.#socket.forEachClient((thisUsername, ws) => {
+			const players = this.state.players.entries().map(([username, player]) => {
+				const paddle = player.paddle;
+				return {
+					key: paddle.key,
+					username: username,
+					remote: thisUsername !== username,
+					pos: [...paddle.body.x.data]
+				};
+			});
 
 			this.#socket.safeSend(ws, {
-				type: 'paddleSync',
+				type: 'playerSync',
 				// order must be the same between client and server
-				paddles: [...paddles]
+				players: [...players],
+				host: this.hostUser,
+				username: thisUsername
 			});
 		});
 	}
 
-	#socketHandler(socket, clientId, ws, msg, respond) {
-		if (msg.type === 'move') {
-			const idx = this.#clientToPaddle.get(clientId);
-			if (idx !== undefined) {
-				this.#paddles[idx].controller.enqueueInput(msg);
-			}
-			return true;
-		}
+	#startGame(socket, username, ws, msg) {
+		if (username !== this.hostUser)
+			return { type: 'error', message: 'bruh u not the host' };
+		if (this.state.players.size < 2)
+			return {
+				type: 'error',
+				message: 'bruh we gotta wait for another person'
+			};
+		this.#ball.enabled = true;
 	}
 
-	#resetScore() {
-		this.scores = [0, 0];
+	#recvMove(socket, username, ws, msg) {
+		this.state.players.get(username)?.paddle.controller.enqueueInput(msg);
 	}
 }

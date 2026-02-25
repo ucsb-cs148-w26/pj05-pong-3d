@@ -54,6 +54,77 @@
 				width: min-content;
 				transform: translateX(-50%);
 			}
+
+			#waiting {
+				position: fixed;
+				inset: 0;
+				display: flex;
+				align-items: center;
+				justify-content: center;
+				background: radial-gradient(circle at center, rgba(0,0,0,0.6), rgba(0,0,0,0.85));
+				font-family: sans-serif;
+			}
+
+			#waiting__card {
+				background: rgba(0, 0, 0, 0.4);
+				border: 1px solid rgba(255, 255, 255, 0.15);
+				border-radius: 12px;
+				padding: 2rem;
+				width: 45ch;
+				backdrop-filter: blur(8px);
+				box-shadow: 0 0 25px rgba(0, 0, 0, 0.6);
+			}
+
+			#waiting__title {
+				margin: 0 0 1rem 0;
+				color: white;
+				font-size: 1.5rem;
+				letter-spacing: 0.05em;
+			}
+
+			#waiting__players {
+				margin: 0 0 1.5rem 0;
+				color: white;
+				font-size: 1.1rem;
+				max-height: 10rem;
+				overflow-y: auto;
+			}
+
+			#waiting__players span {
+				display: block;
+				padding: 0.25rem 0;
+				border-bottom: 1px solid rgba(255,255,255,0.08);
+			}
+
+			#waiting__players span:last-child {
+				border-bottom: none;
+			}
+
+			#startButton {
+				width: 100%;
+				padding: 0.75rem;
+				font-size: 1rem;
+				border-radius: 8px;
+				border: 1px solid rgba(255,255,255,0.2);
+				background: rgba(255,255,255,0.1);
+				color: white;
+				cursor: pointer;
+				transition: all 0.2s ease;
+			}
+
+			#startButton:hover:not(:disabled) {
+				background: rgba(255,255,255,0.2);
+				transform: translateY(-1px);
+			}
+
+			#startButton:active:not(:disabled) {
+				transform: translateY(0);
+			}
+
+			#startButton:disabled {
+				opacity: 0.4;
+				cursor: not-allowed;
+			}
 		</style>
 	</head>
 	<body>
@@ -61,6 +132,15 @@
 			<pre id="chat__text"></pre>
 			<input id="chat__box" placeholder="Chat (press Enter)" />
 		</div>
+
+		<div id="waiting">
+			<div id="waiting__card">
+				<p id="waiting__title">Waiting for players...</p>
+				<div id="waiting__players"></div>
+				<button id="startButton" disabled>Start Game</button>
+			</div>
+		</div>
+
 		<div id="lobby-info">
 			Join Code<br /><span style="font-size: 2rem"><%= code %></span>
 		</div>

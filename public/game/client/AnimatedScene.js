@@ -6,18 +6,21 @@ import { KeyboardController } from '../controllers.js';
 import { Arena } from './Arena.js';
 import { Ball } from './Ball.js';
 import { CameraController } from './CameraController.js';
+import { GameState, Player } from '../common/GameState.js';
+import { GoalAnimationSpawner } from '../shaders/goalAnimationSpawner.js';
+import { GameObjectCustom } from '../common/GameObject.js';
 
 /**
  * Scene with rendering capabilities. Uses the `visual` on each game object.
  */
 export class AnimatedScene extends Scene {
 	#ball = null;
-	#paddles = [];
 
 	constructor(socket) {
-		super();
+		super(new GameState());
 
-		this.scores = null;
+		this.host = null;
+		this.username = null;
 		this.renderer = new THREE.WebGLRenderer();
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		this.renderer.shadowMap.enabled = true;
@@ -31,6 +34,9 @@ export class AnimatedScene extends Scene {
 			0.1,
 			1000
 		);
+
+		const goalSpawner = new GoalAnimationSpawner('goalSpawner');
+		this.registerGameObject(goalSpawner);
 
 		window.addEventListener('resize', () => {
 			this.camera.aspect = window.innerWidth / window.innerHeight;
@@ -48,13 +54,23 @@ export class AnimatedScene extends Scene {
 		this._isRunning = false;
 		this._hiddenHtml = new Map();
 
-		socket.addHandler(this.#socketHandler.bind(this));
+		this.isReplaying = false;
+
+		socket.addHandler('sync', this.#sync.bind(this));
+		socket.addHandler('playerSync', this.#playerSync.bind(this));
 
 		// Order matters: Sync with ServerScene.js
 		this.registerGameObject(new Arena('gameArena'));
 
-		this.#ball = new Ball('ball', null);
+		this.#ball = new Ball('ball', goalSpawner);
 		this.registerGameObject(this.#ball);
+
+		const p1 = new Paddle('paddle1', socket, 'paddle', -23.5 / 2.125, null);
+
+		const p2 = new Paddle('paddle2', socket, 'paddle', 23.5 / 2.125, null);
+		p2.visual.rotation.y = Math.PI;
+
+		this.registerGameObject(p1, p2);
 
 		this.registerGameObject(
 			new CameraController(
@@ -66,6 +82,10 @@ export class AnimatedScene extends Scene {
 				}
 			)
 		);
+	}
+
+	get active() {
+		return this.#ball.enabled;
 	}
 
 	registerGameObject(...objs) {
@@ -166,53 +186,84 @@ export class AnimatedScene extends Scene {
 		mat.dispose?.();
 	}
 
-	#socketHandler(msg, respond) {
-		if (msg.type === 'sync') {
-			this.physicsLoad(msg.ts, msg.physics);
-			this.scores = msg.scores;
-			this.#ball.enabled = msg.active;
-			return true;
+	#sync(msg) {
+		this.state.physics.importState(msg.physics);
+
+		this.#ball.enabled = msg.active;
+
+		for (const [username, score] of Object.entries(msg.gameInfo)) {
+			const player = this.state.players.get(username);
+			if (player) player.score = score;
 		}
 
-		if (msg.type === 'paddleSync') {
-			const cameraController = this.getGameObject('cameraController');
-			if (cameraController) cameraController.followTarget = null;
+		const controller = this.state.players.get(this.username).paddle.controller;
 
-			for (const paddle of this.#paddles) {
-				this.deleteGameObject(paddle.key);
-			}
+		// prediction!
+		let idx = -1;
+		for (let i = 0; i < controller.inputBuffer.length; i++) {
+			if (controller.inputBuffer[i].seq <= msg.ack) continue;
 
-			this.#paddles = [];
+			idx = i;
+			break;
+		}
 
-			for (const paddle of msg.paddles) {
+		if (idx === -1) return; // all inputs ack'd
+
+		controller.inputBuffer = controller.inputBuffer.slice(idx); // drop ack'd inputs
+		controller.useInputBuffer = true;
+		this.isReplaying = true;
+
+		for (let i = 0; i < controller.inputBuffer.length; i++) {
+			controller.inputBufferIdx = i;
+			this.step(1 / Constants.SIMULATION_RATE); // Is this not good enough? If not, we can store the physics time in the packets themselves
+		}
+
+		this.isReplaying = false;
+		controller.useInputBuffer = false;
+	}
+
+	get isHost() {
+		return this.host === this.username;
+	}
+
+	get enabled() {
+		return this.#ball.enabled;
+	}
+
+	#playerSync(msg) {
+		this.username = msg.username;
+		this.host = msg.host;
+
+		const cameraController = this.getGameObject('cameraController');
+		if (cameraController) cameraController.followTarget = null;
+
+		this.state.players.clear();
+
+		for (const player of msg.players) {
+			const paddle = this.getGameObject(player.key);
+			this.state.players.set(
+				player.username,
+				new Player(player.username, paddle)
+			);
+
+			const socket = this.getGameObject('socket').config.socket;
+
+			if (!player.remote) {
 				// TODO: this is silly
-				const controller =
-					paddle.pos[0] < 0
-						? new KeyboardController()
-						: new KeyboardController(['KeyD', 'KeyA', 'KeyW', 'KeyS']);
-				const obj = new Paddle(
-					paddle.key,
-					'paddle',
-					paddle.pos[0],
-					paddle.remote ? null : controller
-				);
-				if (paddle.pos[0] > 0) {
-					obj.visual.rotation.y = Math.PI;
-				}
-				this.registerGameObject(obj);
-				this.#paddles.push(obj);
-
-				if (!paddle.remote && cameraController) {
-					cameraController.followTarget = obj;
-					if (paddle.pos[0] < 0) {
-						cameraController.offset = new THREE.Vector3(-4, 3, 0);
-					} else {
-						cameraController.offset = new THREE.Vector3(4, 3, 0);
-					}
+				cameraController.followTarget = paddle;
+				if (player.pos[0] < 0) {
+					cameraController.offset = new THREE.Vector3(-4, 3, 0);
+					paddle.controller = new KeyboardController(socket);
+				} else {
+					cameraController.offset = new THREE.Vector3(4, 3, 0);
+					paddle.controller = new KeyboardController(socket, [
+						'KeyD',
+						'KeyA',
+						'KeyW',
+						'KeyS'
+					]);
 				}
 			}
-
-			return true;
 		}
 	}
 }

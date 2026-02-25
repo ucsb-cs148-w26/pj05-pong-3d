@@ -16,10 +16,20 @@ for a controller to inherit from game object if need be. Otherwise, just impleme
 */
 
 export class KeyboardController {
-	constructor(lrudCodes = ['KeyA', 'KeyD', 'KeyW', 'KeyS'], plane = 'zy') {
+	constructor(
+		socket,
+		lrudCodes = ['KeyA', 'KeyD', 'KeyW', 'KeyS'],
+		plane = 'zy'
+	) {
 		this.keys = new Set();
 		this.codes = lrudCodes;
 		this.plane = plane;
+
+		this.inputBuffer = [];
+		this.seq = 0;
+		this.useInputBuffer = false;
+		this.inputBufferIdx = 0;
+		this.socket = socket;
 
 		this._onKeyDown = (e) => {
 			if (document.activeElement.tagName === 'INPUT') return;
@@ -59,6 +69,10 @@ export class KeyboardController {
 	}
 
 	getDirection() {
+		if (this.useInputBuffer && this.inputBufferIdx < this.inputBuffer.length) {
+			return new MATH.Vec3(...this.inputBuffer[this.inputBufferIdx].direction);
+		}
+
 		const left = this.keys.has(this.codes[0]);
 		const right = this.keys.has(this.codes[1]);
 		const up = this.keys.has(this.codes[2]);
@@ -73,6 +87,16 @@ export class KeyboardController {
 		if (up) retDirection.addVec(e2.clone());
 		if (down) retDirection.addVec(e2.clone().scale(-1));
 
-		return retDirection.normalize();
+		retDirection.normalize();
+
+		this.inputBuffer.push({
+			type: 'move',
+			seq: this.seq,
+			direction: [...retDirection]
+		});
+		this.socket?.send(this.inputBuffer.at(-1));
+		this.seq++;
+
+		return retDirection;
 	}
 }

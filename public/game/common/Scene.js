@@ -1,12 +1,12 @@
-import { PhysicsEngine } from '../../physics/engine.js';
-
 /**
  * Scene manages game objects and handles the core simulation loop.
+ * gameObjects can be general objects specific to client/server or both.
+ * state holds all state that needs to be sync between clients
  */
 export class Scene {
-	constructor() {
+	constructor(state) {
 		this.gameObjects = new Map();
-		this.physics = new PhysicsEngine();
+		this.state = state;
 	}
 
 	/**
@@ -21,7 +21,7 @@ export class Scene {
 			obj.init(this);
 
 			for (let i = 0; i < obj.bodies.length; i++) {
-				this.physics.registerBody(obj.key + i, obj.bodies[i]);
+				this.state.physics.registerBody(obj.key + i, obj.bodies[i]);
 			}
 		}
 	}
@@ -38,7 +38,7 @@ export class Scene {
 		obj.kill();
 
 		for (let i = 0; i < obj.bodies.length; i++) {
-			this.physics.bodies.delete(obj.key + i);
+			this.state.physics.bodies.delete(obj.key + i);
 		}
 
 		this.gameObjects.delete(key);
@@ -61,50 +61,10 @@ export class Scene {
 	step(delta) {
 		for (const obj of this.gameObjects.values()) obj.update(delta);
 
-		this.physics.step(delta);
+		this.state.physics.step(delta);
 
 		for (const obj of this.gameObjects.values()) obj.sync(delta);
 
-		this.physics.checkColliders();
-	}
-
-	/**
-	 * Dump the physics state of all synced objects.
-	 */
-	physicsDump() {
-		const bodies = this.gameObjects
-			.values()
-			.reduce((acc, curr) => acc.concat(curr.bodies), []);
-
-		const arr = new Float32Array(6 * bodies.length);
-		let i = 0;
-		for (const body of bodies) {
-			arr[i] = body.x.x;
-			arr[i + 1] = body.x.y;
-			arr[i + 2] = body.x.z;
-			arr[i + 3] = body.v.x;
-			arr[i + 4] = body.v.y;
-			arr[i + 5] = body.v.z;
-			i += 6;
-		}
-
-		return arr;
-	}
-
-	/**
-	 * Load the physics state of all synced objects.
-	 */
-	physicsLoad(ts, dump) {
-		let i = 0;
-		for (const obj of this.gameObjects.values()) {
-			for (const body of obj.bodies) {
-				if (i >= dump.length) return;
-
-				// TODO: reconciliation etc.
-				body.x.assign(dump[i], dump[i + 1], dump[i + 2]);
-				body.v.assign(dump[i + 3], dump[i + 4], dump[i + 5]);
-				i += 6;
-			}
-		}
+		this.state.physics.checkColliders();
 	}
 }

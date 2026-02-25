@@ -17,10 +17,10 @@ import { WebSocketServer } from 'ws';
 export default class PongSocketServer extends EventEmitter {
 	#server = null;
 	#wss = null;
-	#wsByClientId = new Map();
+	#wsByUsername = new Map();
 	#upgradeHandler = null;
 
-	#handlers = [];
+	#handlers = new Map();
 
 	constructor(server, socketPath, parseSession) {
 		super();
@@ -28,7 +28,7 @@ export default class PongSocketServer extends EventEmitter {
 		this.#server = server;
 		this.#wss = new WebSocketServer({ noServer: true });
 
-		this.addHandler(this.#baseMessageHandler);
+		this.addHandler('ping', this.#ping);
 
 		this.#upgradeHandler = (req, socket, head) => {
 			const { pathname } = new URL(req.url, 'http://localhost');
@@ -50,11 +50,9 @@ export default class PongSocketServer extends EventEmitter {
 		server.on('upgrade', this.#upgradeHandler);
 
 		this.#wss.on('connection', (ws, req) => {
-			const clientId = req.user.display_name;
+			const username = req.user.display_name;
 
-			this.#wsByClientId.set(clientId, ws);
-
-			this.safeSend(ws, { type: 'connected', clientId });
+			this.#wsByUsername.set(username, ws);
 
 			ws.on('message', (raw) => {
 				const text = raw.toString();
@@ -75,30 +73,24 @@ export default class PongSocketServer extends EventEmitter {
 					return;
 				}
 
-				let handled = false;
-
-				for (const handler of this.#handlers) {
-					if (
-						handler(this, clientId, ws, msg, (res) => this.safeSend(ws, res))
-					) {
-						handled = true;
-						break;
-					}
-				}
-
-				if (!handled) {
+				const handler = this.#handlers.get(msg.type);
+				if (handler === undefined) {
 					this.safeSend(ws, {
 						type: 'error',
 						message: `Unknown message type: ${msg.type}`
 					});
+					return;
 				}
+				const reply = handler(this, username, ws, msg);
+				if (reply === undefined || reply.type === undefined) return;
+				this.safeSend(ws, reply);
 			});
 
-			this.emit('client:connect', clientId);
+			this.emit('client:connect', username);
 
 			ws.on('close', () => {
-				this.#wsByClientId.delete(clientId);
-				this.emit('client:disconnect', clientId);
+				this.#wsByUsername.delete(username);
+				this.emit('client:disconnect', username);
 			});
 		});
 	}
@@ -112,15 +104,15 @@ export default class PongSocketServer extends EventEmitter {
 	}
 
 	forEachClient(cb) {
-		for (const [clientId, ws] of this.#wsByClientId.entries()) {
+		for (const [username, ws] of this.#wsByUsername.entries()) {
 			if (ws.readyState === WebSocket.OPEN) {
-				cb(clientId, ws);
+				cb(username, ws);
 			}
 		}
 	}
 
-	addHandler(func) {
-		this.#handlers.push(func);
+	addHandler(type, func) {
+		this.#handlers.set(type, func);
 	}
 
 	stop() {
@@ -132,10 +124,12 @@ export default class PongSocketServer extends EventEmitter {
 		ws.send(JSON.stringify(obj));
 	}
 
-	#baseMessageHandler(socket, clientId, ws, msg, respond) {
-		if (msg.type === 'ping') {
-			respond({ type: 'pong', serverTs: Date.now(), clientTs: msg.clientTs });
-			return true;
-		}
+	safeSendToUser(username, obj) {
+		const ws = this.#wsByUsername.get(username);
+		this.safeSend(ws, obj);
+	}
+
+	#ping(socket, username, ws, msg) {
+		return { type: 'pong', serverTs: Date.now(), clientTs: msg.clientTs };
 	}
 }

@@ -1,6 +1,6 @@
 import { BoxCollider } from '../../physics/collider.js';
 import { RigidBody } from '../../physics/engine.js';
-import { BodyForceApplier } from '../../physics/forces.js';
+import { CustomForceApplier } from '../../physics/forces.js';
 import * as Constants from '../constants.js';
 import { GameObjectBase } from './GameObject.js';
 
@@ -21,14 +21,14 @@ export class PaddleCommon extends GameObjectBase {
 			this.body.transform
 		);
 		this.accel = Constants.PADDLE_ACCEL;
-		this.forceApplier = new BodyForceApplier(this.body, (vec) => {});
+		this.forceApplier = new CustomForceApplier((vec) => {});
+		this.body.forces.set('input', this.forceApplier);
 		this.body.x.assign(initialX, 0, 0);
 		this.controller = controller;
 	}
 
 	init(scene) {
 		this.ball = scene.getGameObject('ball');
-		scene.physics.registerForce(this.forceApplier);
 	}
 
 	update(dt) {

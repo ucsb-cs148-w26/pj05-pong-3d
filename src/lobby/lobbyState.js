@@ -77,7 +77,7 @@ export default class LobbyState {
 			});
 		});
 
-		socket.addHandler(chatHandler);
+		socket.addHandler('chat', chatHandler);
 		this.sockets.set(lobbyId, socket);
 
 		const scene = new ServerScene(socket);

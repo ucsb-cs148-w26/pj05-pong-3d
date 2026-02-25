@@ -2,6 +2,7 @@ import * as Constants from '../constants.js';
 import { KeyboardController } from '../controllers.js';
 import { PaddleCommon } from '../common/PaddleCommon.js';
 import { PADDLE_STYLE_CATALOG, PaddleSkin } from '../shaders/paddleSkin.js';
+import { Vec3 } from '../../physics/math.js';
 
 /**
  * Client-side Paddle with THREE.js rendering
@@ -9,14 +10,14 @@ import { PADDLE_STYLE_CATALOG, PaddleSkin } from '../shaders/paddleSkin.js';
  */
 export class Paddle extends PaddleCommon {
 	#visual = null;
-	#socket = null;
 	#skin = null;
 
 	constructor(
 		key,
+		socket,
 		bodyIdentifier,
 		initialX,
-		controller = new KeyboardController()
+		controller = new KeyboardController(socket)
 	) {
 		super(key, controller, bodyIdentifier, initialX);
 
@@ -34,20 +35,14 @@ export class Paddle extends PaddleCommon {
 
 	init(scene) {
 		super.init(scene);
-		this.#socket = scene.getGameObject('socket')?.config.socket;
+		this.scene = scene;
 	}
 
 	update(dt) {
 		super.update(dt);
 
+		if (this.scene.isReplaying) return;
 		this.#skin.update(dt, this.body.v.norm());
-
-		if (!this.controller) return;
-		this.#socket?.send({
-			type: 'move',
-			ts: Date.now(),
-			direction: [...this.controller.getDirection()] // len-3 float array
-		});
 	}
 
 	setSkinStyle(styleIndex, options = {}) {

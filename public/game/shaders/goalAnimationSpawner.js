@@ -3,7 +3,12 @@ import {
 	GOAL_EXPLOSION_STYLES,
 	resolveGoalAnimationConfig
 } from './goalAnimations.js';
-import { ShaderLibrary, ShaderRepository, joinShaderChunks } from './shaderLibrary.js';
+import {
+	ShaderLibrary,
+	ShaderRepository,
+	joinShaderChunks
+} from './shaderLibrary.js';
+import { GameObjectBase } from '../common/GameObject.js';
 
 const FEATURE_CHUNKS = {
 	math: ShaderLibrary.MathChunks,
@@ -393,7 +398,13 @@ function createAssetsFromConfig({
 	return created;
 }
 
-function createParticleSystem({ positions, velocities, sizes, count, drag = 0.98 }) {
+function createParticleSystem({
+	positions,
+	velocities,
+	sizes,
+	count,
+	drag = 0.98
+}) {
 	return {
 		positions,
 		velocities,
@@ -467,7 +478,8 @@ function createGoalAnimationRuntime(config = {}) {
 		ringUniforms: null,
 		particleUniforms: null
 	};
-	runtime.markParticleBuffersDirty = () => markRuntimeParticleBuffersDirty(runtime);
+	runtime.markParticleBuffersDirty = () =>
+		markRuntimeParticleBuffersDirty(runtime);
 
 	buildRuntimeFromConfig(runtime);
 	refreshAssetInitialStates(runtime);
@@ -714,7 +726,7 @@ function disposeRuntime(runtime) {
 	});
 }
 
-export class GoalAnimationSpawner {
+export class GoalAnimationSpawner extends GameObjectBase {
 	/*
 	//GoalAnimationSpawner Usage Guide:
 	
@@ -742,7 +754,11 @@ export class GoalAnimationSpawner {
 	//goalSpawner.active -> bool that is true only while an animation is playing. It is false if the animation has finished or not started
 	//goalSpawner.progress -> number between 0.0 and 1.0 that is the completion percentage of the animation 
 	*/
-	constructor() {
+
+	#visual = null;
+
+	constructor(key) {
+		super(key);
 		this.visual = new THREE.Group();
 		this.visual.visible = true;
 		this.active = false;
@@ -751,12 +767,18 @@ export class GoalAnimationSpawner {
 		this.currentAnimation = null;
 	}
 
+	get visual() {
+		return this.#visual;
+	}
+
+	set visual(other) {
+		this.#visual = other;
+	}
+
 	#resolveAnimation(styleIndex) {
 		const config = resolveGoalAnimationConfig(styleIndex);
 
-		if (
-			this.currentAnimation?.config?.styleIndex !== config.styleIndex
-		) {
+		if (this.currentAnimation?.config?.styleIndex !== config.styleIndex) {
 			if (this.currentAnimation?.visual) {
 				this.currentAnimation.active = false;
 				this.currentAnimation.visual.visible = false;
@@ -798,4 +820,3 @@ export class GoalAnimationSpawner {
 		this.color.copy(this.currentAnimation.color);
 	}
 }
-

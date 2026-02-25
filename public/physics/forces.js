@@ -1,3 +1,15 @@
+export class CustomForceApplier {
+	constructor(forceApplier) {
+		this.applier = forceApplier;
+	}
+
+	apply(f) {
+		this.applier(f);
+	}
+}
+
+// ALL DEPRACATED BELOW DO NOT USE WITHOUT UPDATING
+
 export class Drag {
 	constructor(dragCoefficient, bodies) {
 		this.k = dragCoefficient;
@@ -25,16 +37,5 @@ export class Gravity {
 			const weight = this.g * this.bodies[i].m;
 			this.bodies[i].f.y -= weight;
 		}
-	}
-}
-
-export class BodyForceApplier {
-	constructor(body, applier) {
-		this.force = body.f;
-		this.applier = applier;
-	}
-
-	applyForce() {
-		this.applier(this.force);
 	}
 }
