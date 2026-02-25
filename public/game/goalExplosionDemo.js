@@ -1,131 +1,79 @@
 import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { AnimatedScene } from './client/AnimatedScene.js';
+import { GameObjectCustom } from './common/GameObject.js';
 import { GOAL_EXPLOSION_STYLES } from './shaders/goalAnimations.js';
 import { GoalAnimationSpawner } from './shaders/goalAnimationSpawner.js';
-
 /*
 /  This is a Demo Scene to show off the various Goal Explosion Animations
 /  Right now this is only for Development purposes, but time-permiting might can this to be usable as a User-facing Cosmetic Viewing UI Page
 /  It also serves as a developer guide that shows how to use the goalExplosion system in the main game
 */
 export function startGoalExplosionDemo() {
-	const animatedScene = new AnimatedScene();
-	animatedScene.controls.enabled = true;
+	const demoSocket = {
+		addHandler() { }
+	};
+
+	const animatedScene = new AnimatedScene(demoSocket);
 	animatedScene.camera.position.set(8, 2, 0);
-	animatedScene.controls.target.set(0, 0, 0);
-	animatedScene.controls.update();
+	animatedScene.camera.lookAt(0, 0, 0);
+	const orbitControls = new OrbitControls(
+		animatedScene.camera,
+		animatedScene.renderer.domElement
+	);
+	orbitControls.target.set(0, 0, 0);
+	orbitControls.enableDamping = true;
+	orbitControls.dampingFactor = 0.08;
+	orbitControls.update();
+
+	//Disabling built-in animatedScene stuff we don't need here
+	const arena = animatedScene.getGameObject('gameArena');
+	if (arena?.visual) arena.visual.visible = false;
+	const ball = animatedScene.getGameObject('ball');
+	if (ball?.visual) ball.visual.visible = false;
+	if (ball) ball.enabled = false;
+
+	const goalSpawner = new GoalAnimationSpawner();
+	animatedScene.scene.add(goalSpawner.visual);
+
+	const state = {
+		delay: 2.0,
+		cooldown: 1.0,
+		styleIndex: GOAL_EXPLOSION_STYLES[0]?.styleIndex ?? 0,
+		useBaseColor: true,
+		colorHex: '#ffffff'
+	};
 
 	animatedScene.registerGameObject(
-		{
-			key: 'ambientLight',
-			visual: new THREE.AmbientLight(0xffffff, 0.25)
-		},
-		{
-			key: 'keyLight',
-			visual: new THREE.PointLight(0xffffff, 600, 60, 2),
-			init() {
-				this.visual.position.set(8, 8, 6);
-			}
-		},
-		{
-			key: 'demoGoal',
-			visual: createGoalFrame(),
-			init() {
-				this.visual.position.set(0, 0, 0);
-			}
-		},
-		{
-			key: 'goalBackdrop',
-			visual: new THREE.Mesh(
-				new THREE.PlaneGeometry(100, 100),
-				new THREE.MeshStandardMaterial({
-					color: 0xffffff,
-					roughness: 0.8,
-					metalness: 0.0,
-					side: THREE.DoubleSide
-				})
-			),
-			init() {
-				this.visual.position.set(0, 0, -60);
-				this.visual.rotation.y = Math.PI;
-			}
-		},
-		{
-			key: 'demoBall',
-			visual: new THREE.Mesh(
-				new THREE.SphereGeometry(0.35, 24, 24),
-				new THREE.MeshStandardMaterial({
-					color: 0xffffff,
-					roughness: 0.4,
-					metalness: 0.1
-				})
-			),
-			init() {
-				this.visual.visible = false;
-			}
-		},
-		{
-			key: 'goalExplosion',
-			object: new GoalAnimationSpawner({
-				initialPoolSize: 1,
-				maxPoolSize: 6
-			})
-		},
-		{
-			key: 'demoLoop',
-			self: {
-				delay: 2.0,
-				cooldown: 0.0,
-				runTime: 0.0,
-				runDuration: 2.2,
-				hasTriggered: false,
-				styleIndex: GOAL_EXPLOSION_STYLES[0]?.styleIndex ?? 0,
-				baseColor: new THREE.Color(0xffffff),
-				overrideColor: null
-			},
+		new GameObjectCustom('gradientSky', {
+			visual: createGradientSkybox()
+		}),
+		new GameObjectCustom('goalExplosionLoop', {
 			update(dt) {
-				const explosion = animatedScene.getGameObject('goalExplosion');
-				const ball = animatedScene.getGameObject('demoBall');
-				if (!explosion || !ball) return;
+				orbitControls.update();
+				goalSpawner.update(dt);
 
-				if (this.self.runTime === 0.0 && explosion.active) {
-					return;
-				}
+				if (goalSpawner.active) return;
 
-				if (this.self.cooldown < this.self.delay) {
-					this.self.cooldown += dt;
-					return;
-				}
+				state.cooldown += dt;
+				if (state.cooldown < state.delay) return;
+				state.cooldown = 0.0;
 
-				if (this.self.runTime === 0.0) {
-					this.self.hasTriggered = false;
-					ball.visual.visible = true;
-				}
+				const color = state.useBaseColor
+					? null
+					: new THREE.Color(state.colorHex);
 
-				this.self.runTime += dt;
-				const t = Math.min(1.0, this.self.runTime / this.self.runDuration);
-				const x = -10 + 20 * t;
-				ball.visual.position.set(x, 0, 0);
-
-				if (!this.self.hasTriggered && x >= 0) {
-					this.self.hasTriggered = true;
-					ball.visual.visible = false;
-					explosion.trigger(
-						new THREE.Vector3(0, 0, 0),
-						this.self.overrideColor,
-						this.self.styleIndex
-					);
-				}
-
-				if (t >= 1.0) {
-					this.self.runTime = 0.0;
-					this.self.cooldown = 0.0;
-					ball.visual.visible = false;
-				}
+				goalSpawner.triggerGoalAnimation(
+					state.styleIndex,
+					color,
+					new THREE.Vector3(0, 0, 0)
+				);
+			},
+			kill() {
+				orbitControls.dispose();
 			}
-		},
-		{
-			key: 'demoControls',
+		}),
+		new GameObjectCustom('goalExplosionControls', {
 			self: document.createElement('div'),
 			init() {
 				this.self.style.position = 'absolute';
@@ -138,87 +86,70 @@ export function startGoalExplosionDemo() {
 				this.self.style.color = 'white';
 				this.self.style.fontFamily = 'monospace';
 				this.self.style.fontSize = '12px';
-				this.self.style.userSelect = 'none';
 
-				const label = document.createElement('div');
-				label.innerText = 'Goal Explosion Demo';
-				label.style.marginBottom = '8px';
-				label.style.fontWeight = 'bold';
-				this.self.appendChild(label);
+				const title = document.createElement('div');
+				title.innerText = 'Goal Explosion Demo';
+				title.style.marginBottom = '8px';
+				title.style.fontWeight = 'bold';
+				this.self.appendChild(title);
 
-				const select = document.createElement('select');
+				const styleLabel = document.createElement('div');
+				styleLabel.innerText = 'Style';
+				styleLabel.style.marginBottom = '4px';
+				this.self.appendChild(styleLabel);
+
+				const styleSelect = document.createElement('select');
+				styleSelect.style.display = 'block';
+				styleSelect.style.marginBottom = '8px';
 				for (const style of GOAL_EXPLOSION_STYLES) {
 					const option = document.createElement('option');
-					option.value = style.styleIndex;
+					option.value = String(style.styleIndex);
 					option.textContent = style.label;
-					select.appendChild(option);
+					styleSelect.appendChild(option);
 				}
-				select.addEventListener('change', () => {
-					const demoLoop = animatedScene.getGameObject('demoLoop');
-					if (!demoLoop) return;
-					demoLoop.self.styleIndex = Number(select.value);
-					demoLoop.self.cooldown = demoLoop.self.delay;
-					demoLoop.self.runTime = 0.0;
+				styleSelect.value = String(state.styleIndex);
+				styleSelect.addEventListener('change', () => {
+					state.styleIndex = Number(styleSelect.value);
+					state.cooldown = state.delay;
 				});
-				this.self.appendChild(select);
+				this.self.appendChild(styleSelect);
 
-				const colorLabel = document.createElement('div');
-				colorLabel.innerText = 'Color';
-				colorLabel.style.marginTop = '8px';
-				colorLabel.style.marginBottom = '4px';
-				this.self.appendChild(colorLabel);
+				const colorModeLabel = document.createElement('div');
+				colorModeLabel.innerText = 'Color';
+				colorModeLabel.style.marginBottom = '4px';
+				this.self.appendChild(colorModeLabel);
 
-				const colorSelect = document.createElement('select');
-				const colorOptions = [
-					{ label: 'Base', value: 'base' },
-					{ label: 'Cyan', value: 0x6fe7ff },
-					{ label: 'Magenta', value: 0xff6bd6 },
-					{ label: 'White', value: 0xffffff },
-					{ label: 'Gold', value: 0xffd36b },
-					{ label: 'Lime', value: 0x7bff5a },
-					{ label: 'Blue', value: 0x5aa2ff },
-					{ label: 'Crimson', value: 0xff3b4a },
-					{ label: 'Orange', value: 0xff8a3d },
-					{ label: 'Amber', value: 0xffc04a },
-					{ label: 'Chartreuse', value: 0xb5ff3a },
-					{ label: 'Mint', value: 0x5cffb5 },
-					{ label: 'Teal', value: 0x22f0d6 },
-					{ label: 'Sky', value: 0x5cd6ff },
-					{ label: 'Indigo', value: 0x5c6bff },
-					{ label: 'Violet', value: 0xa35cff },
-					{ label: 'Lavender', value: 0xd7b3ff },
-					{ label: 'Rose', value: 0xff7ab8 },
-					{ label: 'Coral', value: 0xff6f61 },
-					{ label: 'Peach', value: 0xffb28a },
-					{ label: 'Seafoam', value: 0x78ffd6 },
-					{ label: 'Ice', value: 0xb8f1ff }
-				];
-				for (const optionData of colorOptions) {
-					const option = document.createElement('option');
-					option.value = optionData.value;
-					option.textContent = optionData.label;
-					colorSelect.appendChild(option);
-				}
-				colorSelect.addEventListener('change', () => {
-					const demoLoop = animatedScene.getGameObject('demoLoop');
-					const explosion = animatedScene.getGameObject('goalExplosion');
-					if (!demoLoop || !explosion) return;
-					const selectedValue = colorSelect.value;
-					if (selectedValue === 'base') {
-						demoLoop.self.overrideColor = null;
-					} else {
-						demoLoop.self.overrideColor = new THREE.Color(
-							Number(selectedValue)
-						);
-					}
-					demoLoop.self.cooldown = demoLoop.self.delay;
-					demoLoop.self.runTime = 0.0;
+				const colorModeSelect = document.createElement('select');
+				colorModeSelect.style.display = 'block';
+				colorModeSelect.style.marginBottom = '8px';
+				const baseOption = document.createElement('option');
+				baseOption.value = 'base';
+				baseOption.textContent = 'Base';
+				colorModeSelect.appendChild(baseOption);
+				const customOption = document.createElement('option');
+				customOption.value = 'custom';
+				customOption.textContent = 'Custom';
+				colorModeSelect.appendChild(customOption);
+				colorModeSelect.value = 'base';
+				this.self.appendChild(colorModeSelect);
+
+				const colorPicker = document.createElement('input');
+				colorPicker.type = 'color';
+				colorPicker.value = state.colorHex;
+				colorPicker.disabled = true;
+				colorPicker.style.display = 'block';
+				colorPicker.style.marginBottom = '8px';
+				colorPicker.addEventListener('input', () => {
+					state.colorHex = colorPicker.value;
+					state.cooldown = state.delay;
 				});
-				this.self.appendChild(colorSelect);
+				this.self.appendChild(colorPicker);
 
-				const spacer = document.createElement('div');
-				spacer.style.height = '8px';
-				this.self.appendChild(spacer);
+				colorModeSelect.addEventListener('change', () => {
+					state.useBaseColor = colorModeSelect.value === 'base';
+					colorPicker.disabled = state.useBaseColor;
+					state.cooldown = state.delay;
+				});
 
 				const backButton = document.createElement('button');
 				backButton.innerText = 'Back to Game';
@@ -231,48 +162,56 @@ export function startGoalExplosionDemo() {
 				this.self.appendChild(backButton);
 
 				document.body.appendChild(this.self);
-
-				const demoLoop = animatedScene.getGameObject('demoLoop');
-				const explosion = animatedScene.getGameObject('goalExplosion');
-				if (demoLoop && explosion) {
-					demoLoop.self.cooldown = demoLoop.self.delay;
-					demoLoop.self.runTime = 0.0;
-					const selectedValue = colorSelect.value;
-					demoLoop.self.overrideColor =
-						selectedValue === 'base'
-							? null
-							: new THREE.Color(Number(selectedValue) || 0xffffff);
-				}
+			},
+			kill() {
+				this.self.remove();
 			}
-		}
+		})
 	);
 
-	animatedScene.animate();
+	animatedScene.start();
+	return animatedScene;
 }
 
-function createGoalFrame() {
-	const frameMaterial = new THREE.MeshStandardMaterial({
-		color: 0x202a3a,
-		roughness: 0.6,
-		metalness: 0.1
+function createGradientSkybox() {
+	const geometry = new THREE.SphereGeometry(200, 32, 16);
+	const material = new THREE.ShaderMaterial({
+		vertexShader: `
+			varying vec3 vWorldPosition;
+			void main() {
+				vec4 worldPosition = modelMatrix * vec4(position, 1.0);
+				vWorldPosition = worldPosition.xyz;
+				gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+			}
+		`,
+		fragmentShader: `
+			uniform vec3 topColor;
+			uniform vec3 midColor;
+			uniform vec3 botColor;
+			varying vec3 vWorldPosition;
+
+			void main() {
+				vec3 dir = normalize(vWorldPosition);
+				float h = dir.y * 0.5 + 0.5;
+
+				vec3 color = mix(botColor, midColor, smoothstep(0.0, 0.45, h));
+				color = mix(color, topColor, smoothstep(0.42, 1.0, h));
+
+				float centerBand = 1.0 - smoothstep(0.18, 0.55, abs(dir.y));
+				color += midColor * centerBand * 0.22;
+
+				gl_FragColor = vec4(color, 1.0);
+			}
+		`,
+		uniforms: {
+			topColor: { value: new THREE.Color(0x0b2247) },
+			midColor: { value: new THREE.Color(0x16215e) },
+			botColor: { value: new THREE.Color(0x3e6fa0) },
+		},
+		side: THREE.BackSide,
+		depthWrite: false
 	});
-	const thickness = 0.15;
-	const width = 4;
-	const height = 4;
 
-	const horizontalGeometry = new THREE.BoxGeometry(thickness, thickness, width);
-	const verticalGeometry = new THREE.BoxGeometry(thickness, height, thickness);
-
-	const top = new THREE.Mesh(horizontalGeometry, frameMaterial);
-	top.position.y = height / 2 - thickness / 2;
-	const bottom = new THREE.Mesh(horizontalGeometry, frameMaterial);
-	bottom.position.y = -height / 2 + thickness / 2;
-	const left = new THREE.Mesh(verticalGeometry, frameMaterial);
-	left.position.z = -width / 2 + thickness / 2;
-	const right = new THREE.Mesh(verticalGeometry, frameMaterial);
-	right.position.z = width / 2 - thickness / 2;
-
-	const frame = new THREE.Group();
-	frame.add(top, bottom, left, right);
-	return frame;
+	const sky = new THREE.Mesh(geometry, material);
+	return sky;
 }
