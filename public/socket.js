@@ -97,11 +97,7 @@ export default class PongSocketClient {
 	#getUrl() {
 		const locationUrl = new URL(location.href);
 		const scheme = location.protocol === 'https:' ? 'wss' : 'ws';
-		const url = new URL(
-			`${scheme}://${location.host}/lobby/${locationUrl.searchParams.get('code')}`
-		);
-		url.searchParams.set('clientId', locationUrl.searchParams.get('username'));
-		return url.toString();
+		return `${scheme}://${location.host}/lobby/${locationUrl.searchParams.get('code')}`;
 	}
 
 	#baseMessageHandler(msg, respond) {

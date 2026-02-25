@@ -6,21 +6,21 @@ import setupGoogleStrategy from './google.js';
 export default function setupAuth(app) {
 	if (!process.env.SESSION_SECRET) throw new Error('Missing SESSION_SECRET');
 
-	app.use(
-		session({
-			secret: process.env.SESSION_SECRET,
-			resave: false,
-			saveUninitialized: false,
-			cookie: {
-				httpOnly: true,
-				sameSite: 'lax',
-				secure: false // Set true only when using https in production
-			}
-		})
-	);
+	const sessionParser = session({
+		secret: process.env.SESSION_SECRET,
+		resave: false,
+		saveUninitialized: false,
+		cookie: {
+			httpOnly: true,
+			sameSite: 'lax',
+			secure: false // Set true only when using https in production
+		}
+	});
 
-	app.use(passport.initialize());
-	app.use(passport.session());
+	app.use(sessionParser);
+
+	const passportSessionParser = passport.session();
+	app.use(passportSessionParser);
 
 	passport.serializeUser((user, done) => done(null, user.id));
 	passport.deserializeUser((userId, done) => {
@@ -56,4 +56,12 @@ export default function setupAuth(app) {
 			});
 		});
 	});
+
+	return {
+		parseSession(req, cb) {
+			sessionParser(req, {}, () => {
+				passportSessionParser(req, {}, cb);
+			});
+		}
+	};
 }
