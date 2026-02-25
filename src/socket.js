@@ -18,12 +18,11 @@ export default class PongSocketServer extends EventEmitter {
 	#server = null;
 	#wss = null;
 	#wsByClientId = new Map();
-	#nextClientId = 1;
 	#upgradeHandler = null;
 
 	#handlers = [];
 
-	constructor(server, socketPath) {
+	constructor(server, socketPath, parseSession) {
 		super();
 
 		this.#server = server;
@@ -39,16 +38,19 @@ export default class PongSocketServer extends EventEmitter {
 				return;
 			}
 
-			this.#wss.handleUpgrade(req, socket, head, (ws) => {
-				this.#wss.emit('connection', ws, req);
+			parseSession(req, () => {
+				if (!req.user) return;
+
+				this.#wss.handleUpgrade(req, socket, head, (ws) => {
+					this.#wss.emit('connection', ws, req);
+				});
 			});
 		};
 
 		server.on('upgrade', this.#upgradeHandler);
 
 		this.#wss.on('connection', (ws, req) => {
-			const url = new URL(req.url, 'http://localhost');
-			const clientId = url.searchParams.get('clientId') || this.#nextClientId++;
+			const clientId = req.user.display_name;
 
 			this.#wsByClientId.set(clientId, ws);
 
