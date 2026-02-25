@@ -1,4 +1,19 @@
+import * as THREE from 'three';
+
 const clamp = (v) => (v < 0 ? 0 : v > 1 ? 1 : v);
+
+export function smoothstep(edge0, edge1, x) {
+	const t = Math.min(1.0, Math.max(0.0, (x - edge0) / (edge1 - edge0)));
+	return t * t * (3.0 - 2.0 * t);
+}
+
+export function randomDirection() {
+	return new THREE.Vector3(
+		Math.random() * 2 - 1,
+		Math.random() * 2 - 1,
+		Math.random() * 2 - 1
+	).normalize();
+}
 
 export const TWEEN = {
 	Easing: {
@@ -125,7 +140,7 @@ export const TWEEN = {
 				}
 				return clamp(
 					0.5 * Math.pow(2, -10 * (k - 1)) * Math.sin((k - 1.1) * 5 * Math.PI) +
-						1
+					1
 				);
 			}
 		},

@@ -25,12 +25,6 @@ function createAtlasUniforms() {
 	};
 }
 
-function normalizeStyleId(value) {
-	return String(value ?? '')
-		.trim()
-		.toUpperCase();
-}
-
 function colorFromValue(value, fallback = 0xffffff) {
 	if (value instanceof THREE.Color) return value.clone();
 	return new THREE.Color(value ?? fallback);
@@ -38,7 +32,6 @@ function colorFromValue(value, fallback = 0xffffff) {
 
 export const PADDLE_STYLE_CONFIGS = [
 	{
-		id: 'TEXTURED_PULSE',
 		styleIndex: 0,
 		label: 'Textured Pulse',
 		baseColor: 0x6df7ff,
@@ -135,62 +128,23 @@ export const PADDLE_STYLE_CONFIGS = [
 ];
 
 export const PADDLE_STYLE_CATALOG = PADDLE_STYLE_CONFIGS.map((config) => ({
-	id: config.id,
+	styleIndex: config.styleIndex,
 	label: config.label,
-	value: config.styleIndex
 }));
 
-const PADDLE_CONFIG_BY_ID = new Map(
-	PADDLE_STYLE_CONFIGS.map((config) => [normalizeStyleId(config.id), config])
-);
-const STYLE_VALUE_TO_ID = new Map(
-	PADDLE_STYLE_CONFIGS.map((config) => [config.styleIndex, config.id])
+const PADDLE_CONFIG_BY_STYLE_INDEX = new Map(
+	PADDLE_STYLE_CONFIGS.map((config) => [config.styleIndex, config])
 );
 
 export const ACTIVE_PADDLE_STYLE_INDEX = 0;
 
-export function getPaddleSkinConfigByStyleValue(styleValue) {
-	const normalizedStyleValue =
-		typeof styleValue === 'number'
-			? styleValue
-			: Number.parseInt(String(styleValue ?? ''), 10);
-	const id = STYLE_VALUE_TO_ID.get(normalizedStyleValue);
-	if (!id) return PADDLE_STYLE_CONFIGS[0];
+export function resolvePaddleSkinConfig(styleIndex) {
+	if (!Number.isFinite(styleIndex)) {
+		return PADDLE_STYLE_CONFIGS[0];
+	}
 	return (
-		PADDLE_CONFIG_BY_ID.get(normalizeStyleId(id)) ?? PADDLE_STYLE_CONFIGS[0]
+		PADDLE_CONFIG_BY_STYLE_INDEX.get(styleIndex) ?? PADDLE_STYLE_CONFIGS[0]
 	);
-}
-
-export function resolvePaddleSkinConfig(styleKey) {
-	if (styleKey === undefined || styleKey === null) {
-		return getPaddleSkinConfigByStyleValue(ACTIVE_PADDLE_STYLE_INDEX);
-	}
-
-	if (typeof styleKey === 'number') {
-		return getPaddleSkinConfigByStyleValue(styleKey);
-	}
-
-	if (typeof styleKey === 'string') {
-		const normalized = normalizeStyleId(styleKey);
-		if (PADDLE_CONFIG_BY_ID.has(normalized)) {
-			return PADDLE_CONFIG_BY_ID.get(normalized);
-		}
-		return getPaddleSkinConfigByStyleValue(styleKey);
-	}
-
-	if (typeof styleKey === 'object') {
-		if (styleKey.styleIndex !== undefined) {
-			return getPaddleSkinConfigByStyleValue(styleKey.styleIndex);
-		}
-		if (styleKey.id) {
-			const normalized = normalizeStyleId(styleKey.id);
-			if (PADDLE_CONFIG_BY_ID.has(normalized)) {
-				return PADDLE_CONFIG_BY_ID.get(normalized);
-			}
-		}
-	}
-
-	return getPaddleSkinConfigByStyleValue(ACTIVE_PADDLE_STYLE_INDEX);
 }
 
 function createUniforms(dimensions, styleConfig, tintColor) {
@@ -247,7 +201,9 @@ export class PaddleSkin {
 	#color = new THREE.Color(0xffffff);
 	#baseColor = new THREE.Color(0xffffff);
 
-	constructor({ dimensions, style = ACTIVE_PADDLE_STYLE_INDEX, color } = {}) {
+	constructor(
+		{ dimensions, styleIndex = ACTIVE_PADDLE_STYLE_INDEX, color } = {}
+	) {
 		this.#dimensions = { ...(dimensions ?? {}) };
 		this.#visual = new THREE.Group();
 		this.#geometry = new THREE.BoxGeometry(
@@ -263,7 +219,7 @@ export class PaddleSkin {
 		this.#mesh.receiveShadow = true;
 		this.#visual.add(this.#mesh);
 
-		this.setStyle(style, { color });
+		this.setStyle(styleIndex, { color });
 		placeholderMaterial.dispose();
 	}
 
@@ -273,13 +229,6 @@ export class PaddleSkin {
 
 	get styleIndex() {
 		return this.#styleConfig?.styleIndex ?? ACTIVE_PADDLE_STYLE_INDEX;
-	}
-
-	get styleId() {
-		return (
-			this.#styleConfig?.id ??
-			getPaddleSkinConfigByStyleValue(ACTIVE_PADDLE_STYLE_INDEX).id
-		);
 	}
 
 	get baseColor() {
@@ -301,8 +250,8 @@ export class PaddleSkin {
 		);
 	}
 
-	setStyle(styleKey, { color } = {}) {
-		const styleConfig = resolvePaddleSkinConfig(styleKey);
+	setStyle(styleIndex, { color } = {}) {
+		const styleConfig = resolvePaddleSkinConfig(styleIndex);
 		const nonce = ++this.#styleNonce;
 
 		const baseColor = colorFromValue(styleConfig.baseColor, 0xffffff);
