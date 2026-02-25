@@ -19,11 +19,13 @@ app.set('view engine', 'ejs');
 
 app.use(express.json());
 app.use(express.static(path.join(import.meta.dirname, '../public')));
+app.use('/node_modules', express.static(path.join(import.meta.dirname, '../node_modules')));
 
 setupAuth(app);
 
 initializeGoalExplosions();
 initializeBallSkins();
+app.get('/map-upload', (req, res) => res.render('map-upload'));
 
 const server = app.listen(PORT);
 
