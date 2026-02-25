@@ -129,7 +129,7 @@ export const PADDLE_STYLE_CONFIGS = [
 
 export const PADDLE_STYLE_CATALOG = PADDLE_STYLE_CONFIGS.map((config) => ({
 	styleIndex: config.styleIndex,
-	label: config.label,
+	label: config.label
 }));
 
 const PADDLE_CONFIG_BY_STYLE_INDEX = new Map(
@@ -201,9 +201,11 @@ export class PaddleSkin {
 	#color = new THREE.Color(0xffffff);
 	#baseColor = new THREE.Color(0xffffff);
 
-	constructor(
-		{ dimensions, styleIndex = ACTIVE_PADDLE_STYLE_INDEX, color } = {}
-	) {
+	constructor({
+		dimensions,
+		styleIndex = ACTIVE_PADDLE_STYLE_INDEX,
+		color
+	} = {}) {
 		this.#dimensions = { ...(dimensions ?? {}) };
 		this.#visual = new THREE.Group();
 		this.#geometry = new THREE.BoxGeometry(

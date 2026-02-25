@@ -3,7 +3,11 @@ import {
 	GOAL_EXPLOSION_STYLES,
 	resolveGoalAnimationConfig
 } from './goalAnimations.js';
-import { ShaderLibrary, ShaderRepository, joinShaderChunks } from './shaderLibrary.js';
+import {
+	ShaderLibrary,
+	ShaderRepository,
+	joinShaderChunks
+} from './shaderLibrary.js';
 
 const FEATURE_CHUNKS = {
 	math: ShaderLibrary.MathChunks,
@@ -393,7 +397,13 @@ function createAssetsFromConfig({
 	return created;
 }
 
-function createParticleSystem({ positions, velocities, sizes, count, drag = 0.98 }) {
+function createParticleSystem({
+	positions,
+	velocities,
+	sizes,
+	count,
+	drag = 0.98
+}) {
 	return {
 		positions,
 		velocities,
@@ -467,7 +477,8 @@ function createGoalAnimationRuntime(config = {}) {
 		ringUniforms: null,
 		particleUniforms: null
 	};
-	runtime.markParticleBuffersDirty = () => markRuntimeParticleBuffersDirty(runtime);
+	runtime.markParticleBuffersDirty = () =>
+		markRuntimeParticleBuffersDirty(runtime);
 
 	buildRuntimeFromConfig(runtime);
 	refreshAssetInitialStates(runtime);
@@ -754,9 +765,7 @@ export class GoalAnimationSpawner {
 	#resolveAnimation(styleIndex) {
 		const config = resolveGoalAnimationConfig(styleIndex);
 
-		if (
-			this.currentAnimation?.config?.styleIndex !== config.styleIndex
-		) {
+		if (this.currentAnimation?.config?.styleIndex !== config.styleIndex) {
 			if (this.currentAnimation?.visual) {
 				this.currentAnimation.active = false;
 				this.currentAnimation.visual.visible = false;
@@ -798,4 +807,3 @@ export class GoalAnimationSpawner {
 		this.color.copy(this.currentAnimation.color);
 	}
 }
-
