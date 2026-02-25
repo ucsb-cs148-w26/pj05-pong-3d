@@ -206,7 +206,7 @@ function createGradientSkybox() {
 		uniforms: {
 			topColor: { value: new THREE.Color(0x0b2247) },
 			midColor: { value: new THREE.Color(0x16215e) },
-			botColor: { value: new THREE.Color(0x3e6fa0) },
+			botColor: { value: new THREE.Color(0x3e6fa0) }
 		},
 		side: THREE.BackSide,
 		depthWrite: false
