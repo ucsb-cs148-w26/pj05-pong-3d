@@ -140,7 +140,7 @@ export const TWEEN = {
 				}
 				return clamp(
 					0.5 * Math.pow(2, -10 * (k - 1)) * Math.sin((k - 1.1) * 5 * Math.PI) +
-					1
+						1
 				);
 			}
 		},

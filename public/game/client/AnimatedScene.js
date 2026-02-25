@@ -7,7 +7,7 @@ import { Arena } from './Arena.js';
 import { Ball } from './Ball.js';
 import { CameraController } from './CameraController.js';
 import { GameState, Player } from '../common/GameState.js';
-import { GoalAnimationSpawner } from '../shaders/goalAnimationSpawner.js'
+import { GoalAnimationSpawner } from '../shaders/goalAnimationSpawner.js';
 import { GameObjectCustom } from '../common/GameObject.js';
 
 /**
@@ -37,7 +37,7 @@ export class AnimatedScene extends Scene {
 
 		const goalSpawner = new GoalAnimationSpawner('goalSpawner');
 		this.registerGameObject(goalSpawner);
-		
+
 		window.addEventListener('resize', () => {
 			this.camera.aspect = window.innerWidth / window.innerHeight;
 			this.camera.updateProjectionMatrix();

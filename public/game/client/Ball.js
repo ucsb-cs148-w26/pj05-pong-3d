@@ -25,14 +25,21 @@ export class Ball extends BallCommon {
 		this.#goalSpawner = spawner;
 
 		this.body.col.onCollisionCallback = ((me, other) => {
-			if ( this.#explosionId === null ) return;			
-			
-			const identifier = other.ballIdentifier;
-			if (identifier === undefined || ( identifier !== "greenWall" && identifier !== "redWall" ) ) return;
-			
-			const pos = me.x;
-			this.#goalSpawner.triggerGoalAnimation( this.#explosionId, null, new THREE.Vector3( pos.x, pos.y, pos.z ) );
+			if (this.#explosionId === null) return;
 
+			const identifier = other.ballIdentifier;
+			if (
+				identifier === undefined ||
+				(identifier !== 'greenWall' && identifier !== 'redWall')
+			)
+				return;
+
+			const pos = me.x;
+			this.#goalSpawner.triggerGoalAnimation(
+				this.#explosionId,
+				null,
+				new THREE.Vector3(pos.x, pos.y, pos.z)
+			);
 		}).bind(this);
 
 		this.#loadEquipped();
@@ -56,9 +63,8 @@ export class Ball extends BallCommon {
 			}
 
 			if (data.goal_explosion_key) {
-				this.#explosionId = parseInt( data.goal_explosion_key, 10 );
+				this.#explosionId = parseInt(data.goal_explosion_key, 10);
 			}
-
 		} catch (err) {
 			console.error('Failed to load: ', err);
 			this.applySkin('default');

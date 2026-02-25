@@ -1111,8 +1111,7 @@ const BLACK_HOLE_CONFIG = {
 		);
 	},
 	configureVisibility(animation) {
-		if (animation.visual?.scale)
-			animation.visual.scale.setScalar(4.0);
+		if (animation.visual?.scale) animation.visual.scale.setScalar(4.0);
 		animation.ringMesh.visible = true;
 		animation.ringMesh2.visible = true;
 		animation.blackHoleMesh.visible = true;
@@ -1322,8 +1321,7 @@ const BLACK_HOLE_CONFIG = {
 		if (animation.lensMesh?.rotation) animation.lensMesh.rotation.set(0, 0, 0);
 		if (animation.gammaBurstMesh?.rotation)
 			animation.gammaBurstMesh.rotation.set(0, 0, 0);
-		if (animation.visual?.scale)
-			animation.visual.scale.setScalar(4.0);
+		if (animation.visual?.scale) animation.visual.scale.setScalar(4.0);
 		if (animation.blackHoleMesh) animation.blackHoleMesh.scale.setScalar(0);
 		if (animation.ringMesh) animation.ringMesh.scale.setScalar(0);
 		if (animation.ringMesh2) animation.ringMesh2.scale.setScalar(0);
@@ -2235,10 +2233,10 @@ const CRYSTAL_SPIRE_CONFIG = {
 			const baseMaterial = sourceMaterial?.clone
 				? sourceMaterial.clone()
 				: new THREE.MeshBasicMaterial({
-					color: 0x3f6f8f,
-					transparent: true,
-					opacity: 0.88
-				});
+						color: 0x3f6f8f,
+						transparent: true,
+						opacity: 0.88
+					});
 			baseMaterial.depthWrite = true;
 			baseMaterial.transparent = true;
 			baseMaterial.opacity = 0.88;
@@ -2342,12 +2340,12 @@ const CRYSTAL_SPIRE_CONFIG = {
 				localProgress <= 0.0
 					? 0.0
 					: Math.max(
-						0.0,
-						TWEEN.Easing.Elastic.Out(localProgress) +
-						Math.sin(localProgress * Math.PI * 7.0) *
-						(1.0 - localProgress) *
-						0.14
-					);
+							0.0,
+							TWEEN.Easing.Elastic.Out(localProgress) +
+								Math.sin(localProgress * Math.PI * 7.0) *
+									(1.0 - localProgress) *
+									0.14
+						);
 			const width = mesh.userData.widthScale * (0.12 + rise * 0.88);
 			const height = mesh.userData.heightScale * rise;
 			mesh.visible = fade > 0.01;
@@ -2918,8 +2916,6 @@ const SPOOKY_CONFIG = {
 		if (animation.watcherSprite) animation.watcherSprite.visible = false;
 	}
 };
-
-
 
 export const GOAL_ANIMATION_CONFIGS = [
 	NOVA_CONFIG,
