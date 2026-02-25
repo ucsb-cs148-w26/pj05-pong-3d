@@ -20,14 +20,14 @@ app.set('view engine', 'ejs');
 app.use(express.json());
 app.use(express.static(path.join(import.meta.dirname, '../public')));
 
-setupAuth(app);
+const { parseSession } = setupAuth(app);
 
 initializeGoalExplosions();
 initializeBallSkins();
 
 const server = app.listen(PORT);
 
-app.use('/', createLobbyRouter(server));
+app.use('/', createLobbyRouter(server, parseSession));
 app.use('/user', createUserRouter());
 
 export default app;

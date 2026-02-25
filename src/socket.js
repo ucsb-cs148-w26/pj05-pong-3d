@@ -22,7 +22,7 @@ export default class PongSocketServer extends EventEmitter {
 
 	#handlers = new Map();
 
-	constructor(server, socketPath) {
+	constructor(server, socketPath, parseSession) {
 		super();
 
 		this.#server = server;
@@ -38,8 +38,12 @@ export default class PongSocketServer extends EventEmitter {
 				return;
 			}
 
-			this.#wss.handleUpgrade(req, socket, head, (ws) => {
-				this.#wss.emit('connection', ws, req);
+			parseSession(req, () => {
+				if (!req.user) return;
+
+				this.#wss.handleUpgrade(req, socket, head, (ws) => {
+					this.#wss.emit('connection', ws, req);
+				});
 			});
 		};
 

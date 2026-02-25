@@ -19,9 +19,11 @@ function generateCode() {
 
 export default class LobbyState {
 	#server = null;
+	#parseSession = null;
 
-	constructor(server) {
+	constructor(server, parseSession) {
 		this.#server = server;
+		this.#parseSession = parseSession;
 
 		this.lobbies = new Map();
 		this.scenes = new Map();
@@ -51,7 +53,11 @@ export default class LobbyState {
 		this.lobbies.set(lobbyId, lobby);
 		this.codeToLobby.set(lobby.code, lobby);
 
-		const socket = new PongSocketServer(this.#server, `/lobby/${lobby.code}`);
+		const socket = new PongSocketServer(
+			this.#server,
+			`/lobby/${lobby.code}`,
+			this.#parseSession
+		);
 
 		socket.on('client:connect', (clientId) => {
 			// FIXME: No protection for duplicate name joining

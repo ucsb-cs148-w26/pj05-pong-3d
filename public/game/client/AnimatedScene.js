@@ -54,6 +54,8 @@ export class AnimatedScene extends Scene {
 		this._isRunning = false;
 		this._hiddenHtml = new Map();
 
+		this.isReplaying = false;
+
 		socket.addHandler('sync', this.#sync.bind(this));
 		socket.addHandler('playerSync', this.#playerSync.bind(this));
 
@@ -202,18 +204,21 @@ export class AnimatedScene extends Scene {
 			if (controller.inputBuffer[i].seq <= msg.ack) continue;
 
 			idx = i;
+			break;
 		}
 
 		if (idx === -1) return; // all inputs ack'd
 
 		controller.inputBuffer = controller.inputBuffer.slice(idx); // drop ack'd inputs
 		controller.useInputBuffer = true;
+		this.isReplaying = true;
 
-		while (controller.inputBuffer.length > 0) {
+		for (let i = 0; i < controller.inputBuffer.length; i++) {
+			controller.inputBufferIdx = i;
 			this.step(1 / Constants.SIMULATION_RATE); // Is this not good enough? If not, we can store the physics time in the packets themselves
-			controller.inputBuffer.shift(); // O(N^2), maybe swap for linkedlist
 		}
 
+		this.isReplaying = false;
 		controller.useInputBuffer = false;
 	}
 

@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import LobbyState from './lobbyState.js';
 
-export default function createLobbyRouter(server) {
+export default function createLobbyRouter(server, parseSession) {
 	const router = Router();
-	const lobbyState = new LobbyState(server);
+	const lobbyState = new LobbyState(server, parseSession);
 
 	setInterval(() => {
 		lobbyState.cleanup();
@@ -40,9 +40,13 @@ export default function createLobbyRouter(server) {
 	});
 
 	router.get('/game', (req, res) => {
-		const { code, username } = req.query;
+		if (!req.user) {
+			return res.sendStatus(401);
+		}
 
-		if (!code || !code.length || !username || !username.length) {
+		const { code } = req.query;
+
+		if (!code || !code.length) {
 			return res.sendStatus(400);
 		}
 
@@ -51,6 +55,7 @@ export default function createLobbyRouter(server) {
 			return res.status(404).send('Lobby not found');
 		}
 
+		const username = req.user.display_name;
 		if (lobby.members.get(username)) {
 			return res.status(400).send('Username is taken');
 		}

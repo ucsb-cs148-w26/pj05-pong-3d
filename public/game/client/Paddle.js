@@ -35,11 +35,13 @@ export class Paddle extends PaddleCommon {
 
 	init(scene) {
 		super.init(scene);
+		this.scene = scene;
 	}
 
 	update(dt) {
 		super.update(dt);
 
+		if (this.scene.isReplaying) return;
 		this.#skin.update(dt, this.body.v.norm());
 	}
 

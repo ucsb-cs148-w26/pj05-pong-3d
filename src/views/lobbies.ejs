@@ -39,7 +39,7 @@
 				box-shadow: 0 0 0 0.25rem rgba(0,229,255,.12);
 			}
 
-			button {
+			button, .link-button {
 				display: block;
 				width: 100%;
 				padding: 0.9rem 1rem;
@@ -51,6 +51,10 @@
 				cursor: pointer;
 				box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.18);
 				transition: transform .08s, background .15s;
+			}
+
+			.link-button {
+				text-decoration: none;
 			}
 
 			button:hover {
@@ -92,48 +96,44 @@
 					</button>
 				</div>
 			<% } else { %>
-				<a href="/auth/google">Log in with Google</a>
+				<a class="link-button" href="/auth/google">Log in with Google</a>
 			<% } %>
 		</div>
 
-		<h1>Lobbies</h1>
+		<% if (user) { %>
+			<h1>Lobbies</h1>
 
-		<div class="card" style="display: flex; flex-direction: column; gap: 1.5rem;">
-			<input
-				id="username-field"
-				placeholder="Username"
-				style="margin-bottom: 0.5rem"
-			/>
+			<div class="card" style="display: flex; flex-direction: column; gap: 1.5rem;">
+				<div>
+					<input id="name-field" placeholder="Lobby name" style="margin-bottom: 1rem" />
+					<button id="create-button">Create Lobby</button>
+				</div>
 
-			<div>
-				<input id="name-field" placeholder="Lobby name" style="margin-bottom: 1rem" />
-				<button id="create-button">Create Lobby</button>
+				<div>
+					<input id="code-field" placeholder="Join Code" style="margin-bottom: 1rem" />
+					<button id="join-button">Join</button>
+				</div>
 			</div>
 
-			<div>
-				<input id="code-field" placeholder="Join Code" style="margin-bottom: 1rem" />
-				<button id="join-button">Join</button>
-			</div>
-		</div>
+			<div class="card">
+				<h2>Open Lobbies</h2>
+				<div id="lobbies-list">
+					<% if (lobbies && lobbies.length > 0) { %>
+						<% for (let i = 0; i < lobbies.length; i++) { %>
+						<div class="lobby">
+							<div><strong><%= lobbies[i].name || 'Unnamed Lobby' %></strong></div>
+							<div>Join Code: <code><%= lobbies[i].code %></code></div>
+							<div>Players: <%= lobbies[i].memberCount %></div>
 
-		<div class="card">
-			<h2>Open Lobbies</h2>
-			<div id="lobbies-list">
-				<% if (lobbies && lobbies.length > 0) { %>
-					<% for (let i = 0; i < lobbies.length; i++) { %>
-					<div class="lobby">
-						<div><strong><%= lobbies[i].name || 'Unnamed Lobby' %></strong></div>
-						<div>Join Code: <code><%= lobbies[i].code %></code></div>
-						<div>Players: <%= lobbies[i].memberCount %></div>
-
-						<button onclick="join('<%= lobbies[i].code %>')">Join</button>
-					</div>
+							<button onclick="join('<%= lobbies[i].code %>')">Join</button>
+						</div>
+						<% } %>
+					<% } else { %>
+						<p class="no-lobbies">No open lobbies currently.</p>
 					<% } %>
-				<% } else { %>
-					<p class="no-lobbies">No open lobbies currently.</p>
-				<% } %>
+				</div>
 			</div>
-		</div>
+		<% } %>
 
 		<script>
 			const equippedBallSkin = '<%= user && user.equipped_ball_skin_key ? user.equipped_ball_skin_key : "classic" %>';
@@ -151,13 +151,10 @@
 					});
 			}
 
-			const usernameField = document.getElementById('username-field');
 			const nameField = document.getElementById('name-field');
 			document
 				.getElementById('create-button')
 				.addEventListener('click', (e) => {
-					if (!usernameField.value.length) return;
-
 					fetch('/api/lobbies', {
 						method: 'POST',
 						body: JSON.stringify({
@@ -169,19 +166,21 @@
 						}
 					}).then(async (res) => {
 						const { lobby } = await res.json();
-						window.location = `/game?code=${lobby.code}&username=${usernameField.value}`;
+						window.location = `/game?code=${lobby.code}`;
 					});
 				});
 
 			const codeField = document.getElementById('code-field');
 			document.getElementById('join-button').addEventListener('click', (e) => {
-				if (!usernameField.value.length || !codeField.value.length) return;
-				window.location = `/game?code=${codeField.value}&username=${usernameField.value}`;
+				if (!codeField.value.length) {
+					alert("Enter a code first!");
+					return;
+				}
+				window.location = `/game?code=${codeField.value}`;
 			});
 
 			function join(code) {
-				if (!usernameField.value.length) return;
-				window.location = `/game?code=${code}&username=${usernameField.value}`;
+				window.location = `/game?code=${code}`;
 			}
 		</script>
 	</body>
