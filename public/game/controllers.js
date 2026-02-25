@@ -16,7 +16,11 @@ for a controller to inherit from game object if need be. Otherwise, just impleme
 */
 
 export class KeyboardController {
-	constructor(socket, lrudCodes = ['KeyA', 'KeyD', 'KeyW', 'KeyS'], plane = 'zy') {
+	constructor(
+		socket,
+		lrudCodes = ['KeyA', 'KeyD', 'KeyW', 'KeyS'],
+		plane = 'zy'
+	) {
 		this.keys = new Set();
 		this.codes = lrudCodes;
 		this.plane = plane;
@@ -39,7 +43,6 @@ export class KeyboardController {
 
 		window.addEventListener('keydown', this._onKeyDown);
 		window.addEventListener('keyup', this._onKeyUp);
-
 	}
 
 	// Returns orthonormal vectors [ e_1, e_2 ] for movement.
@@ -66,9 +69,9 @@ export class KeyboardController {
 	}
 
 	getDirection() {
-		if ( this.useInputBuffer ) {
+		if (this.useInputBuffer) {
 			const input = this.inputBuffer.shift();
-			return new MATH.Vec3( ...input.direction );
+			return new MATH.Vec3(...input.direction);
 		}
 
 		const left = this.keys.has(this.codes[0]);
@@ -87,8 +90,13 @@ export class KeyboardController {
 
 		retDirection.normalize();
 
-		this.inputBuffer.push({ type: 'move', seq: this.seq, ts: Date.now(), direction: [...retDirection] });
-		this.socket?.send( this.inputBuffer.at(-1) );
+		this.inputBuffer.push({
+			type: 'move',
+			seq: this.seq,
+			ts: Date.now(),
+			direction: [...retDirection]
+		});
+		this.socket?.send(this.inputBuffer.at(-1));
 		this.seq++;
 
 		return retDirection;

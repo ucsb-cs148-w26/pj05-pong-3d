@@ -31,7 +31,6 @@ export class Paddle extends PaddleCommon {
 		this.#visual = this.#skin.visual;
 		this.#visual.castShadow = true;
 		this.#visual.receiveShadow = true;
-
 	}
 
 	init(scene) {

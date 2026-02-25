@@ -1,4 +1,3 @@
-
 export class CustomForceApplier {
 	constructor(forceApplier) {
 		this.applier = forceApplier;

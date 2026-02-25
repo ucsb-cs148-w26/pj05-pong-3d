@@ -67,9 +67,9 @@ animatedScene.registerGameObject(
 					: `${this.socket.lastLatencyMs.toFixed(0)} ms`;
 			const scoresText =
 				animatedScene.state.players.size > 0
-					? Array.from( animatedScene.state.players )
-						.map(([username, player]) => `${username}: ${player.score}`)
-						.join(', ')
+					? Array.from(animatedScene.state.players)
+							.map(([username, player]) => `${username}: ${player.score}`)
+							.join(', ')
 					: 'N/A';
 			this.self.innerText = `Control with WASD
 				Camera tracks the ball
@@ -83,28 +83,32 @@ animatedScene.registerGameObject(
 		}
 	}),
 	new GameObjectCustom('waitingScreen', {
-		component: document.getElementById("waiting"),
-		playerListDisplay: document.getElementById("waiting__players"),
-		startButtion: document.getElementById("startButton"),
+		component: document.getElementById('waiting'),
+		playerListDisplay: document.getElementById('waiting__players'),
+		startButtion: document.getElementById('startButton'),
 		players: animatedScene.state.players,
 		socket,
 		init() {
-			this.startButtion.addEventListener("click", () => {
+			this.startButtion.addEventListener('click', () => {
 				socket.send({ type: 'start' });
 			});
 		},
 		update(dt) {
-			if ( animatedScene.enabled ) {
-				this.component.style.display = "none";
+			if (animatedScene.enabled) {
+				this.component.style.display = 'none';
 				return;
 			}
 
-			this.component.style.display = "flex";
+			this.component.style.display = 'flex';
 			this.playerListDisplay.innerHTML = Array.from(this.players.keys())
-				.map(name => `<span style="color: ${ name === animatedScene.host ? 'yellow' : 'white' }" >${name}</span>`)
-				.join("");
+				.map(
+					(name) =>
+						`<span style="color: ${name === animatedScene.host ? 'yellow' : 'white'}" >${name}</span>`
+				)
+				.join('');
 
-			this.startButtion.disabled = this.players.size < 2 || !animatedScene.isHost;
+			this.startButtion.disabled =
+				this.players.size < 2 || !animatedScene.isHost;
 		}
 	})
 );

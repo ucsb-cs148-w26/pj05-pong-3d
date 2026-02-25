@@ -1,4 +1,3 @@
-
 /**
  * Scene manages game objects and handles the core simulation loop.
  * gameObjects can be general objects specific to client/server or both.
@@ -68,5 +67,4 @@ export class Scene {
 
 		this.state.physics.checkColliders();
 	}
-
 }

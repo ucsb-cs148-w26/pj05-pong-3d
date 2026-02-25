@@ -90,10 +90,9 @@ export class PhysicsEngine {
 	 * TODO: Determine what happens if we're missing an object (ignores for now)
 	 */
 	importState(state) {
-
-		for (const [key, body] of Object.entries(state) ) {
+		for (const [key, body] of Object.entries(state)) {
 			const myBody = this.bodies.get(key);
-			if ( myBody === undefined ) continue;
+			if (myBody === undefined) continue;
 
 			myBody.x.x = body.x[0];
 			myBody.x.y = body.x[1];
@@ -102,8 +101,7 @@ export class PhysicsEngine {
 			myBody.v.x = body.v[0];
 			myBody.v.y = body.v[1];
 			myBody.v.z = body.v[2];
-		} 
-
+		}
 	}
 
 	getDerivative() {
@@ -174,7 +172,7 @@ export class PhysicsEngine {
 	// improve accuracy later, ok for now
 
 	step(dt) {
-		this.setState( this.getState().addVec(this.getDerivative().scale(dt)) );
+		this.setState(this.getState().addVec(this.getDerivative().scale(dt)));
 
 		this.t += dt;
 	}

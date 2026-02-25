@@ -17,7 +17,7 @@ export class BallCommon extends GameObjectBase {
 		this.body = new RigidBody(Constants.BALL_MASS);
 		this.body.col = new SphereCollider(
 			Constants.BALL_RADIUS,
-			this.body.transform,
+			this.body.transform
 		);
 
 		this.reset();

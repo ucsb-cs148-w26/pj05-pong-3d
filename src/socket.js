@@ -71,7 +71,7 @@ export default class PongSocketServer extends EventEmitter {
 				}
 
 				const handler = this.#handlers.get(msg.type);
-				if ( handler === undefined ) {
+				if (handler === undefined) {
 					this.safeSend(ws, {
 						type: 'error',
 						message: `Unknown message type: ${msg.type}`
@@ -79,9 +79,8 @@ export default class PongSocketServer extends EventEmitter {
 					return;
 				}
 				const reply = handler(this, username, ws, msg);
-				if ( reply === undefined || reply.type === undefined ) return;
-				this.safeSend( ws, reply );
-
+				if (reply === undefined || reply.type === undefined) return;
+				this.safeSend(ws, reply);
 			});
 
 			this.emit('client:connect', username);

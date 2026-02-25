@@ -19,7 +19,6 @@ export class PaddleController {
 	}
 
 	getDirection() {
-
 		// This would probably only happen if we were getting spammed with packets (trying to spoof the server) or a bunch of packets come in at once
 		// So I think this is good logic? Worth looking into
 		if (this.#inputQueue.length > MAX_QUEUE_LENGTH) {

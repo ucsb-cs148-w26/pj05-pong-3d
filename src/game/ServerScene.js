@@ -23,8 +23,8 @@ export default class ServerScene extends Scene {
 		this.registerGameObject(new ArenaCommon('gameArena'));
 
 		this.#ball = new BallServer('ball', (ball, wall) => {
-			// Hacky. Should probably change later. 
-			if (wall?.player) wall.player.score += 1;			
+			// Hacky. Should probably change later.
+			if (wall?.player) wall.player.score += 1;
 		});
 
 		this.registerGameObject(this.#ball);
@@ -62,13 +62,15 @@ export default class ServerScene extends Scene {
 			if (ct % SYNC_INTERVAL === 0) {
 				const physicsState = this.state.physics.exportState();
 				const gatherData = {};
-				for ( const [username, player] of this.state.players ) gatherData[username] = player.score;
+				for (const [username, player] of this.state.players)
+					gatherData[username] = player.score;
 
 				this.#socket.forEachClient((username, ws) => {
-					const paddleController = this.state.players.get(username).paddle.controller;
+					const paddleController =
+						this.state.players.get(username).paddle.controller;
 					const ts = paddleController.ts;
 					const ack = paddleController.ack;
-					
+
 					this.#socket.safeSend(ws, {
 						type: 'sync',
 						ts,
@@ -101,10 +103,10 @@ export default class ServerScene extends Scene {
 
 		// Hacky: Injecting the player into the bodies. Should probably see later about changing this.
 		// Consequence of having to conform to the rigid map.
-		if ( myPaddle.body.x.x < 0 ) arena.bodies[4].player = thisPlayer;
+		if (myPaddle.body.x.x < 0) arena.bodies[4].player = thisPlayer;
 		else arena.bodies[5].player = thisPlayer;
 
-		if ( this.hostUser === null ) this.hostUser = username;		
+		if (this.hostUser === null) this.hostUser = username;
 
 		this.#updatePaddles();
 	}
@@ -122,39 +124,42 @@ export default class ServerScene extends Scene {
 		// TODO: n-player support
 
 		const scores = {};
-		for ( const [username, player] of this.state.players ) scores[username] = player.score;
+		for (const [username, player] of this.state.players)
+			scores[username] = player.score;
 
 		this.#socket.forEachClient((thisUsername, ws) => {
-			const players = this.state.players
-				.entries()
-				.map(([username, player]) => {
-					const paddle = player.paddle;
-					return {
-						key: paddle.key,
-						username: username,
-						remote: thisUsername !== username,
-						pos: [...paddle.body.x.data]
-					};
-				});
+			const players = this.state.players.entries().map(([username, player]) => {
+				const paddle = player.paddle;
+				return {
+					key: paddle.key,
+					username: username,
+					remote: thisUsername !== username,
+					pos: [...paddle.body.x.data]
+				};
+			});
 
 			this.#socket.safeSend(ws, {
 				type: 'playerSync',
 				// order must be the same between client and server
 				players: [...players],
 				host: this.hostUser,
-				username: thisUsername,
+				username: thisUsername
 			});
 		});
 	}
 
 	#startGame(socket, username, ws, msg) {
-		if ( username !== this.hostUser ) return { type: 'error', message: 'bruh u not the host' };
-		if ( this.state.players.size < 2 ) return { type: 'error', message: 'bruh we gotta wait for another person' };
+		if (username !== this.hostUser)
+			return { type: 'error', message: 'bruh u not the host' };
+		if (this.state.players.size < 2)
+			return {
+				type: 'error',
+				message: 'bruh we gotta wait for another person'
+			};
 		this.#ball.enabled = true;
 	}
 
 	#recvMove(socket, username, ws, msg) {
 		this.state.players.get(username)?.paddle.controller.enqueueInput(msg);
 	}
-
 }
