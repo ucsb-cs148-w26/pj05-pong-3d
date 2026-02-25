@@ -50,8 +50,7 @@ export default class PongSocketServer extends EventEmitter {
 		server.on('upgrade', this.#upgradeHandler);
 
 		this.#wss.on('connection', (ws, req) => {
-			const url = new URL(req.url, 'http://localhost');
-			const username = url.searchParams.get('username');
+			const username = req.user.display_name;
 
 			this.#wsByUsername.set(username, ws);
 
