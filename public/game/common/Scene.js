@@ -69,14 +69,4 @@ export class Scene {
 		this.state.physics.checkColliders();
 	}
 
-	physicsDump() {
-		return this.state.physics.getState();
-	}
-
-	physicsLoad(ts, dump) {
-		this.state.physics.setState({
-			get(idx) { return dump[idx]; }
-		});
-	}
-
 }

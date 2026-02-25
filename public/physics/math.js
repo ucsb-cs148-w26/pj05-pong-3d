@@ -74,6 +74,14 @@ export class Vector {
 		return ret;
 	}
 
+	approxEquals(other, eps = 1e-3) {
+		for (let i = 0; i < this.dim; i++) {
+			if ( Math.abs(ret.data[i] - other.data[i]) > eps ) return false;
+		}
+
+		return true;
+	}
+
 	[Symbol.iterator]() {
 		return this.data[Symbol.iterator]();
 	}

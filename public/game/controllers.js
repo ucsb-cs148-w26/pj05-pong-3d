@@ -16,10 +16,16 @@ for a controller to inherit from game object if need be. Otherwise, just impleme
 */
 
 export class KeyboardController {
-	constructor(lrudCodes = ['KeyA', 'KeyD', 'KeyW', 'KeyS'], plane = 'zy') {
+	constructor(socket, lrudCodes = ['KeyA', 'KeyD', 'KeyW', 'KeyS'], plane = 'zy') {
 		this.keys = new Set();
 		this.codes = lrudCodes;
 		this.plane = plane;
+
+		// Maybe swap this out for a linkedlist? idk if we get enough inputs for O(N^2) complete dequeue in AnimatedScene.#sync to matter
+		this.inputBuffer = [];
+		this.seq = 0;
+		this.useInputBuffer = false;
+		this.socket = socket;
 
 		this._onKeyDown = (e) => {
 			if (document.activeElement.tagName === 'INPUT') return;
@@ -33,6 +39,7 @@ export class KeyboardController {
 
 		window.addEventListener('keydown', this._onKeyDown);
 		window.addEventListener('keyup', this._onKeyUp);
+
 	}
 
 	// Returns orthonormal vectors [ e_1, e_2 ] for movement.
@@ -59,6 +66,11 @@ export class KeyboardController {
 	}
 
 	getDirection() {
+		if ( this.useInputBuffer ) {
+			const input = this.inputBuffer.shift();
+			return new MATH.Vec3( ...input.direction );
+		}
+
 		const left = this.keys.has(this.codes[0]);
 		const right = this.keys.has(this.codes[1]);
 		const up = this.keys.has(this.codes[2]);
@@ -73,6 +85,12 @@ export class KeyboardController {
 		if (up) retDirection.addVec(e2.clone());
 		if (down) retDirection.addVec(e2.clone().scale(-1));
 
-		return retDirection.normalize();
+		retDirection.normalize();
+
+		this.inputBuffer.push({ type: 'move', seq: this.seq, ts: Date.now(), direction: [...retDirection] });
+		this.socket?.send( this.inputBuffer.at(-1) );
+		this.seq++;
+
+		return retDirection;
 	}
 }

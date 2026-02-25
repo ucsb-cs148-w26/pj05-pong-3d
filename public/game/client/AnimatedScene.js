@@ -61,20 +61,20 @@ export class AnimatedScene extends Scene {
 		const p1 = 
 			new Paddle(
 				'paddle1',
+				socket,
 				'paddle',
 				-23.5 / 2.125,
 				null
 			);
-		p1.socket = socket;
 
 		const p2 =
 			new Paddle(
 				'paddle2',
+				socket,
 				'paddle',
 				23.5 / 2.125,
 				null
 			);
-		p2.socket = socket;
 		p2.visual.rotation.y = Math.PI;
 
 		this.registerGameObject(p1, p2);
@@ -194,13 +194,37 @@ export class AnimatedScene extends Scene {
 	}
 
 	#sync(msg) {
-		this.physicsLoad(msg.ts, msg.physics);
+		this.state.physics.importState( msg.physics );
+
 		this.#ball.enabled = msg.active;
 
 		for ( const [username, score] of Object.entries( msg.gameInfo ) ) {
 			const player = this.state.players.get(username);
 			if (player) player.score = score;
 		}
+
+		const controller = this.state.players.get(this.username).paddle.controller;
+
+		// prediction!
+		let idx = -1;
+		for (let i = 0; i < controller.inputBuffer.length; i++) {
+			if ( controller.inputBuffer[i].seq <= msg.ack ) continue;
+
+			idx = i;
+		}
+
+		if (idx === -1) return; // all inputs ack'd
+
+		controller.inputBuffer = controller.inputBuffer.slice(idx); // drop ack'd inputs
+		controller.useInputBuffer = true;
+		
+		while (controller.inputBuffer.length > 0) {
+			this.step( 1 / Constants.SIMULATION_RATE ); // Is this not good enough? If not, we can store the physics time in the packets themselves
+			controller.inputBuffer.shift(); // O(N^2), maybe swap for linkedlist
+		}
+
+		controller.useInputBuffer = false;
+
 	}
 
 	get isHost() {
@@ -223,16 +247,18 @@ export class AnimatedScene extends Scene {
 		for (const player of msg.players) {
 			const paddle = this.getGameObject(player.key);
 			this.state.players.set( player.username, new Player(player.username, paddle) );
+
+			const socket = this.getGameObject('socket').config.socket;
 		
 			if ( !player.remote ) {
 				// TODO: this is silly
 				cameraController.followTarget = paddle;
 				if (player.pos[0] < 0) {
 					cameraController.offset = new THREE.Vector3(-4, 3, 0);
-					paddle.controller = new KeyboardController();
+					paddle.controller = new KeyboardController(socket);
 				} else {
 					cameraController.offset = new THREE.Vector3(4, 3, 0);
-					paddle.controller = new KeyboardController(['KeyD', 'KeyA', 'KeyW', 'KeyS']);
+					paddle.controller = new KeyboardController(socket, ['KeyD', 'KeyA', 'KeyW', 'KeyS']);
 				}
 			}
 		}

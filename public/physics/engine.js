@@ -66,6 +66,46 @@ export class PhysicsEngine {
 		}
 	}
 
+	/**
+	 * Export state as type:
+	 * { key: { x: [], v: [] }, ... }
+	 * TODO: include forces? Not needed yet
+	 */
+	exportState() {
+		const ret = {};
+
+		for (const [key, body] of this.bodies) {
+			ret[key] = { x: [...body.x], v: [...body.v] };
+		}
+
+		return ret;
+	}
+
+	/**
+	 * Import state
+	 * Expects type:
+	 * { key: { x: [], v: [] }, ... }
+	 * TODO: include forces? Not needed yet
+	 * TODO: Determine what happens if an obj is missing (ignores for now, maybe keep for client-only objects if we want those?)
+	 * TODO: Determine what happens if we're missing an object (ignores for now)
+	 */
+	importState(state) {
+
+		for (const [key, body] of Object.entries(state) ) {
+			const myBody = this.bodies.get(key);
+			if ( myBody === undefined ) continue;
+
+			myBody.x.x = body.x[0];
+			myBody.x.y = body.x[1];
+			myBody.x.z = body.x[2];
+
+			myBody.v.x = body.v[0];
+			myBody.v.y = body.v[1];
+			myBody.v.z = body.v[2];
+		} 
+
+	}
+
 	getDerivative() {
 		for (const body of this.bodies.values()) body.f.zero();
 

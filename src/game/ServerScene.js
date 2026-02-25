@@ -60,17 +60,21 @@ export default class ServerScene extends Scene {
 			this.step(delta);
 
 			if (ct % SYNC_INTERVAL === 0) {
+				const physicsState = this.state.physics.exportState();
 				const gatherData = {};
 				for ( const [username, player] of this.state.players ) gatherData[username] = player.score;
 
 				this.#socket.forEachClient((username, ws) => {
-					const ts = this.state.players.get(username)?.paddle?.controller.lastTs ?? 0;
+					const paddleController = this.state.players.get(username).paddle.controller;
+					const ts = paddleController.ts;
+					const ack = paddleController.ack;
 					
 					this.#socket.safeSend(ws, {
 						type: 'sync',
 						ts,
+						ack,
 						active: this.#ball.enabled,
-						physics: Array.from(this.physicsDump()),
+						physics: physicsState,
 						gameInfo: gatherData
 					});
 				});
