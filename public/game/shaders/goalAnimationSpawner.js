@@ -4,6 +4,7 @@ import {
 	resolveGoalAnimationConfig
 } from './goalAnimations.js';
 import { ShaderLibrary, ShaderRepository, joinShaderChunks } from './shaderLibrary.js';
+import { GameObjectBase } from '../common/GameObject.js';
 
 const FEATURE_CHUNKS = {
 	math: ShaderLibrary.MathChunks,
@@ -714,7 +715,7 @@ function disposeRuntime(runtime) {
 	});
 }
 
-export class GoalAnimationSpawner {
+export class GoalAnimationSpawner extends GameObjectBase {
 	/*
 	//GoalAnimationSpawner Usage Guide:
 	
@@ -742,13 +743,25 @@ export class GoalAnimationSpawner {
 	//goalSpawner.active -> bool that is true only while an animation is playing. It is false if the animation has finished or not started
 	//goalSpawner.progress -> number between 0.0 and 1.0 that is the completion percentage of the animation 
 	*/
-	constructor() {
+
+	#visual = null;
+
+	constructor(key) {
+		super(key);
 		this.visual = new THREE.Group();
 		this.visual.visible = true;
 		this.active = false;
 		this.progress = 0.0;
 		this.color = new THREE.Color(0xffffff);
 		this.currentAnimation = null;
+	}
+
+	get visual() {
+		return this.#visual;
+	}
+
+	set visual(other) {
+		this.#visual = other;
 	}
 
 	#resolveAnimation(styleIndex) {
