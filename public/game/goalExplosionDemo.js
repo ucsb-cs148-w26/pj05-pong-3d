@@ -205,7 +205,7 @@ function createGradientSkybox() {
 		`,
 		uniforms: {
 			topColor: { value: new THREE.Color(0x0b2247) },
-			midColor: { value: new THREE.Color(0x7fb9f0) },
+			midColor: { value: new THREE.Color(0x16215e) },
 			botColor: { value: new THREE.Color(0x3e6fa0) },
 		},
 		side: THREE.BackSide,
@@ -213,6 +213,5 @@ function createGradientSkybox() {
 	});
 
 	const sky = new THREE.Mesh(geometry, material);
-	sky.frustumCulled = false;
 	return sky;
 }
