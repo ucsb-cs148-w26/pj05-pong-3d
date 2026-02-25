@@ -68,12 +68,10 @@ export default class ServerScene extends Scene {
 				this.#socket.forEachClient((username, ws) => {
 					const paddleController =
 						this.state.players.get(username).paddle.controller;
-					const ts = paddleController.ts;
 					const ack = paddleController.ack;
 
 					this.#socket.safeSend(ws, {
 						type: 'sync',
-						ts,
 						ack,
 						active: this.#ball.enabled,
 						physics: physicsState,

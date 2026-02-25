@@ -28,6 +28,7 @@ export class CameraController extends GameObjectBase {
 	}
 
 	init(scene) {
+		this.scene = scene;
 		this.camera = scene.camera;
 	}
 
@@ -59,7 +60,8 @@ export class CameraController extends GameObjectBase {
 	}
 
 	update(dt) {
-		if (!this.followTarget || !this.lookTarget) return;
+		if (!this.followTarget || !this.lookTarget || this.scene.isReplaying)
+			return;
 
 		CameraController._copyPosition(this.followTarget, this._tmpFollowTarget);
 		this.camera.position.copy(this._tmpFollowTarget).add(this.offset);

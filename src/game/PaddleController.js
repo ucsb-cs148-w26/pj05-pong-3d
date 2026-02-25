@@ -4,14 +4,9 @@ const MAX_QUEUE_LENGTH = 5;
 
 export class PaddleController {
 	#inputQueue = [];
-	#lastTs = 0;
 
 	constructor() {
 		this.ack = 0;
-	}
-
-	get lastTs() {
-		return this.#lastTs;
 	}
 
 	enqueueInput(input) {
@@ -27,7 +22,6 @@ export class PaddleController {
 
 		if (this.#inputQueue.length === 0) return new Vec3();
 		const msg = this.#inputQueue.shift();
-		this.#lastTs = msg.ts;
 		this.ack = msg.seq;
 		return new Vec3(...msg.direction);
 	}

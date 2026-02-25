@@ -25,10 +25,10 @@ export class KeyboardController {
 		this.codes = lrudCodes;
 		this.plane = plane;
 
-		// Maybe swap this out for a linkedlist? idk if we get enough inputs for O(N^2) complete dequeue in AnimatedScene.#sync to matter
 		this.inputBuffer = [];
 		this.seq = 0;
 		this.useInputBuffer = false;
+		this.inputBufferIdx = 0;
 		this.socket = socket;
 
 		this._onKeyDown = (e) => {
@@ -69,9 +69,8 @@ export class KeyboardController {
 	}
 
 	getDirection() {
-		if (this.useInputBuffer) {
-			const input = this.inputBuffer.shift();
-			return new MATH.Vec3(...input.direction);
+		if (this.useInputBuffer && this.inputBufferIdx < this.inputBuffer.length) {
+			return new MATH.Vec3(...this.inputBuffer[this.inputBufferIdx].direction);
 		}
 
 		const left = this.keys.has(this.codes[0]);
@@ -93,7 +92,6 @@ export class KeyboardController {
 		this.inputBuffer.push({
 			type: 'move',
 			seq: this.seq,
-			ts: Date.now(),
 			direction: [...retDirection]
 		});
 		this.socket?.send(this.inputBuffer.at(-1));
