@@ -40,4 +40,6 @@ Overall:
 
 ## Experiment/change
 
-
+- Our major goal for this retro was to get PRs in by Thursday night. We decided to make sure our team leaders have enough time to review the PRs and merge it before the Friday's deadline.
+- However, only 29% of the team had the PR before Friday, which is far below the expectation. As a result, most PRs were still submitted on Friday, creating a heavy workload for the team leads. This led to increased stress and required the team to stay up late to complete reviews and merged before the deadline.
+- Since this experiment wasn't successful, we will not continue with the current approach as-is. Instead, we plan to implement a more structured solution to encourage earlier PR submissions, such as setting a mid-week checkpoint, and breaking tasks into smaller deliverables earlier in the week. Our goal stays to have PRs submitted by Thursday, but we must refine our strategy for better outcome.

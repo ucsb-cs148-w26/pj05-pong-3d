@@ -35,7 +35,7 @@ export default class PongSocketServer extends EventEmitter {
 			const { pathname } = new URL(req.url, 'http://localhost');
 
 			if (pathname !== socketPath) {
-				socket.destroy();
+				// Pass to next handler
 				return;
 			}
 
