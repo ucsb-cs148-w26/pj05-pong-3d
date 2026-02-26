@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <title>Map Upload • 3D Pong</title>
+        <style>
+            * { box-sizing: border-box; }
+
+            body {
+                margin: 0 auto;
+                padding: 3rem;
+                width: 80ch;
+                max-width: 100%;
+                font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+                color: rgba(255,255,255,0.92);
+                background: linear-gradient(180deg,#0b1020,#0a1226);
+            }
+
+            h1 { font-size: 3rem; margin-bottom: 1.2rem; }
+            h2 { margin-top: 0; }
+
+            .card {
+                background: rgba(255,255,255,.06);
+                border: 0.1rem solid rgba(255,255,255,.10);
+                border-radius: 1.1rem;
+                box-shadow: 0 0.75rem 2.25rem rgba(0,0,0,.35);
+                padding: 1.25rem;
+                margin-bottom: 1rem;
+            }
+
+            button {
+                display: block;
+                width: 100%;
+                padding: 0.9rem 1rem;
+                border-radius: 0.75rem;
+                border: 0.1rem solid rgba(0,0,0,0.12);
+                background: white;
+                color: #0b1020;
+                font-weight: 700;
+                cursor: pointer;
+                box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.18);
+                transition: transform .08s, background .15s;
+            }
+
+            button:hover { background: rgba(255,255,255,.92); }
+            button:active { transform: translateY(1px); }
+
+            input[type="file"] {
+                display: block;
+                width: 100%;
+                padding: 0.75rem;
+                border-radius: 0.75rem;
+                border: 0.1rem solid rgba(255,255,255,.18);
+                background: rgba(0,0,0,.25);
+                color: rgba(255,255,255,.92);
+                margin-bottom: 1rem;
+                cursor: pointer;
+            }
+
+            #canvas-container {
+                width: 100%;
+                aspect-ratio: 16/9;
+                border-radius: 0.75rem;
+                overflow: hidden;
+                background: #050810;
+                display: none;
+            }
+
+            #canvas-container canvas {
+                width: 100% !important;
+                height: 100% !important;
+            }
+
+            #errors {
+                display: none;
+                margin-top: 1rem;
+            }
+
+            .error-item {
+                background: rgba(255,80,80,.12);
+                border: 0.1rem solid rgba(255,80,80,.3);
+                border-radius: 0.5rem;
+                padding: 0.6rem 0.9rem;
+                margin-bottom: 0.5rem;
+                color: #ff9090;
+                font-size: 0.9rem;
+                font-family: monospace;
+            }
+
+            .success-msg {
+                color: #90ffb0;
+                font-size: 0.9rem;
+                margin-top: 0.5rem;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>Map Upload</h1>
+
+        <div class="card">
+            <h2>Upload Map File</h2>
+            <p style="color: rgba(255,255,255,0.5); margin-top: 0;">
+                Upload a JSON file with <code>vertices</code> (list of [x,y,z] floats)
+                and <code>edges</code> (list of [i,j] vertex index pairs).
+            </p>
+
+            <input type="file" id="file-input" accept=".json,application/json" />
+            <button id="upload-btn">Load Map</button>
+
+            <div id="errors"></div>
+        </div>
+
+        <div class="card" id="scene-card" style="display:none;">
+            <h2 id="scene-title">Wireframe Preview</h2>
+            <div id="canvas-container"></div>
+            <p class="success-msg" id="stats"></p>
+        </div>
+
+        <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.183.1/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.183.1/examples/jsm/"
+            }
+        }
+        </script>
+
+        <script type="module" src="/mapCreation/map-upload.js"></script>
+
+    </body>
+</html>
