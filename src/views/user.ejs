@@ -1,6 +1,14 @@
 <!doctype html>
 <html lang="en">
 <head>
+	<script type="importmap">
+		{
+			"imports": {
+				"three": "https://cdn.jsdelivr.net/npm/three@0.182.0/build/three.module.js",
+				"three/addons/": "https://cdn.jsdelivr.net/npm/three@0.182.0/examples/jsm/"
+			}
+		}
+	</script>
 	<meta charset="utf-8" />
 	<title><%= user.display_name || user.email %> • Profile</title>
 	<style>
@@ -30,6 +38,10 @@
 
 		.item-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
 		.item {
+			font: inherit;
+			color: inherit;
+			appearance: none;
+			-webkit-appearance: none;
 			border: 0.1rem solid rgba(255,255,255,.18);
 			border-radius: 0.75rem;
 			padding: 0.75rem;
@@ -39,16 +51,58 @@
 			cursor: pointer;
 			transition: transform .08s, background .15s, opacity .15s;
 		}
-		.item.locked {
+		.item.locked,
+		.item:disabled {
 			opacity: 0.35;
 			cursor: not-allowed;
 		}
-		.item:hover:not(.locked) { transform: translateY(-2px); background: rgba(0,229,255,.12); }
+		.item:hover:not(.locked):not(:disabled) { transform: translateY(-2px); background: rgba(0,229,255,.12); }
+		.item:focus-visible { box-shadow: 0 0 0 0.2rem rgba(0, 229, 255, 0.45); }
 		.avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 1rem; }
 		button { cursor: pointer; }
+		.back-link {
+			display: inline-block;
+			margin-bottom: 1rem;
+			padding: 0.5rem 1rem;
+			border-radius: 0.5rem;
+			border: 0.1rem solid rgba(255,255,255,.2);
+			background: rgba(255,255,255,.08);
+			color: rgba(255,255,255,.92);
+			text-decoration: none;
+		}
+		.back-link:hover { background: rgba(0,229,255,.12); }
+		.goal-layout { display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap; }
+		.goal-list { flex: 1 1 320px; }
+		.goal-preview {
+			flex: 0 0 180px;
+			background: rgba(255,255,255,.05);
+			border: 0.1rem solid rgba(255,255,255,.12);
+			border-radius: 0.9rem;
+			padding: 0.75rem;
+		}
+		.goal-preview-stage {
+			position: relative;
+			width: 100%;
+			aspect-ratio: 1 / 1;
+			border-radius: 0.8rem;
+			border: 0.1rem solid rgba(255,255,255,.16);
+			background: radial-gradient(circle at center, rgba(255,255,255,.16), rgba(255,255,255,.03) 65%);
+			overflow: hidden;
+		}
+		.goal-preview-stage canvas {
+			display: block;
+			width: 100%;
+			height: 100%;
+		}
+		.goal-preview-label {
+			margin-top: 0.55rem;
+			font-size: 0.9rem;
+			color: rgba(255,255,255,.85);
+		}
 	</style>
 </head>
 <body>
+	<a class="back-link" href="/">Back</a>
 	<div class="card">
 		<h1>Profile</h1>
 
@@ -78,9 +132,9 @@
 	<div class="card">
 		<h2>Equipped Items</h2>
 		<div class="item-list">
-			<div class="item">
+			<div class="item" id="equipped-paddle-skin" data-label="Paddle Skin">
 				<strong>Paddle Skin:</strong><br>
-				<%= equipped.paddle_skin_key || 'Default Paddle' %>
+				<%= equipped.paddle_skin_name || 'Default Paddle' %>
 			</div>
 			<div class="item" id="equipped-ball-skin" data-label="Ball Skin">
 				<strong>Ball Skin:</strong><br>
@@ -94,14 +148,30 @@
 	</div>
 
 	<div class="card">
+		<h2>Paddle Skins</h2>
+		<% if (paddleSkins.length > 0) { %>
+			<div class="item-list" id="paddle-skins">
+				<% paddleSkins.forEach(skin => { %>
+					<button type="button" class="item <%= skin.unlocked_at ? '' : 'locked' %>" data-item-id="<%= skin.id %>" <%= skin.unlocked_at ? '' : 'disabled' %>>
+						<strong><%= skin.display_name %></strong><br>
+						<%= skin.unlocked_at ? '✅ Unlocked' : '🔒 Locked' %>
+					</button>
+				<% }) %>
+			</div>
+		<% } else { %>
+			<p>No paddle skins available.</p>
+		<% } %>
+	</div>
+
+	<div class="card">
 		<h2>Ball Skins</h2>
 		<% if (ballSkins.length > 0) { %>
 			<div class="item-list" id="ball-skins">
 				<% ballSkins.forEach(skin => { %>
-					<div class="item <%= skin.unlocked_at ? '' : 'locked' %>" data-item-id="<%= skin.id %>">
+					<button type="button" class="item <%= skin.unlocked_at ? '' : 'locked' %>" data-item-id="<%= skin.id %>" <%= skin.unlocked_at ? '' : 'disabled' %>>
 						<strong><%= skin.display_name %></strong><br>
 						<%= skin.unlocked_at ? '✅ Unlocked' : '🔒 Locked' %>
-					</div>
+					</button>
 				<% }) %>
 			</div>
 		<% } else { %>
@@ -111,21 +181,32 @@
 
 	<div class="card">
 		<h2>Goal Explosions</h2>
+		<div class="goal-layout">
+			<div class="goal-list">
 		<% if (goalExplosions.length > 0) { %>
 			<div class="item-list" id="goal-explosions">
 				<% goalExplosions.forEach(exp => { %>
-					<div class="item <%= exp.unlocked_at ? '' : 'locked' %>" data-item-id="<%= exp.id %>">
+					<button type="button" class="item <%= exp.unlocked_at ? '' : 'locked' %>" data-item-id="<%= exp.id %>" data-style-index="<%= exp.item_key %>" <%= exp.unlocked_at ? '' : 'disabled' %>>
 						<strong><%= exp.display_name %></strong><br>
 						<%= exp.unlocked_at ? '✅ Unlocked' : '🔒 Locked' %>
-					</div>
+					</button>
 				<% }) %>
 			</div>
 		<% } else { %>
 			<p>No goal explosions available.</p>
 		<% } %>
+			</div>
+			<div class="goal-preview">
+				<div class="goal-preview-stage" id="goal-preview-stage"></div>
+				<div class="goal-preview-label" id="goal-preview-label">Select a goal explosion to preview</div>
+			</div>
+		</div>
 	</div>
 
 	<div style="margin-top:1rem; text-align:center; display: flex; gap: 0.5rem; justify-content: center;">
+		<button id="debug-unlock-paddle" style="padding:0.5rem 1rem; border-radius:0.5rem;">
+			Debug: Unlock Random Paddle Skin
+		</button>
 		<button id="debug-unlock-ball" style="padding:0.5rem 1rem; border-radius:0.5rem;">
 			Debug: Unlock Random Ball Skin
 		</button>
@@ -137,7 +218,7 @@
 	<script>
 		function equipItem(el, slot, displayEl) {
 			el.addEventListener('click', () => {
-				if (el.classList.contains('locked')) return;
+				if (el.classList.contains('locked') || el.disabled) return;
 
 				const itemId = el.dataset.itemId;
 				const name = el.querySelector('strong').innerText;
@@ -160,11 +241,32 @@
 			});
 		}
 
+		document.querySelectorAll('#paddle-skins .item').forEach(el => equipItem(el, 'paddle_skin', document.getElementById('equipped-paddle-skin')));
 		document.querySelectorAll('#ball-skins .item').forEach(el => equipItem(el, 'ball_skin', document.getElementById('equipped-ball-skin')));
 		document.querySelectorAll('#goal-explosions .item').forEach(el => equipItem(el, 'goal_explosion', document.getElementById('equipped-goal-explosion')));
 
+		document.querySelectorAll('#goal-explosions .item').forEach(el => {
+			el.addEventListener('click', () => {
+				if (el.classList.contains('locked') || el.disabled) return;
+				const name = el.querySelector('strong').innerText;
+				window.triggerGoalPreview?.(name, el.dataset.styleIndex);
+			});
+		});
+
 		document.getElementById('debug-unlock-ball')?.addEventListener('click', () => {
 			fetch('/user/debug/unlockRandomBallSkin', {
+				method: 'POST',
+				credentials: 'same-origin'
+			})
+			.then(res => res.json())
+			.then(data => {
+				alert(data.message);
+				window.location.reload();
+			});
+		});
+
+		document.getElementById('debug-unlock-paddle')?.addEventListener('click', () => {
+			fetch('/user/debug/unlockRandomPaddleSkin', {
 				method: 'POST',
 				credentials: 'same-origin'
 			})
@@ -187,6 +289,13 @@
 			});
 		});
 
+		const equippedPaddleSkinName = '<%= equipped.paddle_skin_name || "" %>';
+		document.querySelectorAll('#paddle-skins .item').forEach(el => {
+			if (el.querySelector('strong').innerText === equippedPaddleSkinName) {
+				el.style.borderColor = 'rgb(0, 229, 255)';
+			}
+		});
+
 		const equippedBallSkinName = '<%= equipped.ball_skin_name || "" %>';
 		document.querySelectorAll('#ball-skins .item').forEach(el => {
 			if (el.querySelector('strong').innerText === equippedBallSkinName) {
@@ -198,6 +307,7 @@
 		document.querySelectorAll('#goal-explosions .item').forEach(el => {
 			if (el.querySelector('strong').innerText === equippedGoalName) {
 				el.style.borderColor = 'rgb(0, 229, 255)';
+				window.triggerGoalPreview?.(equippedGoalName, el.dataset.styleIndex);
 			}
 		});
 
@@ -231,6 +341,70 @@
 				msg.textContent = err.message;
 			}
 		});
+	</script>
+	<script type="module">
+		import * as THREE from 'three';
+		import { GoalAnimationSpawner } from '/game/shaders/goalAnimationSpawner.js';
+
+		const stage = document.getElementById('goal-preview-stage');
+		const label = document.getElementById('goal-preview-label');
+		if (stage && label) {
+			const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+			renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+			stage.appendChild(renderer.domElement);
+
+			const scene = new THREE.Scene();
+			const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
+			camera.position.set(4.5, 2.1, 4.5);
+			camera.lookAt(0, 0, 0);
+
+			const ambient = new THREE.AmbientLight(0xffffff, 0.75);
+			scene.add(ambient);
+			const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
+			keyLight.position.set(3, 4, 5);
+			scene.add(keyLight);
+
+			const previewSpawner = new GoalAnimationSpawner('profileGoalPreview');
+			scene.add(previewSpawner.visual);
+
+			const previewClock = new THREE.Clock();
+			const burstPos = new THREE.Vector3(0, 0, 0);
+
+			function resizePreview() {
+				const width = stage.clientWidth || 180;
+				const height = stage.clientHeight || width;
+				renderer.setSize(width, height, false);
+				camera.aspect = width / height;
+				camera.updateProjectionMatrix();
+			}
+
+			function animatePreview() {
+				requestAnimationFrame(animatePreview);
+				const dt = Math.min(0.05, previewClock.getDelta());
+				previewSpawner.update(dt);
+				renderer.render(scene, camera);
+			}
+
+			window.triggerGoalPreview = (name, styleIndexRaw) => {
+				const styleIndex = Number(styleIndexRaw);
+				if (!Number.isFinite(styleIndex)) return;
+				label.textContent = `Preview: ${name}`;
+				burstPos.set(0, styleIndex === 3 ? -1.9 : 0, 0);
+				previewSpawner.triggerGoalAnimation(styleIndex, null, burstPos);
+			};
+
+			resizePreview();
+			animatePreview();
+			window.addEventListener('resize', resizePreview);
+
+			const selected = document.querySelector('#goal-explosions .item[style*="rgb(0, 229, 255)"]');
+			const fallback = document.querySelector('#goal-explosions .item:not(.locked):not(:disabled)');
+			const initial = selected || fallback;
+			if (initial) {
+				const name = initial.querySelector('strong')?.innerText || 'Goal Explosion';
+				window.triggerGoalPreview(name, initial.dataset.styleIndex);
+			}
+		}
 	</script>
 </body>
 </html>
