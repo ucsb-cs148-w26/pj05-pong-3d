@@ -55,6 +55,27 @@
 				transform: translateX(-50%);
 			}
 
+			#game-controls {
+				position: absolute;
+				top: 1rem;
+				left: 50%;
+				transform: translateX(-50%);
+				display: flex;
+				align-items: center;
+				gap: 0.75rem;
+				color: white;
+				font-family: sans-serif;
+				background: rgba(0, 0, 0, 0.35);
+				border: 1px solid rgba(255, 255, 255, 0.2);
+				border-radius: 0.75rem;
+				padding: 0.5rem 0.75rem;
+			}
+
+			#host-badge {
+				font-weight: 700;
+				color: #ffd447;
+			}
+
 			#waiting {
 				position: fixed;
 				inset: 0;
@@ -91,7 +112,9 @@
 			}
 
 			#waiting__players span {
-				display: block;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
 				padding: 0.25rem 0;
 				border-bottom: 1px solid rgba(255,255,255,0.08);
 			}
@@ -125,6 +148,60 @@
 				opacity: 0.4;
 				cursor: not-allowed;
 			}
+
+			.waiting__controls {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				margin-bottom: 1rem;
+				color: white;
+			}
+
+			.visibility-buttons {
+				display: flex;
+				gap: 0.4rem;
+			}
+
+			.visibility-button {
+				width: auto;
+				padding: 0.25rem 0.6rem;
+				font-size: 0.8rem;
+				border-radius: 999px;
+				border: 1px solid rgba(255,255,255,0.3);
+				background: rgba(255,255,255,0.08);
+				color: white;
+				cursor: pointer;
+			}
+
+			.visibility-button.active {
+				background: rgba(255,255,255,0.28);
+			}
+
+			.visibility-button:disabled {
+				opacity: 0.5;
+				cursor: not-allowed;
+			}
+
+			.kick-button {
+				width: auto;
+				padding: 0.25rem 0.5rem;
+				font-size: 0.8rem;
+				border-radius: 6px;
+				border: 1px solid rgba(255,255,255,0.2);
+				background: rgba(255,255,255,0.1);
+				color: white;
+				cursor: pointer;
+			}
+
+			.leave-button {
+				width: auto;
+				padding: 0.55rem 0.9rem;
+				border-radius: 8px;
+				border: 1px solid rgba(255,255,255,0.3);
+				background: rgba(214, 58, 58, 0.35);
+				color: white;
+				cursor: pointer;
+			}
 		</style>
 	</head>
 	<body>
@@ -136,13 +213,28 @@
 		<div id="waiting">
 			<div id="waiting__card">
 				<p id="waiting__title">Waiting for players...</p>
+				<div class="waiting__controls">
+					<span>Lobby visibility</span>
+					<div class="visibility-buttons">
+						<button id="waitingPublicButton" class="visibility-button active">Public</button>
+						<button id="waitingPrivateButton" class="visibility-button">Private</button>
+					</div>
+				</div>
 				<div id="waiting__players"></div>
 				<button id="startButton" disabled>Start Game</button>
+				<button id="waitingLeaveButton" class="leave-button" style="margin-top: 0.75rem;">
+					Leave Game
+				</button>
 			</div>
 		</div>
 
 		<div id="lobby-info">
 			Join Code<br /><span style="font-size: 2rem"><%= code %></span>
+		</div>
+		<div id="game-controls">
+			<span id="host-badge"></span>
+			<button id="inGameKickButton" class="kick-button">Kick Opponent</button>
+			<button id="inGameLeaveButton" class="leave-button">Leave Game</button>
 		</div>
 		<script type="module" src="/main.js"></script>
 	</body>

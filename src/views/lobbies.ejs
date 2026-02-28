@@ -82,6 +82,33 @@
 				padding: 1.25rem;
 				margin-bottom: 1rem;
 			}
+
+			.visibility-picker {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				margin-bottom: 1rem;
+				color: rgba(255, 255, 255, 0.92);
+			}
+
+			.visibility-buttons {
+				display: flex;
+				gap: 0.4rem;
+			}
+
+			.visibility-button {
+				width: auto;
+				padding: 0.4rem 0.75rem;
+				border-radius: 999px;
+				border: 0.1rem solid rgba(255,255,255,.35);
+				background: rgba(255,255,255,.08);
+				color: white;
+				box-shadow: none;
+			}
+
+			.visibility-button.active {
+				background: rgba(255,255,255,.30);
+			}
 		</style>
 	</head>
 	<body>
@@ -106,6 +133,13 @@
 			<div class="card" style="display: flex; flex-direction: column; gap: 1.5rem;">
 				<div>
 					<input id="name-field" placeholder="Lobby name" style="margin-bottom: 1rem" />
+					<div class="visibility-picker">
+						<span>Lobby visibility</span>
+						<div class="visibility-buttons">
+							<button id="create-public-button" class="visibility-button active">Public</button>
+							<button id="create-private-button" class="visibility-button">Private</button>
+						</div>
+					</div>
 					<button id="create-button">Create Lobby</button>
 				</div>
 
@@ -152,6 +186,22 @@
 			}
 
 			const nameField = document.getElementById('name-field');
+			const createPublicButton = document.getElementById('create-public-button');
+			const createPrivateButton = document.getElementById('create-private-button');
+			let lobbyIsPublic = true;
+			const setLobbyVisibility = (isPublic) => {
+				lobbyIsPublic = isPublic;
+				createPublicButton.classList.toggle('active', isPublic);
+				createPrivateButton.classList.toggle('active', !isPublic);
+			};
+			createPublicButton.addEventListener('click', (e) => {
+				e.preventDefault();
+				setLobbyVisibility(true);
+			});
+			createPrivateButton.addEventListener('click', (e) => {
+				e.preventDefault();
+				setLobbyVisibility(false);
+			});
 			document
 				.getElementById('create-button')
 				.addEventListener('click', (e) => {
@@ -159,6 +209,7 @@
 						method: 'POST',
 						body: JSON.stringify({
 							name: nameField.value.length ? nameField.value : undefined,
+							isPublic: lobbyIsPublic,
 							cosmetics: getSelectedCosmetics()
 						}),
 						headers: {

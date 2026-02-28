@@ -15,7 +15,8 @@ export default function createLobbyRouter(server, parseSession) {
 
 	router.post('/api/lobbies', (req, res) => {
 		const name = req.body?.name;
-		const lobby = lobbyState.createLobby(name);
+		const isPublic = req.body?.isPublic;
+		const lobby = lobbyState.createLobby({ name, isPublic });
 		res.json({ lobby });
 	});
 
@@ -33,6 +34,8 @@ export default function createLobbyRouter(server, parseSession) {
 			lobby: {
 				lobbyId: lobby.lobbyId,
 				name: lobby.name,
+				hostUser: lobby.hostUser,
+				isPublic: lobby.isPublic,
 				memberCount: lobby.members.size,
 				members: Array.from(lobby.members.values())
 			}
