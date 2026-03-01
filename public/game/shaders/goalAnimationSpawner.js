@@ -13,6 +13,7 @@ import { GameObjectBase } from '../common/GameObject.js';
 const FEATURE_CHUNKS = {
 	math: ShaderLibrary.MathChunks,
 	noise: ShaderLibrary.NoiseChunks,
+	dissolve: ShaderLibrary.DissolveChunks,
 	lighting: ShaderLibrary.LightingChunks,
 	physics: ShaderLibrary.PhysicsChunks
 };

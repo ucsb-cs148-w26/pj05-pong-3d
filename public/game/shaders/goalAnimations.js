@@ -7,8 +7,146 @@ const DEFAULT_RING_GEOMETRY = {
 	rotationAngle: Math.PI / 2
 };
 
-const NOVA_CONFIG = {
+const DEFAULT_CONFIG = {
 	styleIndex: 0,
+	label: 'Default Pulse',
+	duration: 2.9,
+	baseColor: 0x82d4ff,
+	shaders: {
+		core: {
+			vertexShader: `
+				uniform float uProgress;
+
+				varying vec3 vNormal;
+				varying vec3 vWorldPos;
+
+				void main() {
+					vNormal = normalize(normalMatrix * normal);
+					float growthProgress = clamp(uProgress * 2.0, 0.0, 1.0);
+					float pulse = smoothstep(0.0, 1.0, growthProgress);
+					float ripple = sin((position.x + position.y + position.z) * 9.0 + growthProgress * 10.0);
+					vec3 displaced = position + normal * (pulse * 0.24 + ripple * (1.0 - growthProgress) * 0.04);
+					vec4 worldPos = modelMatrix * vec4(displaced, 1.0);
+					vWorldPos = worldPos.xyz;
+					gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
+				}
+			`,
+			fragmentShader: `
+				uniform float uProgress;
+				uniform vec3 uColor;
+
+				varying vec3 vNormal;
+				varying vec3 vWorldPos;
+
+				void main() {
+					float view = abs(dot(normalize(vNormal), normalize(vWorldPos)));
+					float rim = pow(1.0 - view, 2.4);
+					float core = smoothstep(1.2, 0.25, length(vWorldPos));
+					float pulse = 1.0 - smoothstep(0.0, 1.0, uProgress);
+					vec3 dissolveData = computeOrganicDissolveMask(vNormal, uProgress, 1.85);
+					float dissolveMask = dissolveData.x;
+					float dissolveEdge = dissolveData.y;
+					float dissolveProgress = dissolveData.z;
+					float terminalFade = 1.0 - smoothstep(0.92, 1.0, uProgress);
+					float intensity = 0.55 + rim * 1.25 + core * 0.45 + pulse * 1.3;
+					intensity += dissolveEdge * (1.0 - dissolveProgress) * 0.4;
+					float alpha = clamp((rim * 0.6 + core * 0.25 + pulse * 0.95) * 0.68, 0.0, 0.82);
+					alpha *= smoothstep(1.0, 0.72, uProgress);
+					alpha *= dissolveMask;
+					alpha *= terminalFade;
+					gl_FragColor = vec4(uColor * intensity, alpha);
+				}
+			`,
+			features: ['math', 'noise', 'dissolve']
+		},
+		particles: {
+			template: 'STANDARD_PARTICLE_SHADER',
+			injections: {
+				CUSTOM_POINT_SIZE_LOGIC: 'aSize * (1.0 - uProgress) * 5.4',
+				CUSTOM_ALPHA_LOGIC:
+					'smoothstep(0.5, 0.14, d) * smoothstep(1.0, 0.66, uProgress)',
+				CUSTOM_COLOR_LOGIC: 'uColor * 1.12'
+			}
+		}
+	},
+	materialOptions: {
+		default: {
+			side: THREE.DoubleSide
+		}
+	},
+	assets: [
+		{
+			key: 'coreMesh',
+			type: 'core',
+			material: 'material',
+			geometry: { type: 'icosahedron', radius: 1.05, detail: 2 }
+		},
+		{
+			key: 'particlePoints',
+			type: 'particles',
+			material: 'particleMaterial',
+			count: 220
+		}
+	],
+	particleSystems: [
+		{ pointsKey: 'particlePoints', systemKey: 'particleSystem', drag: 0.98 }
+	],
+	configureVisibility(animation) {
+		if (animation.coreMesh) animation.coreMesh.visible = true;
+		if (animation.particlePoints) animation.particlePoints.visible = true;
+	},
+	initParticles(animation) {
+		if (!animation.particleSystem) return;
+		if (animation.particlePoints) animation.particlePoints.rotation.set(0, 0, 0);
+
+		animation.particleSystem.init((i, system) => {
+			const idx = i * 3;
+			const dir = randomDirection();
+			const speed = 7.6 + Math.random() * 10.0;
+
+			system.positions[idx] = 0;
+			system.positions[idx + 1] = 0;
+			system.positions[idx + 2] = 0;
+
+			system.velocities[idx] = dir.x * speed;
+			system.velocities[idx + 1] = dir.y * speed * 1.02;
+			system.velocities[idx + 2] = dir.z * speed;
+
+			if (system.sizes) system.sizes[i] = 0.6 + Math.random() * 1.1;
+		});
+	},
+	onUpdate(animation, dt, progress) {
+		const easedBurst = TWEEN.Easing.Cubic.Out(progress);
+
+		if (animation.coreMesh) {
+			const coreScale = 1.0 + easedBurst * 1.8 + progress * 1.8;
+			animation.coreMesh.scale.set(coreScale, coreScale, coreScale);
+		}
+
+		if (animation.particlePositions && animation.particleVelocities) {
+			const outwardAccel = 3.2 + (1.0 - progress) * 2.0;
+			for (let i = 0; i < animation.particleCount; i++) {
+				const idx = i * 3;
+				const x = animation.particlePositions[idx];
+				const y = animation.particlePositions[idx + 1];
+				const z = animation.particlePositions[idx + 2];
+				const len = Math.sqrt(x * x + y * y + z * z);
+				if (len < 0.0001) continue;
+				const invLen = 1.0 / len;
+				animation.particleVelocities[idx] += x * invLen * outwardAccel * dt;
+				animation.particleVelocities[idx + 1] +=
+					y * invLen * outwardAccel * dt;
+				animation.particleVelocities[idx + 2] +=
+					z * invLen * outwardAccel * dt;
+			}
+		}
+
+		if (animation.particlePoints) animation.particlePoints.rotation.set(0, 0, 0);
+	}
+};
+
+const NOVA_CONFIG = {
+	styleIndex: 13,
 	label: 'Nova',
 	duration: 4.0,
 	baseColor: 0xff6f61,
@@ -2233,10 +2371,10 @@ const CRYSTAL_SPIRE_CONFIG = {
 			const baseMaterial = sourceMaterial?.clone
 				? sourceMaterial.clone()
 				: new THREE.MeshBasicMaterial({
-						color: 0x3f6f8f,
-						transparent: true,
-						opacity: 0.88
-					});
+					color: 0x3f6f8f,
+					transparent: true,
+					opacity: 0.88
+				});
 			baseMaterial.depthWrite = true;
 			baseMaterial.transparent = true;
 			baseMaterial.opacity = 0.88;
@@ -2340,12 +2478,12 @@ const CRYSTAL_SPIRE_CONFIG = {
 				localProgress <= 0.0
 					? 0.0
 					: Math.max(
-							0.0,
-							TWEEN.Easing.Elastic.Out(localProgress) +
-								Math.sin(localProgress * Math.PI * 7.0) *
-									(1.0 - localProgress) *
-									0.14
-						);
+						0.0,
+						TWEEN.Easing.Elastic.Out(localProgress) +
+						Math.sin(localProgress * Math.PI * 7.0) *
+						(1.0 - localProgress) *
+						0.14
+					);
 			const width = mesh.userData.widthScale * (0.12 + rise * 0.88);
 			const height = mesh.userData.heightScale * rise;
 			mesh.visible = fade > 0.01;
@@ -2918,7 +3056,7 @@ const SPOOKY_CONFIG = {
 };
 
 export const GOAL_ANIMATION_CONFIGS = [
-	NOVA_CONFIG,
+	DEFAULT_CONFIG,
 	PIXEL_BURST_CONFIG,
 	VORTEX_CONFIG,
 	BOOM_HEADSHOT_CONFIG,
@@ -2930,7 +3068,8 @@ export const GOAL_ANIMATION_CONFIGS = [
 	TOXIC_BLOOM_CONFIG,
 	CRYSTAL_SPIRE_CONFIG,
 	GRAVITY_WELL_CONFIG,
-	SPOOKY_CONFIG
+	SPOOKY_CONFIG,
+	NOVA_CONFIG,
 ];
 
 export const GOAL_EXPLOSION_STYLES = GOAL_ANIMATION_CONFIGS.map((config) => ({
