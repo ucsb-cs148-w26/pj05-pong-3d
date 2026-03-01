@@ -145,205 +145,6 @@ const DEFAULT_CONFIG = {
 	}
 };
 
-const NOVA_CONFIG = {
-	styleIndex: 13,
-	label: 'Nova',
-	duration: 4.0,
-	baseColor: 0xff6f61,
-	shaders: {
-		core: {
-			vertexShader: `
-				uniform float uTime;
-				uniform float uProgress;
-
-				varying vec3 vNormal;
-				varying vec3 vWorldPos;
-
-				void main() {
-					vNormal = normalize(normalMatrix * normal);
-					float burst = pow(uProgress, 1.3);
-					float jitter = noise(position * 4.0 + uTime * 2.0) * 0.45;
-					float spike = pow(
-						abs(sin((position.x + position.y + position.z) * 10.0 + uTime * 1.4)),
-						2.0
-					);
-					float displacement = burst * 2.8 + jitter * (1.0 - uProgress);
-					vec3 displaced = position + normal * (displacement + spike * (1.1 - uProgress));
-					float radial = length(position) + 0.001;
-					displaced += normalize(position) * sin(uTime * 6.0 + radial * 8.0)
-						* (1.0 - uProgress) * 0.25;
-					vec4 worldPos = modelMatrix * vec4(displaced, 1.0);
-					vWorldPos = worldPos.xyz;
-					gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
-				}
-			`,
-			fragmentShader: `
-				uniform float uTime;
-				uniform float uProgress;
-				uniform vec3 uColor;
-
-				varying vec3 vNormal;
-				varying vec3 vWorldPos;
-
-				void main() {
-					float rim = pow(1.0 - abs(dot(normalize(vNormal), normalize(vWorldPos))), 2.2);
-					float core = smoothstep(0.7, 0.0, length(vWorldPos));
-					float ring = smoothstep(0.35, 0.0, abs(length(vWorldPos) - (1.2 + uProgress * 2.2)));
-					float plasma = sin(
-						uTime * 8.0 + vWorldPos.x * 6.0 + vWorldPos.y * 7.0 + vWorldPos.z * 6.5
-					) * 0.5 + 0.5;
-					float streaks = pow(
-						abs(sin((vWorldPos.x + vWorldPos.y + vWorldPos.z) * 12.0 + uTime * 5.0)),
-						2.0
-					);
-					float intensity =
-						rim * 1.4 +
-						core * 2.3 +
-						ring * 1.6 +
-						plasma * (1.0 - uProgress) * 0.8 +
-						streaks * (1.0 - uProgress) * 1.2;
-					float flare = pow(1.0 - uProgress, 2.0);
-					intensity += flare * 2.0;
-					vec3 color = uColor * intensity * 1.05;
-					float alpha = clamp(intensity, 0.0, 1.0) * 0.55;
-					float dissolve = smoothstep(0.65, 1.0, uProgress);
-					float hash = fract(sin(dot(vWorldPos, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
-					float mask = step(dissolve, hash);
-					gl_FragColor = vec4(color, alpha * mask);
-				}
-			`,
-			features: ['math', 'noise']
-		},
-		ring: {
-			template: 'STANDARD_RING_SHADER',
-			injections: {
-				RING_EXPANSION_MULTIPLIER: '6.0',
-				CUSTOM_RING_MASK_LOGIC:
-					'smoothstep(0.5, 0.45, dist) * smoothstep(0.3, 0.33, dist)',
-				CUSTOM_INTENSITY_LOGIC:
-					'ring * (1.1 + (1.0 - uProgress) * 1.4) * (1.0 + (sin((dist * 60.0) - uTime * 12.0 - uProgress * 18.0) * 0.5 + 0.5) * 0.6) * 1.1',
-				CUSTOM_COLOR_LOGIC: 'uColor * intensity * 1.1',
-				CUSTOM_ALPHA_LOGIC:
-					'clamp(intensity, 0.0, 1.0) * 0.6 * smoothstep(1.0, 0.7, uProgress) * step(smoothstep(0.65, 1.0, uProgress), fract(sin(dot(vec3(vUv, uTime), vec3(12.9898, 78.233, 37.719))) * 43758.5453))'
-			},
-			features: ['math']
-		},
-		particles: {
-			template: 'STANDARD_PARTICLE_SHADER',
-			injections: {
-				CUSTOM_POINT_SIZE_LOGIC: 'aSize * (1.0 - uProgress) * 6.0',
-				CUSTOM_ALPHA_LOGIC:
-					'clamp(smoothstep(0.5, 0.1, d) + (smoothstep(0.16, 0.0, abs(uv.x)) + smoothstep(0.16, 0.0, abs(uv.y))) * 0.35, 0.0, 1.0)',
-				CUSTOM_COLOR_LOGIC:
-					'uColor * (1.15 + (smoothstep(0.16, 0.0, abs(uv.x)) + smoothstep(0.16, 0.0, abs(uv.y))) * 0.1)'
-			}
-		}
-	},
-	materialOptions: {
-		default: {
-			side: THREE.DoubleSide
-		}
-	},
-	assets: [
-		{ key: 'coreMesh', type: 'core', material: 'material' },
-		{
-			key: 'ringMesh',
-			type: 'ring',
-			material: 'ringMaterial',
-			geometry: DEFAULT_RING_GEOMETRY
-		},
-		{
-			key: 'ringMesh2',
-			type: 'ring',
-			material: 'ringMaterial',
-			geometry: DEFAULT_RING_GEOMETRY,
-			transform: { rotation: [Math.PI / 2, 0, 0] }
-		},
-		{
-			key: 'ringMesh3',
-			type: 'ring',
-			material: 'ringMaterial',
-			geometry: DEFAULT_RING_GEOMETRY,
-			transform: { rotation: [0, 0, Math.PI / 2] }
-		},
-		{
-			key: 'particlePoints',
-			type: 'particles',
-			material: 'particleMaterial',
-			count: 280
-		},
-		{
-			key: 'sparkPoints',
-			type: 'particles',
-			material: 'particleMaterial',
-			count: 200,
-			visible: false
-		},
-		{ key: 'flareSprite', type: 'flare', visible: false }
-	],
-	particleSystems: [
-		{ pointsKey: 'particlePoints', systemKey: 'particleSystem', drag: 0.98 },
-		{ pointsKey: 'sparkPoints', systemKey: 'sparkSystem', drag: 0.965 }
-	],
-	configureVisibility(animation) {
-		animation.coreMesh.visible = true;
-		animation.ringMesh.visible = true;
-		animation.ringMesh2.visible = true;
-		animation.ringMesh3.visible = true;
-		if (animation.sparkPoints) animation.sparkPoints.visible = true;
-		if (animation.flareSprite) {
-			animation.flareSprite.visible = false;
-			animation.flareSprite.material.opacity = 0.0;
-		}
-	},
-	initParticles(animation) {
-		if (animation.particleSystem) {
-			animation.particleSystem.init((i, system) => {
-				const idx = i * 3;
-				const dir = randomDirection();
-				const speed = 8 + Math.random() * 14;
-				system.positions[idx] = 0;
-				system.positions[idx + 1] = 0;
-				system.positions[idx + 2] = 0;
-				system.velocities[idx] = dir.x * speed;
-				system.velocities[idx + 1] = dir.y * speed;
-				system.velocities[idx + 2] = dir.z * speed;
-				if (system.sizes) system.sizes[i] = 1.0 + Math.random() * 1.5;
-			});
-		}
-		if (animation.sparkSystem) {
-			animation.sparkSystem.init((i, system) => {
-				const idx = i * 3;
-				const dir = randomDirection();
-				const speed = 10 + Math.random() * 16;
-				system.positions[idx] = 0;
-				system.positions[idx + 1] = 0;
-				system.positions[idx + 2] = 0;
-				system.velocities[idx] = dir.x * speed;
-				system.velocities[idx + 1] = dir.y * speed;
-				system.velocities[idx + 2] = dir.z * speed;
-				if (system.sizes) system.sizes[i] = 0.4 + Math.random() * 1.0;
-			});
-		}
-	},
-	onUpdate(animation, dt, progress) {
-		const eased = TWEEN.Easing.Quintic.Out(progress);
-		const scale = 1.0 + eased * 8.5;
-		animation.coreMesh.scale.set(scale, scale, scale);
-		animation.ringMesh.scale.set(scale, scale, scale);
-		animation.ringMesh2.scale.set(scale * 1.2, scale * 1.2, scale * 1.2);
-		animation.ringMesh3.scale.set(scale * 0.8, scale * 0.8, scale * 0.8);
-		animation.coreMesh.rotation.z += dt * 1.2;
-		animation.ringMesh.rotation.y += dt * 1.8;
-		if (animation.flareSprite) {
-			animation.flareSprite.visible = true;
-			const pulse = 1.0 - progress;
-			animation.flareSprite.material.opacity = Math.min(1.0, pulse * 0.9);
-			const flareScale = 2.4 + progress * 4.6;
-			animation.flareSprite.scale.set(flareScale, flareScale, 1.0);
-		}
-	}
-};
 
 const PIXEL_BURST_CONFIG = {
 	styleIndex: 1,
@@ -3054,6 +2855,207 @@ const SPOOKY_CONFIG = {
 		if (animation.watcherSprite) animation.watcherSprite.visible = false;
 	}
 };
+
+const NOVA_CONFIG = {
+	styleIndex: 13,
+	label: 'Nova',
+	duration: 4.0,
+	baseColor: 0xff6f61,
+	shaders: {
+		core: {
+			vertexShader: `
+				uniform float uTime;
+				uniform float uProgress;
+
+				varying vec3 vNormal;
+				varying vec3 vWorldPos;
+
+				void main() {
+					vNormal = normalize(normalMatrix * normal);
+					float burst = pow(uProgress, 1.3);
+					float jitter = noise(position * 4.0 + uTime * 2.0) * 0.45;
+					float spike = pow(
+						abs(sin((position.x + position.y + position.z) * 10.0 + uTime * 1.4)),
+						2.0
+					);
+					float displacement = burst * 2.8 + jitter * (1.0 - uProgress);
+					vec3 displaced = position + normal * (displacement + spike * (1.1 - uProgress));
+					float radial = length(position) + 0.001;
+					displaced += normalize(position) * sin(uTime * 6.0 + radial * 8.0)
+						* (1.0 - uProgress) * 0.25;
+					vec4 worldPos = modelMatrix * vec4(displaced, 1.0);
+					vWorldPos = worldPos.xyz;
+					gl_Position = projectionMatrix * modelViewMatrix * vec4(displaced, 1.0);
+				}
+			`,
+			fragmentShader: `
+				uniform float uTime;
+				uniform float uProgress;
+				uniform vec3 uColor;
+
+				varying vec3 vNormal;
+				varying vec3 vWorldPos;
+
+				void main() {
+					float rim = pow(1.0 - abs(dot(normalize(vNormal), normalize(vWorldPos))), 2.2);
+					float core = smoothstep(0.7, 0.0, length(vWorldPos));
+					float ring = smoothstep(0.35, 0.0, abs(length(vWorldPos) - (1.2 + uProgress * 2.2)));
+					float plasma = sin(
+						uTime * 8.0 + vWorldPos.x * 6.0 + vWorldPos.y * 7.0 + vWorldPos.z * 6.5
+					) * 0.5 + 0.5;
+					float streaks = pow(
+						abs(sin((vWorldPos.x + vWorldPos.y + vWorldPos.z) * 12.0 + uTime * 5.0)),
+						2.0
+					);
+					float intensity =
+						rim * 1.4 +
+						core * 2.3 +
+						ring * 1.6 +
+						plasma * (1.0 - uProgress) * 0.8 +
+						streaks * (1.0 - uProgress) * 1.2;
+					float flare = pow(1.0 - uProgress, 2.0);
+					intensity += flare * 2.0;
+					vec3 color = uColor * intensity * 1.05;
+					float alpha = clamp(intensity, 0.0, 1.0) * 0.55;
+					float dissolve = smoothstep(0.65, 1.0, uProgress);
+					float hash = fract(sin(dot(vWorldPos, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+					float mask = step(dissolve, hash);
+					gl_FragColor = vec4(color, alpha * mask);
+				}
+			`,
+			features: ['math', 'noise']
+		},
+		ring: {
+			template: 'STANDARD_RING_SHADER',
+			injections: {
+				RING_EXPANSION_MULTIPLIER: '6.0',
+				CUSTOM_RING_MASK_LOGIC:
+					'smoothstep(0.5, 0.45, dist) * smoothstep(0.3, 0.33, dist)',
+				CUSTOM_INTENSITY_LOGIC:
+					'ring * (1.1 + (1.0 - uProgress) * 1.4) * (1.0 + (sin((dist * 60.0) - uTime * 12.0 - uProgress * 18.0) * 0.5 + 0.5) * 0.6) * 1.1',
+				CUSTOM_COLOR_LOGIC: 'uColor * intensity * 1.1',
+				CUSTOM_ALPHA_LOGIC:
+					'clamp(intensity, 0.0, 1.0) * 0.6 * smoothstep(1.0, 0.7, uProgress) * step(smoothstep(0.65, 1.0, uProgress), fract(sin(dot(vec3(vUv, uTime), vec3(12.9898, 78.233, 37.719))) * 43758.5453))'
+			},
+			features: ['math']
+		},
+		particles: {
+			template: 'STANDARD_PARTICLE_SHADER',
+			injections: {
+				CUSTOM_POINT_SIZE_LOGIC: 'aSize * (1.0 - uProgress) * 6.0',
+				CUSTOM_ALPHA_LOGIC:
+					'clamp(smoothstep(0.5, 0.1, d) + (smoothstep(0.16, 0.0, abs(uv.x)) + smoothstep(0.16, 0.0, abs(uv.y))) * 0.35, 0.0, 1.0)',
+				CUSTOM_COLOR_LOGIC:
+					'uColor * (1.15 + (smoothstep(0.16, 0.0, abs(uv.x)) + smoothstep(0.16, 0.0, abs(uv.y))) * 0.1)'
+			}
+		}
+	},
+	materialOptions: {
+		default: {
+			side: THREE.DoubleSide
+		}
+	},
+	assets: [
+		{ key: 'coreMesh', type: 'core', material: 'material' },
+		{
+			key: 'ringMesh',
+			type: 'ring',
+			material: 'ringMaterial',
+			geometry: DEFAULT_RING_GEOMETRY
+		},
+		{
+			key: 'ringMesh2',
+			type: 'ring',
+			material: 'ringMaterial',
+			geometry: DEFAULT_RING_GEOMETRY,
+			transform: { rotation: [Math.PI / 2, 0, 0] }
+		},
+		{
+			key: 'ringMesh3',
+			type: 'ring',
+			material: 'ringMaterial',
+			geometry: DEFAULT_RING_GEOMETRY,
+			transform: { rotation: [0, 0, Math.PI / 2] }
+		},
+		{
+			key: 'particlePoints',
+			type: 'particles',
+			material: 'particleMaterial',
+			count: 280
+		},
+		{
+			key: 'sparkPoints',
+			type: 'particles',
+			material: 'particleMaterial',
+			count: 200,
+			visible: false
+		},
+		{ key: 'flareSprite', type: 'flare', visible: false }
+	],
+	particleSystems: [
+		{ pointsKey: 'particlePoints', systemKey: 'particleSystem', drag: 0.98 },
+		{ pointsKey: 'sparkPoints', systemKey: 'sparkSystem', drag: 0.965 }
+	],
+	configureVisibility(animation) {
+		animation.coreMesh.visible = true;
+		animation.ringMesh.visible = true;
+		animation.ringMesh2.visible = true;
+		animation.ringMesh3.visible = true;
+		if (animation.sparkPoints) animation.sparkPoints.visible = true;
+		if (animation.flareSprite) {
+			animation.flareSprite.visible = false;
+			animation.flareSprite.material.opacity = 0.0;
+		}
+	},
+	initParticles(animation) {
+		if (animation.particleSystem) {
+			animation.particleSystem.init((i, system) => {
+				const idx = i * 3;
+				const dir = randomDirection();
+				const speed = 8 + Math.random() * 14;
+				system.positions[idx] = 0;
+				system.positions[idx + 1] = 0;
+				system.positions[idx + 2] = 0;
+				system.velocities[idx] = dir.x * speed;
+				system.velocities[idx + 1] = dir.y * speed;
+				system.velocities[idx + 2] = dir.z * speed;
+				if (system.sizes) system.sizes[i] = 1.0 + Math.random() * 1.5;
+			});
+		}
+		if (animation.sparkSystem) {
+			animation.sparkSystem.init((i, system) => {
+				const idx = i * 3;
+				const dir = randomDirection();
+				const speed = 10 + Math.random() * 16;
+				system.positions[idx] = 0;
+				system.positions[idx + 1] = 0;
+				system.positions[idx + 2] = 0;
+				system.velocities[idx] = dir.x * speed;
+				system.velocities[idx + 1] = dir.y * speed;
+				system.velocities[idx + 2] = dir.z * speed;
+				if (system.sizes) system.sizes[i] = 0.4 + Math.random() * 1.0;
+			});
+		}
+	},
+	onUpdate(animation, dt, progress) {
+		const eased = TWEEN.Easing.Quintic.Out(progress);
+		const scale = 1.0 + eased * 8.5;
+		animation.coreMesh.scale.set(scale, scale, scale);
+		animation.ringMesh.scale.set(scale, scale, scale);
+		animation.ringMesh2.scale.set(scale * 1.2, scale * 1.2, scale * 1.2);
+		animation.ringMesh3.scale.set(scale * 0.8, scale * 0.8, scale * 0.8);
+		animation.coreMesh.rotation.z += dt * 1.2;
+		animation.ringMesh.rotation.y += dt * 1.8;
+		if (animation.flareSprite) {
+			animation.flareSprite.visible = true;
+			const pulse = 1.0 - progress;
+			animation.flareSprite.material.opacity = Math.min(1.0, pulse * 0.9);
+			const flareScale = 2.4 + progress * 4.6;
+			animation.flareSprite.scale.set(flareScale, flareScale, 1.0);
+		}
+	}
+};
+
 
 export const GOAL_ANIMATION_CONFIGS = [
 	DEFAULT_CONFIG,
