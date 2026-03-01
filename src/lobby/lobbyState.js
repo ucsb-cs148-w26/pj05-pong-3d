@@ -70,11 +70,11 @@ export default class LobbyState {
 		});
 
 		socket.on('client:disconnect', (clientId) => {
-			this.leaveLobby(lobbyId, clientId);
 			socket.broadcast({
 				type: 'chat',
 				content: `[System] ${clientId} left`
 			});
+			this.leaveLobby(lobbyId, clientId);
 		});
 
 		socket.addHandler('chat', chatHandler);
@@ -112,6 +112,26 @@ export default class LobbyState {
 		lobby.emptySince = null;
 	}
 
+	deleteLobby(lobbyId) {
+		const lobby = this.lobbies.get(lobbyId);
+		if (!lobby) return;
+
+		const scene = this.scenes.get(lobbyId);
+		if (scene) {
+			scene.stop();
+			this.scenes.delete(lobbyId);
+		}
+
+		const socket = this.sockets.get(lobbyId);
+		if (socket) {
+			socket.stop();
+			this.sockets.delete(lobbyId);
+		}
+
+		this.codeToLobby.delete(lobby.code);
+		this.lobbies.delete(lobbyId);
+	}
+
 	leaveLobby(lobbyId, clientId) {
 		const lobby = this.lobbies.get(lobbyId);
 		if (!lobby) {
@@ -121,7 +141,7 @@ export default class LobbyState {
 		lobby.members.delete(clientId);
 
 		if (lobby.members.size === 0) {
-			lobby.emptySince = Date.now();
+			this.deleteLobby(lobbyId);
 		}
 	}
 
@@ -134,13 +154,7 @@ export default class LobbyState {
 				lobby.emptySince !== null &&
 				now - lobby.emptySince >= EMPTY_LOBBY_DELETE_TIME
 			) {
-				this.lobbies.delete(lobbyId);
-				this.scenes.get(lobbyId).stop();
-				this.scenes.delete(lobbyId);
-				this.codeToLobby.delete(lobby.code);
-
-				this.sockets.get(lobbyId).stop();
-				this.sockets.delete(lobbyId);
+				this.deleteLobby(lobbyId);
 			}
 		}
 	}
