@@ -47,6 +47,15 @@ export default function createUserRouter() {
 				[userId]
 			);
 
+			const paddleSkins = await dbAll(
+				`SELECT i.id, i.item_key, i.kind, i.display_name, i.asset_key, u.unlocked_at
+				FROM items i
+				LEFT JOIN user_unlocks u
+				ON i.id = u.item_id AND u.user_id = ?
+				WHERE i.kind = 'paddle_skin'`,
+				[userId]
+			);
+
 			const unlocks = await dbAll(
 				`SELECT i.id, i.item_key, i.kind, i.display_name, i.asset_key, i.is_default, u.unlocked_at
 				FROM items i
@@ -75,7 +84,8 @@ export default function createUserRouter() {
 				unlocks,
 				equipped: equipped || {},
 				goalExplosions,
-				ballSkins
+				ballSkins,
+				paddleSkins
 			});
 		} catch (err) {
 			console.error(err);
@@ -222,6 +232,34 @@ export default function createUserRouter() {
 					(err2) => {
 						if (err2) return res.status(500).json({ error: 'Database error' });
 						res.json({ message: 'Unlocked a new ball skin!', itemId: row.id });
+					}
+				);
+			}
+		);
+	});
+
+	router.post('/debug/unlockRandomPaddleSkin', ensureAuth, (req, res) => {
+		const userId = req.user.id;
+
+		db.get(
+			`SELECT i.id FROM items i
+            WHERE i.kind = 'paddle_skin'
+            AND i.id NOT IN (
+                SELECT item_id FROM user_unlocks WHERE user_id = ?
+            )
+            ORDER BY RANDOM() LIMIT 1`,
+			[userId],
+			(err, row) => {
+				if (err) return res.status(500).json({ error: 'Database error' });
+				if (!row)
+					return res.json({ message: 'All paddle skins already unlocked!' });
+
+				db.run(
+					`INSERT INTO user_unlocks (user_id, item_id, unlocked_at) VALUES (?, ?, CURRENT_TIMESTAMP)`,
+					[userId, row.id],
+					(err2) => {
+						if (err2) return res.status(500).json({ error: 'Database error' });
+						res.json({ message: 'Unlocked a new paddle skin!', itemId: row.id });
 					}
 				);
 			}
