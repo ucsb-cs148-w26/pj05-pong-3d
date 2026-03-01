@@ -778,20 +778,18 @@ export class GoalAnimationSpawner extends GameObjectBase {
 
 	#resolveAnimation(styleIndex) {
 		const config = resolveGoalAnimationConfig(styleIndex);
-
-		if (this.currentAnimation?.config?.styleIndex !== config.styleIndex) {
-			if (this.currentAnimation?.visual) {
-				this.currentAnimation.active = false;
-				this.currentAnimation.visual.visible = false;
-				this.visual.remove(this.currentAnimation.visual);
-			}
-			if (this.currentAnimation) {
-				disposeRuntime(this.currentAnimation);
-			}
-
-			this.currentAnimation = createGoalAnimationRuntime(config);
-			this.visual.add(this.currentAnimation.visual);
+		if (this.currentAnimation?.visual) {
+			this.currentAnimation.active = false;
+			this.currentAnimation.visual.visible = false;
+			this.visual.remove(this.currentAnimation.visual);
 		}
+		if (this.currentAnimation) {
+			disposeRuntime(this.currentAnimation);
+		}
+
+		this.currentAnimation = createGoalAnimationRuntime(config);
+		this.visual.add(this.currentAnimation.visual);
+
 
 		return this.currentAnimation;
 	}
