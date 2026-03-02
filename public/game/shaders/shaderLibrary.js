@@ -162,6 +162,21 @@ export const ShaderLibrary = {
 			));
 		}
 	`,
+	DissolveChunks: `
+		vec3 computeOrganicDissolveMask(vec3 normal, float progress, float domainScale) {
+			float dissolveProgress = smoothstep(0.18, 0.82, progress);
+			vec3 dissolveDomain = normalize(normal) * domainScale +
+				vec3(progress * 0.65, -progress * 0.42, progress * 0.31);
+			float layerA = fbm(dissolveDomain * 1.1);
+			float layerB = noise(dissolveDomain * 2.3 + vec3(2.7, -1.9, 4.6));
+			float organicNoise = smoothstep(0.2, 0.84, mix(layerA, layerB, 0.28));
+			float band = dissolveProgress - organicNoise;
+			float mask = 1.0 - smoothstep(-0.01, 0.14, band);
+			float edge = smoothstep(-0.005, 0.055, band) *
+				(1.0 - smoothstep(0.055, 0.15, band));
+			return vec3(mask, edge, dissolveProgress);
+		}
+	`,
 	PhysicsChunks: `
 		vec3 applyDisplacement(vec3 position, vec3 normal, float displacement) {
 			return position + normal * displacement;
