@@ -1,10 +1,8 @@
 import db from './db.js';
 import { BALL_SKIN_STYLES } from '../../public/game/shaders/ballSkin.js';
 
-
 export function initializeBallSkins() {
 	BALL_SKIN_STYLES.forEach((style) => {
-
 		db.get(
 			'SELECT 1 FROM items WHERE item_key = ? AND kind = ?',
 			[style.styleIndex, 'ball_skin'],

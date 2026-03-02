@@ -154,8 +154,7 @@ function createStyleMaterial(styleConfig, radius) {
 	};
 
 	const uniforms = createShaderUniforms(tintColor, profile, radius);
-	const shaderDefinition =
-		styleConfig.shaders ?? DEFAULT_BALL_SHADER_TEMPLATE;
+	const shaderDefinition = styleConfig.shaders ?? DEFAULT_BALL_SHADER_TEMPLATE;
 	const shaderPair = ShaderRepository.resolveShaderPair(shaderDefinition);
 	const chunks = joinShaderChunks(
 		...resolveShaderFeatures(shaderDefinition)
@@ -229,7 +228,7 @@ const PIXEL_CONFIG = {
 export const BALL_SKIN_CONFIGS = [
 	DEFAULT_CONFIG,
 	BASKETBALL_CONFIG,
-	PIXEL_CONFIG,
+	PIXEL_CONFIG
 ];
 
 export const BALL_SKIN_STYLES = BALL_SKIN_CONFIGS.map((config) => ({
@@ -344,5 +343,3 @@ export class BallSkin {
 		this.#uniforms.uSphereRadius.value = this.#radius * maxScale;
 	}
 }
-
-
