@@ -11,9 +11,9 @@ export function initializeGoalExplosions() {
 
 				if (!row) {
 					db.run(
-						`INSERT INTO items (item_key, kind, display_name, asset_key, is_default)
-                         VALUES (?, 'goal_explosion', ?, ?, 0)`,
-						[style.styleIndex, style.label, style.styleIndex]
+						`INSERT INTO items (item_key, kind, display_name, is_default)
+                         VALUES (?, 'goal_explosion', ?, 0)`,
+						[style.styleIndex, style.label]
 					);
 				}
 			}
