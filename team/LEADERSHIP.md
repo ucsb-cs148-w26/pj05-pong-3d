@@ -15,5 +15,5 @@
 | Mon 02/09 | Ayala Wang      | Led team discussion of Sprint02          |
 | Fri 02/13 | Chenchang Wang  | Will lead second retro                   |
 | Fri 02/27 | Terry Zhou      | Will lead third retro                    |
-| Mon 03/02 | Bobby Chavez    | Will lead discussion of Sprint03         |
-| Thu 03/23 | Ayala Wang      | Will lead final presentation preparation |
+| Mon 03/02 | Ayala Wang      | Will lead discussion of Sprint03         |
+| Thu 03/23 | Bobby Chavez    | Will lead final presentation preparation |
