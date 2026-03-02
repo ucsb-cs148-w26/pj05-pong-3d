@@ -30,7 +30,7 @@ export default function createUserRouter() {
 
 		try {
 			const goalExplosions = await dbAll(
-				`SELECT i.id, i.item_key, i.kind, i.display_name, i.asset_key, u.unlocked_at
+				`SELECT i.id, i.item_key, i.kind, i.display_name, u.unlocked_at
 				FROM items i
 				LEFT JOIN user_unlocks u 
 				ON i.id = u.item_id AND u.user_id = ?
@@ -39,7 +39,7 @@ export default function createUserRouter() {
 			);
 
 			const ballSkins = await dbAll(
-				`SELECT i.id, i.item_key, i.kind, i.display_name, i.asset_key, u.unlocked_at
+				`SELECT i.id, i.item_key, i.kind, i.display_name, u.unlocked_at
 				FROM items i
 				LEFT JOIN user_unlocks u
 				ON i.id = u.item_id AND u.user_id = ?
@@ -48,7 +48,7 @@ export default function createUserRouter() {
 			);
 
 			const unlocks = await dbAll(
-				`SELECT i.id, i.item_key, i.kind, i.display_name, i.asset_key, i.is_default, u.unlocked_at
+				`SELECT i.id, i.item_key, i.kind, i.display_name, i.is_default, u.unlocked_at
 				FROM items i
 				INNER JOIN user_unlocks u ON i.id = u.item_id
 				WHERE u.user_id = ? AND i.kind != 'goal_explosion'`,
@@ -109,7 +109,7 @@ export default function createUserRouter() {
 
 	router.get('/items/unlocks', ensureAuth, (req, res) => {
 		const userId = req.user.id;
-		const sql = `SELECT i.id, i.item_key, i.kind, i.display_name, i.asset_key, i.is_default, u.unlocked_at
+		const sql = `SELECT i.id, i.item_key, i.kind, i.display_name, i.is_default, u.unlocked_at
         FROM items i
         INNER JOIN user_unlocks u ON i.id = u.item_id
         WHERE u.user_id = ?`;

@@ -2,17 +2,15 @@ import db from './db.js';
 
 // TODO: Replace this with real ball skin configs
 const BALL_SKIN_CONFIGS = [
-	{ id: 'classic', displayName: 'Classic', assetKey: 'classic', isDefault: 0 },
+	{ id: '0', displayName: 'Classic', isDefault: 0 },
 	{
-		id: 'neon_blue',
+		id: '1',
 		displayName: 'Neon Blue',
-		assetKey: 'neon_blue',
 		isDefault: 0
 	},
 	{
-		id: 'hot_pink',
+		id: '2',
 		displayName: 'Hot Pink',
-		assetKey: 'hot_pink',
 		isDefault: 0
 	}
 ];
@@ -27,9 +25,9 @@ export function initializeBallSkins() {
 
 				if (!row) {
 					db.run(
-						`INSERT INTO items (item_key, kind, display_name, asset_key, is_default)
-                         VALUES (?, 'ball_skin', ?, ?, ?)`,
-						[config.id, config.displayName, config.assetKey, config.isDefault]
+						`INSERT INTO items (item_key, kind, display_name, is_default)
+                         VALUES (?, 'ball_skin', ?, ?)`,
+						[config.id, config.displayName, config.isDefault]
 					);
 				}
 			}
