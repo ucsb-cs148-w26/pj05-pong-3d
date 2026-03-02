@@ -97,7 +97,8 @@ const DEFAULT_CONFIG = {
 	},
 	initParticles(animation) {
 		if (!animation.particleSystem) return;
-		if (animation.particlePoints) animation.particlePoints.rotation.set(0, 0, 0);
+		if (animation.particlePoints)
+			animation.particlePoints.rotation.set(0, 0, 0);
 
 		animation.particleSystem.init((i, system) => {
 			const idx = i * 3;
@@ -134,17 +135,15 @@ const DEFAULT_CONFIG = {
 				if (len < 0.0001) continue;
 				const invLen = 1.0 / len;
 				animation.particleVelocities[idx] += x * invLen * outwardAccel * dt;
-				animation.particleVelocities[idx + 1] +=
-					y * invLen * outwardAccel * dt;
-				animation.particleVelocities[idx + 2] +=
-					z * invLen * outwardAccel * dt;
+				animation.particleVelocities[idx + 1] += y * invLen * outwardAccel * dt;
+				animation.particleVelocities[idx + 2] += z * invLen * outwardAccel * dt;
 			}
 		}
 
-		if (animation.particlePoints) animation.particlePoints.rotation.set(0, 0, 0);
+		if (animation.particlePoints)
+			animation.particlePoints.rotation.set(0, 0, 0);
 	}
 };
-
 
 const PIXEL_BURST_CONFIG = {
 	styleIndex: 1,
@@ -2172,10 +2171,10 @@ const CRYSTAL_SPIRE_CONFIG = {
 			const baseMaterial = sourceMaterial?.clone
 				? sourceMaterial.clone()
 				: new THREE.MeshBasicMaterial({
-					color: 0x3f6f8f,
-					transparent: true,
-					opacity: 0.88
-				});
+						color: 0x3f6f8f,
+						transparent: true,
+						opacity: 0.88
+					});
 			baseMaterial.depthWrite = true;
 			baseMaterial.transparent = true;
 			baseMaterial.opacity = 0.88;
@@ -2279,12 +2278,12 @@ const CRYSTAL_SPIRE_CONFIG = {
 				localProgress <= 0.0
 					? 0.0
 					: Math.max(
-						0.0,
-						TWEEN.Easing.Elastic.Out(localProgress) +
-						Math.sin(localProgress * Math.PI * 7.0) *
-						(1.0 - localProgress) *
-						0.14
-					);
+							0.0,
+							TWEEN.Easing.Elastic.Out(localProgress) +
+								Math.sin(localProgress * Math.PI * 7.0) *
+									(1.0 - localProgress) *
+									0.14
+						);
 			const width = mesh.userData.widthScale * (0.12 + rise * 0.88);
 			const height = mesh.userData.heightScale * rise;
 			mesh.visible = fade > 0.01;
@@ -3056,7 +3055,6 @@ const NOVA_CONFIG = {
 	}
 };
 
-
 export const GOAL_ANIMATION_CONFIGS = [
 	DEFAULT_CONFIG,
 	PIXEL_BURST_CONFIG,
@@ -3071,7 +3069,7 @@ export const GOAL_ANIMATION_CONFIGS = [
 	CRYSTAL_SPIRE_CONFIG,
 	GRAVITY_WELL_CONFIG,
 	SPOOKY_CONFIG,
-	NOVA_CONFIG,
+	NOVA_CONFIG
 ];
 
 export const GOAL_EXPLOSION_STYLES = GOAL_ANIMATION_CONFIGS.map((config) => ({

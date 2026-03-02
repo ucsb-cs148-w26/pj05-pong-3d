@@ -790,7 +790,6 @@ export class GoalAnimationSpawner extends GameObjectBase {
 		this.currentAnimation = createGoalAnimationRuntime(config);
 		this.visual.add(this.currentAnimation.visual);
 
-
 		return this.currentAnimation;
 	}
 
