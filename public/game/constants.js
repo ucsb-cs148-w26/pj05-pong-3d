@@ -18,7 +18,6 @@ export const ARENA_WALL_OFFSET_Z = 9;
 export const ARENA_COLOR = 0x222222;
 
 export const BALL_RADIUS = 0.5;
-export const BALL_COLOR = 0xffffff;
 export const BALL_MASS = 3;
 export const BALL_INITIAL_SPEED = 5;
 export const BALL_TINY_V_SCALE = 0.1;
