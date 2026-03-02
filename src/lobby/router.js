@@ -5,10 +5,6 @@ export default function createLobbyRouter(server, parseSession) {
 	const router = Router();
 	const lobbyState = new LobbyState(server, parseSession);
 
-	setInterval(() => {
-		lobbyState.cleanup();
-	}, 5000);
-
 	router.get('/api/lobbies', (_req, res) => {
 		res.json({ lobbies: lobbyState.listLobbies() });
 	});
