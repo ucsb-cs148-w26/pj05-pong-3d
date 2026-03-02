@@ -1,6 +1,6 @@
 import * as THREE from 'three';
-import * as Constants from '../constants.js';
 import { BallCommon } from '../common/BallCommon.js';
+import { BALL_SKIN_CONFIGS, BallSkin } from '../shaders/ballSkin.js';
 
 /**
  * Client-side Ball with THREE.js rendering
@@ -8,20 +8,15 @@ import { BallCommon } from '../common/BallCommon.js';
  */
 export class Ball extends BallCommon {
 	#visual = null;
+	#skin = null;
 	#goalSpawner = null;
 	#explosionId = null;
 
 	constructor(key, spawner) {
 		super(key);
 
-		// Create THREE.js visual representation
-		const geometry = new THREE.SphereGeometry(Constants.BALL_RADIUS);
-		const material = new THREE.MeshStandardMaterial({
-			color: Constants.BALL_COLOR
-		});
-
-		this.#visual = new THREE.Mesh(geometry, material);
-		this.#visual.castShadow = true;
+		this.#skin = new BallSkin();
+		this.#visual = this.#skin.visual;
 		this.#goalSpawner = spawner;
 
 		this.body.col.onCollisionCallback = ((me, other) => {
@@ -55,50 +50,25 @@ export class Ball extends BallCommon {
 			if (!response.ok) throw new Error();
 
 			const data = await response.json();
-
-			if (data.ball_skin_key) {
-				this.applySkin(data.ball_skin_key);
-			} else {
-				this.applySkin('default');
-			}
+			const styleIndex = Number.parseInt(data.ball_skin_key, 10);
+			this.setSkinStyle(styleIndex);
 
 			if (data.goal_explosion_key) {
 				this.#explosionId = parseInt(data.goal_explosion_key, 10);
 			}
 		} catch (err) {
 			console.error('Failed to load: ', err);
-			this.applySkin('default');
+			this.setSkinStyle(BALL_SKIN_CONFIGS[0].styleIndex);
 		}
 	}
 
-	applySkin(skinId) {
-		const mat = this.#visual.material;
-		if (!mat) return;
+	update(dt) {
+		super.update(dt);
+		this.#skin.update(dt, this.body.v.norm());
+	}
 
-		mat.map = null;
-
-		// TODO: Hardcoded for now, fix with updated ball skin logic
-		if (skinId === 'neon_blue') {
-			mat.color.set(0x00aaff);
-		} else if (skinId === 'hot_pink') {
-			mat.color.set(0xff4fd8);
-		} else if (skinId === 'basketball') {
-			const loader = new THREE.TextureLoader();
-			const texture = loader.load('/textures/basketball.png');
-			texture.colorSpace = THREE.SRGBColorSpace;
-			texture.anisotropy = 8;
-			texture.wrapS = THREE.RepeatWrapping;
-			texture.wrapT = THREE.RepeatWrapping;
-			mat.map = texture;
-			mat.color.set(0xffffff);
-			mat.metalness = 0.0;
-			mat.roughness = 0.9;
-			mat.envMapIntensity = 0.2;
-		} else {
-			mat.color.set(Constants.BALL_COLOR);
-		}
-
-		mat.needsUpdate = true;
+	setSkinStyle(styleIndex) {
+		return this.#skin.setStyle(styleIndex);
 	}
 
 	get visual() {
