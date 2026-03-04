@@ -14,28 +14,6 @@ const socket = new PongSocketClient();
 initChat(socket);
 socket.connect();
 
-const escapeMenu = document.getElementById('escape-menu');
-const escapeMenuResume = document.getElementById('escape-menu__resume');
-const escapeMenuExit = document.getElementById('escape-menu__exit');
-
-function setEscapeMenuOpen(isOpen) {
-	escapeMenu.classList.toggle('is-open', isOpen);
-	escapeMenu.setAttribute('aria-hidden', String(!isOpen));
-}
-
-window.addEventListener('keydown', (event) => {
-	if (event.key !== 'Escape') return;
-	setEscapeMenuOpen(!escapeMenu.classList.contains('is-open'));
-});
-
-escapeMenuResume.addEventListener('click', () => {
-	setEscapeMenuOpen(false);
-});
-
-escapeMenuExit.addEventListener('click', () => {
-	window.location.href = '/';
-});
-
 const animatedScene = new AnimatedScene(socket);
 window.animatedScene = animatedScene;
 
@@ -130,6 +108,29 @@ animatedScene.registerGameObject(
 					: `${this.socket.lastLatencyMs.toFixed(0)} ms`;
 			const fpsText = dt > 0 ? `${(1 / dt).toFixed(0)}` : '--';
 			this.self.textContent = `FPS: ${fpsText}   Ping: ${pingText}`;
+		}
+	}),
+	new GameObjectCustom('escapeMenu', {
+		component: document.getElementById('escape-menu'),
+		resumeButton: document.getElementById('escape-menu__resume'),
+		exitButton: document.getElementById('escape-menu__exit'),
+		setOpen(isOpen) {
+			this.component.classList.toggle('is-open', isOpen);
+			this.component.setAttribute('aria-hidden', String(!isOpen));
+		},
+		init() {
+			window.addEventListener('keydown', (event) => {
+				if (event.key !== 'Escape') return;
+				this.setOpen(!this.component.classList.contains('is-open'));
+			});
+
+			this.resumeButton.addEventListener('click', () => {
+				this.setOpen(false);
+			});
+
+			this.exitButton.addEventListener('click', () => {
+				window.location.href = '/';
+			});
 		}
 	}),
 	new GameObjectCustom('waitingScreen', {
