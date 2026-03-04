@@ -174,7 +174,7 @@ animatedScene.registerGameObject(
 
 			if (animatedScene.isHost) {
 				this.startButtion.textContent = 'Start Game';
-				this.startButtion.disabled = this.players.size >= 2;
+				this.startButtion.disabled = this.players.size < 2;
 			} else {
 				this.startButtion.textContent = 'Waiting for host to start the game';
 				this.startButtion.disabled = true;
