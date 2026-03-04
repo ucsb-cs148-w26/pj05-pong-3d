@@ -24,6 +24,7 @@ db.serialize(() => {
 			email TEXT NOT NULL UNIQUE,
 			display_name TEXT,
 			avatar_url TEXT,
+			elo INTEGER NOT NULL DEFAULT 1000,
 			created_at TEXT NOT NULL DEFAULT (datetime('now')),
 			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 		)`,
