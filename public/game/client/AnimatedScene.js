@@ -74,14 +74,9 @@ export class AnimatedScene extends Scene {
 		this.registerGameObject(p1, p2);
 
 		this.registerGameObject(
-			new CameraController(
-				'cameraController',
-				null,
-				this.getGameObject('ball'),
-				{
-					offset: new THREE.Vector3(-4, 3, 0)
-				}
-			)
+			new CameraController('cameraController', null, {
+				offset: new THREE.Vector3(-4, 3, 0)
+			})
 		);
 	}
 
