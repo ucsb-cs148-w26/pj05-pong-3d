@@ -10,6 +10,7 @@ import './db/db.js';
 
 import { initializeGoalExplosions } from './db/initializeGoalExplosions.js';
 import { initializeBallSkins } from './db/initializeBallSkins.js';
+import { initializePaddleSkins } from './db/initializePaddleSkins.js';
 
 const PORT = process.env.PORT || 3000;
 
@@ -24,6 +25,7 @@ const { parseSession } = setupAuth(app);
 
 initializeGoalExplosions();
 initializeBallSkins();
+initializePaddleSkins();
 
 const server = app.listen(PORT);
 
