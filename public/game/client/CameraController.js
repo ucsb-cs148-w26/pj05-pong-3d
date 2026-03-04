@@ -62,5 +62,12 @@ export class CameraController extends GameObjectBase {
 
 		this._updateShake(dt);
 		this.camera.position.add(this._shakeOffset);
+
+		// FIXME
+		if (this.camera.position.x < 0) {
+			this.camera.rotation.y = -Math.PI / 2;
+		} else {
+			this.camera.rotation.y = Math.PI / 2;
+		}
 	}
 }
