@@ -11,6 +11,7 @@ export class Ball extends BallCommon {
 	#skin = null;
 	#goalSpawner = null;
 	#explosionId = null;
+	scene = null;
 
 	constructor(key, spawner) {
 		super(key);
@@ -20,8 +21,6 @@ export class Ball extends BallCommon {
 		this.#goalSpawner = spawner;
 
 		this.body.col.onCollisionCallback = ((me, other) => {
-			if (this.#explosionId === null) return;
-
 			const identifier = other.ballIdentifier;
 			if (
 				identifier === undefined ||
@@ -30,14 +29,26 @@ export class Ball extends BallCommon {
 				return;
 
 			const pos = me.x;
-			this.#goalSpawner.triggerGoalAnimation(
-				this.#explosionId,
-				null,
-				new THREE.Vector3(pos.x, pos.y, pos.z)
-			);
+			if (this.#explosionId !== null) {
+				this.#goalSpawner.triggerGoalAnimation(
+					this.#explosionId,
+					null,
+					new THREE.Vector3(pos.x, pos.y, pos.z)
+				);
+			}
+
+			if (!this.scene?.isReplaying) {
+				this.scene
+					.getGameObject('cameraController')
+					?.addShake(0.7, 0.35);
+			}
 		}).bind(this);
 
 		this.#loadEquipped();
+	}
+
+	init(scene) {
+		this.scene = scene;
 	}
 
 	async #loadEquipped() {
