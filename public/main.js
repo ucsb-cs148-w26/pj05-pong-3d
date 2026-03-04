@@ -69,13 +69,18 @@ animatedScene.registerGameObject(
 			document.body.appendChild(this.self);
 		},
 		update() {
-			const livesText =
-				animatedScene.state.players.size > 0
-					? Array.from(animatedScene.state.players)
-							.map(([username, player]) => `${username}: ${player.lives}`)
-							.join('   ')
-					: 'Waiting for players...';
-			this.self.textContent = livesText;
+			// works for two players only
+			const selfPlayer = animatedScene.state.players.get(
+				animatedScene.username
+			);
+			const otherPlayer = animatedScene.state.players
+				.values()
+				.find((p) => p.username !== animatedScene.username);
+			if (selfPlayer && otherPlayer) {
+				this.self.textContent = `${selfPlayer.lives} - ${otherPlayer.lives}`;
+			} else {
+				this.self.textContent = 'Waiting for players';
+			}
 		}
 	}),
 	new GameObjectCustom('hudStats', {
@@ -166,22 +171,14 @@ animatedScene.registerGameObject(
 						`<span style="color: ${name === animatedScene.host ? 'yellow' : 'white'}" >${name}</span>`
 				)
 				.join('');
-<<<<<<< HEAD
 
-			const isHost = animatedScene.isHost;
-			const canHostStart = isHost && this.players.size >= 2;
-
-			if (isHost) {
+			if (animatedScene.isHost) {
 				this.startButtion.textContent = 'Start Game';
-				this.startButtion.disabled = !canHostStart;
+				this.startButtion.disabled = this.players.size >= 2;
 			} else {
 				this.startButtion.textContent = 'Waiting for host to start the game';
 				this.startButtion.disabled = true;
 			}
-=======
-			this.startButtion.disabled =
-				this.players.size < 2 || !animatedScene.isHost;
->>>>>>> main
 		}
 	})
 );
