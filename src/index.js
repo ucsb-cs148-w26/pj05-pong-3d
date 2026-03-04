@@ -24,6 +24,7 @@ const { parseSession } = setupAuth(app);
 
 initializeGoalExplosions();
 initializeBallSkins();
+app.get('/map-upload', (req, res) => res.render('map-upload'));
 
 const server = app.listen(PORT);
 
