@@ -21,6 +21,7 @@ export class AnimatedScene extends Scene {
 
 		this.host = null;
 		this.username = null;
+		this.gameOver = null;
 		this.renderer = new THREE.WebGLRenderer();
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		this.renderer.shadowMap.enabled = true;
@@ -185,10 +186,12 @@ export class AnimatedScene extends Scene {
 		this.state.physics.importState(msg.physics);
 
 		this.#ball.enabled = msg.active;
+		this.gameOver = msg.gameOver ?? null;
 
-		for (const [username, score] of Object.entries(msg.gameInfo)) {
+		for (const [username, gameInfo] of Object.entries(msg.gameInfo)) {
 			const player = this.state.players.get(username);
-			if (player) player.score = score;
+			if (!player) continue;
+			player.lives = gameInfo.lives;
 		}
 
 		const controller = this.state.players.get(this.username).paddle.controller;

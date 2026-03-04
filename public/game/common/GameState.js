@@ -3,7 +3,7 @@ import { PhysicsEngine } from '../../physics/engine.js';
 export class Player {
 	constructor(username, paddle) {
 		this.username = username;
-		this.score = 0;
+		this.lives = 3;
 		this.paddle = paddle;
 	}
 }

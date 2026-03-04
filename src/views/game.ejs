@@ -100,6 +100,34 @@
 				border-bottom: none;
 			}
 
+			#waiting__scoreboard {
+				margin: 0 0 1rem 0;
+				color: white;
+				font-size: 1rem;
+				line-height: 1.5;
+			}
+
+			#waiting__leaveButton {
+				width: 100%;
+				padding: 0.75rem;
+				font-size: 1rem;
+				border-radius: 8px;
+				border: 1px solid rgba(255,255,255,0.2);
+				background: rgba(235, 87, 87, 0.35);
+				color: white;
+				cursor: pointer;
+				transition: all 0.2s ease;
+			}
+
+			#waiting__leaveButton:hover {
+				background: rgba(235, 87, 87, 0.5);
+				transform: translateY(-1px);
+			}
+
+			#waiting__leaveButton:active {
+				transform: translateY(0);
+			}
+
 			#startButton {
 				width: 100%;
 				padding: 0.75rem;
@@ -137,7 +165,11 @@
 			<div id="waiting__card">
 				<p id="waiting__title">Waiting for players...</p>
 				<div id="waiting__players"></div>
+				<div id="waiting__scoreboard" style="display: none"></div>
 				<button id="startButton" disabled>Start Game</button>
+				<button id="waiting__leaveButton" style="display: none">
+					Leave Lobby
+				</button>
 			</div>
 		</div>
 
