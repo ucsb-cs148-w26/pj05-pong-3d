@@ -196,9 +196,7 @@ export class AnimatedScene extends Scene {
 			if (player) player.score = score;
 		}
 
-		const selfPlayer = this.state.players.get(this.username);
-		if (!selfPlayer) return;
-		const controller = selfPlayer.paddle.controller;
+		const controller = this.state.players.get(this.username).paddle.controller;
 
 		// prediction!
 		let idx = -1;

@@ -60,24 +60,13 @@ export default class PongSocketClient {
 			this.send(reply);
 		};
 
-		this.#ws.onclose = (event) => {
+		this.#ws.onclose = () => {
+			console.log('[ws] closed - will retry');
 			if (this.#pingInterval) {
 				clearInterval(this.#pingInterval);
 				this.#pingInterval = null;
 			}
 
-			if (this.#manualClose) {
-				console.log('[ws] closed intentionally');
-				return;
-			}
-
-			if (event.code === 4001) {
-				console.log('[ws] kicked by host');
-				window.location = '/';
-				return;
-			}
-
-			console.log('[ws] closed - will retry');
 			this.#reconnectTimer = setTimeout(this.connect.bind(this), 1000);
 		};
 
@@ -106,21 +95,6 @@ export default class PongSocketClient {
 
 	addHandler(type, func) {
 		this.#handlers.set(type, func);
-	}
-
-	disconnect(code = 1000, reason = 'Leaving game') {
-		this.#manualClose = true;
-		if (this.#reconnectTimer) {
-			clearTimeout(this.#reconnectTimer);
-			this.#reconnectTimer = null;
-		}
-		if (this.#pingInterval) {
-			clearInterval(this.#pingInterval);
-			this.#pingInterval = null;
-		}
-		if (this.#ws && this.#ws.readyState <= WebSocket.OPEN) {
-			this.#ws.close(code, reason);
-		}
 	}
 
 	get lastLatencyMs() {
