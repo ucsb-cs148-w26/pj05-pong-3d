@@ -47,59 +47,124 @@ animatedScene.registerGameObject(
 			this.visual.shadow.mapSize.set(1024, 1024);
 		}
 	}),
-	new GameObjectCustom('infoDiv', {
+	new GameObjectCustom('hudScore', {
+		self: document.createElement('div'),
+		init() {
+			this.self.id = 'hudScore';
+			this.self.style.position = 'absolute';
+			this.self.style.top = '16px';
+			this.self.style.left = '50%';
+			this.self.style.transform = 'translateX(-50%)';
+			this.self.style.color = 'white';
+			this.self.style.fontFamily =
+				'system-ui, -apple-system, Segoe UI, Roboto, sans-serif';
+			this.self.style.fontSize = '22px';
+			this.self.style.fontWeight = '700';
+			this.self.style.padding = '8px 14px';
+			this.self.style.borderRadius = '12px';
+			this.self.style.background = 'rgba(0,0,0,0.35)';
+			this.self.style.backdropFilter = 'blur(6px)';
+			this.self.style.pointerEvents = 'none';
+			this.self.style.whiteSpace = 'nowrap';
+			document.body.appendChild(this.self);
+		},
+		update() {
+			// works for two players only
+			const selfPlayer = animatedScene.state.players.get(
+				animatedScene.username
+			);
+			const otherPlayer = animatedScene.state.players
+				.values()
+				.find((p) => p.username !== animatedScene.username);
+			if (selfPlayer && otherPlayer) {
+				this.self.textContent = `${selfPlayer.lives} - ${otherPlayer.lives}`;
+			} else {
+				this.self.textContent = 'Waiting for players';
+			}
+		}
+	}),
+	new GameObjectCustom('hudStats', {
 		self: document.createElement('div'),
 		socket,
 		init() {
+			this.self.id = 'hudStats';
 			this.self.style.position = 'absolute';
-			this.self.style.textAlign = 'right';
 			this.self.style.top = '10px';
 			this.self.style.right = '10px';
-			this.self.style.color = 'white';
+			this.self.style.color = 'rgba(255,255,255,0.85)';
 			this.self.style.fontFamily = 'monospace';
+			this.self.style.fontSize = '12px';
+			this.self.style.padding = '6px 10px';
+			this.self.style.borderRadius = '10px';
+			this.self.style.background = 'rgba(0,0,0,0.25)';
+			this.self.style.backdropFilter = 'blur(6px)';
+			this.self.style.pointerEvents = 'none';
 			document.body.appendChild(this.self);
 		},
 		update(dt) {
-			const ball = animatedScene.getGameObject('ball');
 			const pingText =
 				this.socket?.lastLatencyMs == null
 					? '-- ms'
 					: `${this.socket.lastLatencyMs.toFixed(0)} ms`;
-			const scoresText =
-				animatedScene.state.players.size > 0
-					? Array.from(animatedScene.state.players)
-							.map(([username, player]) => `${username}: ${player.score}`)
-							.join(', ')
-					: 'N/A';
-			this.self.innerText = `Control with WASD
-				Camera tracks the ball
-				Score: ${scoresText}
-				Ball Speed: ${ball.body.v.norm().toFixed(2)}
-
-				Camera: ${animatedScene.camera.position.x.toFixed(1)}, ${animatedScene.camera.position.y.toFixed(1)}, ${animatedScene.camera.position.z.toFixed(1)}
-
-                FPS: ${(1 / dt).toFixed(0)}
-				Ping: ${pingText}`;
+			const fpsText = dt > 0 ? `${(1 / dt).toFixed(0)}` : '--';
+			this.self.textContent = `FPS: ${fpsText}   Ping: ${pingText}`;
 		}
 	}),
 	new GameObjectCustom('waitingScreen', {
 		component: document.getElementById('waiting'),
 		playerListDisplay: document.getElementById('waiting__players'),
+		scoreboardDisplay: document.getElementById('waiting__scoreboard'),
+		lobbyInfoDisplay: document.getElementById('lobby-info'),
 		startButtion: document.getElementById('startButton'),
+		leaveLobbyButton: document.getElementById('waiting__leaveButton'),
 		players: animatedScene.state.players,
 		socket,
 		init() {
 			this.startButtion.addEventListener('click', () => {
 				socket.send({ type: 'start' });
 			});
+
+			this.leaveLobbyButton.addEventListener('click', async () => {
+				window.location.href = '/';
+			});
 		},
 		update(dt) {
-			if (animatedScene.enabled) {
+			const isGameOver = animatedScene.gameOver !== null;
+			if (animatedScene.enabled && !isGameOver) {
 				this.component.style.display = 'none';
 				return;
 			}
 
 			this.component.style.display = 'flex';
+			if (isGameOver) {
+				const { loser, winner } = animatedScene.gameOver;
+				document.getElementById('waiting__title').innerText = `${
+					winner ?? 'A player'
+				} won`;
+				this.lobbyInfoDisplay.style.display = 'none';
+				this.playerListDisplay.style.display = 'none';
+				this.startButtion.style.display = 'none';
+				this.leaveLobbyButton.style.display = 'block';
+				this.scoreboardDisplay.style.display = 'block';
+
+				const lobbyMembers = Array.from(this.players.keys());
+				const finalLives = Array.from(this.players.entries())
+					.map(
+						([name, player]) =>
+							`<div>${name}: ${player.lives} ${name === winner ? '(Winner)' : ''}</div>`
+					)
+					.join('');
+				this.scoreboardDisplay.innerHTML = `<div><strong>Lobby Members:</strong> ${lobbyMembers.join(', ')}</div><div style="margin-top: 0.5rem"><strong>Final Lives:</strong></div>${finalLives}`;
+				return;
+			}
+
+			document.getElementById('waiting__title').innerText =
+				'Waiting for players...';
+			this.lobbyInfoDisplay.style.display = 'block';
+			this.playerListDisplay.style.display = 'block';
+			this.startButtion.style.display = 'block';
+			this.leaveLobbyButton.style.display = 'none';
+			this.scoreboardDisplay.style.display = 'none';
 			this.playerListDisplay.innerHTML = Array.from(this.players.keys())
 				.map(
 					(name) =>
@@ -107,8 +172,13 @@ animatedScene.registerGameObject(
 				)
 				.join('');
 
-			this.startButtion.disabled =
-				this.players.size < 2 || !animatedScene.isHost;
+			if (animatedScene.isHost) {
+				this.startButtion.textContent = 'Start Game';
+				this.startButtion.disabled = this.players.size >= 2;
+			} else {
+				this.startButtion.textContent = 'Waiting for host to start the game';
+				this.startButtion.disabled = true;
+			}
 		}
 	})
 );
