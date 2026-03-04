@@ -14,6 +14,28 @@ const socket = new PongSocketClient();
 initChat(socket);
 socket.connect();
 
+const escapeMenu = document.getElementById('escape-menu');
+const escapeMenuResume = document.getElementById('escape-menu__resume');
+const escapeMenuExit = document.getElementById('escape-menu__exit');
+
+function setEscapeMenuOpen(isOpen) {
+	escapeMenu.classList.toggle('is-open', isOpen);
+	escapeMenu.setAttribute('aria-hidden', String(!isOpen));
+}
+
+window.addEventListener('keydown', (event) => {
+	if (event.key !== 'Escape') return;
+	setEscapeMenuOpen(!escapeMenu.classList.contains('is-open'));
+});
+
+escapeMenuResume.addEventListener('click', () => {
+	setEscapeMenuOpen(false);
+});
+
+escapeMenuExit.addEventListener('click', () => {
+	window.location.href = '/';
+});
+
 const animatedScene = new AnimatedScene(socket);
 window.animatedScene = animatedScene;
 
