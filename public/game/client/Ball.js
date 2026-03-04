@@ -38,9 +38,7 @@ export class Ball extends BallCommon {
 			}
 
 			if (!this.scene?.isReplaying) {
-				this.scene
-					.getGameObject('cameraController')
-					?.addShake(5, 1000);
+				this.scene.getGameObject('cameraController')?.addShake(0.5, 1000);
 			}
 		}).bind(this);
 
