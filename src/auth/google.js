@@ -57,10 +57,14 @@ export default function setupGoogleStrategy() {
 
 										initializeUserDefaults(userId)
 											.then(() => {
-												db.get('SELECT * FROM users WHERE id = ?', [userId], (fetchErr, newUser) => {
-													if (fetchErr) return done(fetchErr);
-													return done(null, newUser);
-												});
+												db.get(
+													'SELECT * FROM users WHERE id = ?',
+													[userId],
+													(fetchErr, newUser) => {
+														if (fetchErr) return done(fetchErr);
+														return done(null, newUser);
+													}
+												);
 											})
 											.catch(done);
 									}

@@ -30,10 +30,9 @@ export async function initializeUserDefaults(userId) {
 			[userId]
 		);
 
-		await runAsync(
-			`INSERT OR IGNORE INTO user_equipped (user_id) VALUES (?)`,
-			[userId]
-		);
+		await runAsync(`INSERT OR IGNORE INTO user_equipped (user_id) VALUES (?)`, [
+			userId
+		]);
 
 		const defaults = await getAsync(
 			`SELECT
@@ -44,7 +43,11 @@ export async function initializeUserDefaults(userId) {
 			 WHERE is_default = 1`
 		);
 
-		if (!defaults?.paddle_skin_id || !defaults?.ball_skin_id || !defaults?.goal_explosion_id) {
+		if (
+			!defaults?.paddle_skin_id ||
+			!defaults?.ball_skin_id ||
+			!defaults?.goal_explosion_id
+		) {
 			throw new Error(
 				'Missing default items in items table (one or more kinds has no is_default=1).'
 			);
