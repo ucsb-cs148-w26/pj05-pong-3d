@@ -89,13 +89,28 @@ export default class LobbyState {
 		return this.codeToLobby.get(code);
 	}
 
+	isLobbyFull(lobby) {
+		return lobby.members.size >= 2;
+	}
+
+	isLobbyInProgress(lobby) {
+		const scene = this.scenes.get(lobby.lobbyId);
+		return scene?.isInProgress() === true;
+	}
+
+	isLobbyJoinable(lobby) {
+		return !this.isLobbyFull(lobby) && !this.isLobbyInProgress(lobby);
+	}
+
 	listLobbies() {
-		return Array.from(this.lobbies.values()).map((lobby) => ({
-			lobbyId: lobby.lobbyId,
-			name: lobby.name,
-			memberCount: lobby.members.size,
-			code: lobby.code
-		}));
+		return Array.from(this.lobbies.values())
+			.filter((lobby) => this.isLobbyJoinable(lobby))
+			.map((lobby) => ({
+				lobbyId: lobby.lobbyId,
+				name: lobby.name,
+				memberCount: lobby.members.size,
+				code: lobby.code
+			}));
 	}
 
 	joinLobby(lobbyId, clientId) {
