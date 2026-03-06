@@ -165,11 +165,14 @@ animatedScene.registerGameObject(
 			this.startButtion.style.display = 'block';
 			this.leaveLobbyButton.style.display = 'none';
 			this.scoreboardDisplay.style.display = 'none';
-			this.playerListDisplay.innerHTML = Array.from(this.players.keys())
-				.map(
-					(name) =>
-						`<span style="color: ${name === animatedScene.host ? 'yellow' : 'white'}" >${name}</span>`
-				)
+			this.playerListDisplay.innerHTML = Array.from(this.players.entries())
+				.map(([name, player]) => {
+					const isHost = name === animatedScene.host;
+					const elo = player?.elo ?? 1000;
+					return `<span style="color: ${isHost ? 'yellow' : 'white'}">
+						${name} (${elo})
+					</span>`;
+				})
 				.join('');
 
 			if (animatedScene.isHost) {

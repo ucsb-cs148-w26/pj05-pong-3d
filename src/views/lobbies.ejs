@@ -89,7 +89,7 @@
 			<% if (user) { %>
 				<div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;">
 					<button onclick="window.location='/user'" style="width: auto; padding: 0.5rem 1rem;">
-						Logged in as <%= user.display_name %> — My Profile
+						Logged in as <%= user.display_name %> (<%= user.elo %>) — My Profile
 					</button>
 					<button onclick="logout()" style="width: auto; padding: 0.5rem 1rem;">
 						Log out
