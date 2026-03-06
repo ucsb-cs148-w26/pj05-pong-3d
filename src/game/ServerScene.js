@@ -103,7 +103,7 @@ export default class ServerScene extends Scene {
 		this.#interval = null;
 	}
 
-	isInProgress() {
+	get inProgress() {
 		return this.#ball.enabled;
 	}
 

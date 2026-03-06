@@ -95,7 +95,7 @@ export default class LobbyState {
 
 	isLobbyInProgress(lobby) {
 		const scene = this.scenes.get(lobby.lobbyId);
-		return scene?.isInProgress() === true;
+		return scene?.inProgress;
 	}
 
 	isLobbyJoinable(lobby) {
