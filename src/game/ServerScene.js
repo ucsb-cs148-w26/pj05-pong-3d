@@ -8,12 +8,29 @@ import { BallServer } from './BallServer.js';
 
 const SYNC_INTERVAL = 5;
 const INITIAL_LIVES = 3;
+const WIN_REWARD_POOL = [
+	{ id: 'ball_skin:1', kind: 'ball_skin', itemKey: '1', displayName: 'Ball Skin 1' },
+	{
+		id: 'goal_explosion:1',
+		kind: 'goal_explosion',
+		itemKey: '1',
+		displayName: 'Goal Explosion 1'
+	},
+	{ id: 'ball_skin:2', kind: 'ball_skin', itemKey: '2', displayName: 'Ball Skin 2' },
+	{
+		id: 'goal_explosion:2',
+		kind: 'goal_explosion',
+		itemKey: '2',
+		displayName: 'Goal Explosion 2'
+	}
+];
 
 export default class ServerScene extends Scene {
 	#interval = null;
 	#socket = null;
 	#ball = null;
 	#gameOver = null;
+	#unlockedRewardsByPlayer = new Map();
 
 	constructor(socket) {
 		super(new GameState());
@@ -34,8 +51,9 @@ export default class ServerScene extends Scene {
 			const winner = [...this.state.players.values()].find(
 				(player) => player.username !== loser
 			)?.username;
+			const reward = winner ? this.#awardWinnerReward(winner) : null;
 
-			this.#gameOver = { loser, winner };
+			this.#gameOver = { loser, winner, reward };
 			this.#ball.enabled = false;
 		});
 
@@ -174,5 +192,23 @@ export default class ServerScene extends Scene {
 
 	#recvMove(socket, username, ws, msg) {
 		this.state.players.get(username)?.paddle.controller.enqueueInput(msg);
+	}
+
+	#awardWinnerReward(winnerUsername) {
+		let unlockedRewards = this.#unlockedRewardsByPlayer.get(winnerUsername);
+		if (!unlockedRewards) {
+			unlockedRewards = new Set();
+			this.#unlockedRewardsByPlayer.set(winnerUsername, unlockedRewards);
+		}
+
+		const lockedRewards = WIN_REWARD_POOL.filter(
+			(reward) => !unlockedRewards.has(reward.id)
+		);
+		if (lockedRewards.length === 0) return null;
+
+		const randomIdx = Math.floor(Math.random() * lockedRewards.length);
+		const grantedReward = lockedRewards[randomIdx];
+		unlockedRewards.add(grantedReward.id);
+		return grantedReward;
 	}
 }
