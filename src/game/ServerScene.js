@@ -103,6 +103,10 @@ export default class ServerScene extends Scene {
 		this.#interval = null;
 	}
 
+	get inProgress() {
+		return this.#ball.enabled;
+	}
+
 	#onConnect(username) {
 		// TODO: n-player support
 		if (this.state.players.size >= 2) return;

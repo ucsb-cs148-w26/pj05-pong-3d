@@ -51,6 +51,14 @@ export default function createLobbyRouter(server, parseSession) {
 			return res.status(404).send('Lobby not found');
 		}
 
+		if (lobbyState.isLobbyFull(lobby)) {
+			return res.status(400).send('Lobby is full');
+		}
+
+		if (lobbyState.isLobbyInProgress(lobby)) {
+			return res.status(400).send('Game already in progress');
+		}
+
 		const username = req.user.display_name;
 		if (lobby.members.get(username)) {
 			return res.status(400).send('Username is taken');
