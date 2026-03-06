@@ -29,6 +29,15 @@ export default function createUserRouter() {
 			});
 
 		try {
+			const paddleSkins = await dbAll(
+				`SELECT i.id, i.item_key, i.kind, i.display_name, u.unlocked_at
+				FROM items i
+				LEFT JOIN user_unlocks u
+				ON i.id = u.item_id AND u.user_id = ?
+				WHERE i.kind = 'paddle_skin'`,
+				[userId]
+			);
+
 			const goalExplosions = await dbAll(
 				`SELECT i.id, i.item_key, i.kind, i.display_name, u.unlocked_at
 				FROM items i
@@ -74,6 +83,7 @@ export default function createUserRouter() {
 				user: req.user,
 				unlocks,
 				equipped: equipped || {},
+				paddleSkins,
 				goalExplosions,
 				ballSkins
 			});
