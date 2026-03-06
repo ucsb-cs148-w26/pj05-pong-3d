@@ -110,6 +110,29 @@ animatedScene.registerGameObject(
 			this.self.textContent = `FPS: ${fpsText}   Ping: ${pingText}`;
 		}
 	}),
+	new GameObjectCustom('escapeMenu', {
+		component: document.getElementById('escape-menu'),
+		resumeButton: document.getElementById('escape-menu__resume'),
+		exitButton: document.getElementById('escape-menu__exit'),
+		setOpen(isOpen) {
+			this.component.classList.toggle('is-open', isOpen);
+			this.component.setAttribute('aria-hidden', String(!isOpen));
+		},
+		init() {
+			window.addEventListener('keydown', (event) => {
+				if (event.key !== 'Escape') return;
+				this.setOpen(!this.component.classList.contains('is-open'));
+			});
+
+			this.resumeButton.addEventListener('click', () => {
+				this.setOpen(false);
+			});
+
+			this.exitButton.addEventListener('click', () => {
+				window.location.href = '/';
+			});
+		}
+	}),
 	new GameObjectCustom('waitingScreen', {
 		component: document.getElementById('waiting'),
 		playerListDisplay: document.getElementById('waiting__players'),
