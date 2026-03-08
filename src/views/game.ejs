@@ -101,16 +101,6 @@
 				border-bottom: none;
 			}
 
-			#waiting__escHint {
-				position: absolute;
-				top: 0.75rem;
-				right: 0.75rem;
-				color: rgba(255, 255, 255, 0.8);
-				font-size: 0.8rem;
-				font-family: monospace;
-				letter-spacing: 0.02em;
-			}
-
 			#waiting__scoreboard {
 				margin: 0 0 1rem 0;
 				color: white;
@@ -233,7 +223,6 @@
 
 		<div id="waiting">
 			<div id="waiting__card">
-				<div id="waiting__escHint">Press [Esc] to exit lobby</div>
 				<p id="waiting__title">Waiting for players...</p>
 				<div id="waiting__players"></div>
 				<div id="waiting__scoreboard" style="display: none"></div>
@@ -248,7 +237,7 @@
 			Join Code<br /><span style="font-size: 2rem"><%= code %></span>
 		</div>
 
-		<div id="escape-menu" aria-hidden="true">
+		<div id="escape-menu">
 			<div id="escape-menu__card" role="dialog" aria-modal="true" aria-labelledby="escape-menu__title">
 				<h2 id="escape-menu__title">Menu</h2>
 				<div id="escape-menu__actions">

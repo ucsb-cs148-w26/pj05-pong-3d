@@ -116,7 +116,6 @@ animatedScene.registerGameObject(
 		exitButton: document.getElementById('escape-menu__exit'),
 		setOpen(isOpen) {
 			this.component.classList.toggle('is-open', isOpen);
-			this.component.setAttribute('aria-hidden', String(!isOpen));
 		},
 		init() {
 			window.addEventListener('keydown', (event) => {
