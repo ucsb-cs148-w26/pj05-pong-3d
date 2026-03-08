@@ -10,175 +10,37 @@
 		}
 	</script>
 	<meta charset="utf-8" />
-	<title><%= user.display_name || user.email %> • Profile</title>
+	<title><%= user.display_name || user.email %>’s Profile • 3D Pong</title>
 
-	<style>
-		* { box-sizing: border-box; }
-
-		:root{
-			--text: rgba(255, 255, 255, 0.92);
-			--border: rgba(255,255,255,.18);
-			--border-strong: rgba(255,255,255,.2);
-			--card: rgba(255,255,255,.06);
-			--card-2: rgba(255,255,255,.08);
-			--accent: rgb(0, 229, 255);
-			--accent-bg: rgba(0,229,255,.12);
-		}
-
-		body {
-			margin: 0 auto;
-			padding: 3rem;
-			width: 80ch;
-			max-width: 100%;
-			font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-			color: var(--text);
-			background: linear-gradient(180deg,#0b1020,#0a1226);
-		}
-
-		h1, h2 { margin-top: 0; }
-		h1 { font-size: 3rem; margin-bottom: 1.2rem; }
-
-		.card {
-			background: var(--card);
-			border: 0.1rem solid rgba(255,255,255,.10);
-			border-radius: 1.1rem;
-			box-shadow: 0 0.75rem 2.25rem rgba(0,0,0,.35);
-			padding: 1.25rem;
-			margin-bottom: 1rem;
-		}
-
-		.btn {
-			cursor: pointer;
-			padding: 0.5rem 1rem;
-			border-radius: 0.5rem;
-			border: 0.1rem solid var(--border-strong);
-			background: var(--card-2);
-			color: var(--text);
-		}
-		.btn:hover { background: var(--accent-bg); }
-		.btn:focus-visible { box-shadow: 0 0 0 0.2rem rgba(0, 229, 255, 0.45); }
-
-		.input {
-			padding: 0.5rem;
-			border-radius: 0.5rem;
-			border: 0.1rem solid var(--border-strong);
-			background: var(--card-2);
-			color: #fff;
-			width: 200px;
-		}
-
-		.muted { color: rgba(255,255,255,.85); }
-
-		.avatar {
-			width: 100px;
-			height: 100px;
-			border-radius: 50%;
-			object-fit: cover;
-			margin-bottom: 1rem;
-		}
-
-		.actions {
-			margin-top: 1rem;
-			text-align: center;
-			display: flex;
-			gap: 0.5rem;
-			justify-content: center;
-			flex-wrap: wrap;
-		}
-
-		.back-link {
-			display: inline-block;
-			margin-bottom: 1rem;
-			padding: 0.5rem 1rem;
-			border-radius: 0.5rem;
-			border: 0.1rem solid var(--border-strong);
-			background: var(--card-2);
-			color: var(--text);
-			text-decoration: none;
-		}
-		.back-link:hover { background: var(--accent-bg); }
-		.back-link:focus-visible { box-shadow: 0 0 0 0.2rem rgba(0, 229, 255, 0.45); }
-
-		.item-list { display: flex; flex-wrap: wrap; gap: 0.5rem; }
-		.item {
-			font: inherit;
-			color: inherit;
-			appearance: none;
-			-webkit-appearance: none;
-			border: 0.1rem solid var(--border);
-			border-radius: 0.75rem;
-			padding: 0.75rem;
-			background: var(--card-2);
-			min-width: 120px;
-			text-align: center;
-			cursor: pointer;
-			transition: transform .08s, background .15s, opacity .15s, border-color .15s;
-		}
-		.item.locked,
-		.item:disabled {
-			opacity: 0.35;
-			cursor: not-allowed;
-		}
-		.item:hover:not(.locked):not(:disabled) {
-			transform: translateY(-2px);
-			background: var(--accent-bg);
-		}
-		.item:focus-visible { box-shadow: 0 0 0 0.2rem rgba(0, 229, 255, 0.45); }
-
-		.goal-layout { display: flex; gap: 1rem; align-items: flex-start; flex-wrap: wrap; }
-		.goal-list { flex: 1 1 320px; }
-		.goal-preview {
-			flex: 0 0 180px;
-			background: rgba(255,255,255,.05);
-			border: 0.1rem solid rgba(255,255,255,.12);
-			border-radius: 0.9rem;
-			padding: 0.75rem;
-		}
-		.goal-preview-stage {
-			position: relative;
-			width: 100%;
-			aspect-ratio: 1 / 1;
-			border-radius: 0.8rem;
-			border: 0.1rem solid rgba(255,255,255,.16);
-			background: radial-gradient(circle at center, rgba(255,255,255,.16), rgba(255,255,255,.03) 65%);
-			overflow: hidden;
-		}
-		.goal-preview-stage canvas {
-			display: block;
-			width: 100%;
-			height: 100%;
-		}
-		.goal-preview-label {
-			margin-top: 0.55rem;
-			font-size: 0.9rem;
-			color: rgba(255,255,255,.85);
-		}
-	</style>
+	<link rel="stylesheet" href="/index.css" />
+	<link rel="stylesheet" href="/user.css" />
 </head>
 <body>
-	<a class="back-link" href="/">Back</a>
+	<a class="link-button" href="/">Back</a>
+	<h1>Profile</h1>
+
 	<div class="card">
-		<h1>Profile</h1>
+		<h2>User Information</h2>
 
 		<% if (user.avatar_url) { %>
-			<img src="<%= user.avatar_url %>" alt="Avatar" class="avatar" style="width: 100px; height: 100px; border-radius: 50%; margin-bottom: 1rem;">
+			<img src="<%= user.avatar_url %>" alt="Avatar" class="avatar" />
 		<% } %>
 
-		<p>
-			<strong>Name:</strong>
+		<div style="display: flex; gap: 0.5rem; align-items: center">
+            <label for="display-name"><strong>Name:</strong></label>
 			<input
 				type="text"
 				id="display-name"
 				value="<%= user.display_name || '' %>"
 				placeholder="Enter display name"
-				style="padding: 0.5rem; border-radius: 0.5rem; border: 1px solid rgba(255,255,255,0.2); background: rgba(255,255,255,0.08); color: white; width: 200px;"
+				style="flex-grow: 1;"
 			/>
-			<button id="update-display-name" style="padding: 0.5rem 1rem; border-radius: 0.5rem; margin-left: 0.5rem;">
+			<button id="update-display-name">
 				Update Name
 			</button>
-		</p>
+		</div>
 
-		<p id="update-msg" style="color: lightgreen; margin-top: 0.5rem;"></p>
+		<p id="update-msg"></p>
 
 		<p><strong>Email:</strong> <%= user.email %></p>
 	</div>
@@ -263,13 +125,13 @@
 	</div>
 
 	<div style="margin-top:1rem; text-align:center; display: flex; gap: 0.5rem; justify-content: center;">
-		<button id="debug-unlock-paddle" style="padding:0.5rem 1rem; border-radius:0.5rem;">
+		<button id="debug-unlock-paddle">
 			Debug: Unlock Random Paddle Skin
 		</button>
-		<button id="debug-unlock-ball" style="padding:0.5rem 1rem; border-radius:0.5rem;">
+		<button id="debug-unlock-ball">
 			Debug: Unlock Random Ball Skin
 		</button>
-		<button id="debug-unlock-goal" style="padding:0.5rem 1rem; border-radius:0.5rem;">
+		<button id="debug-unlock-goal">
 			Debug: Unlock Random Goal Explosion
 		</button>
 	</div>

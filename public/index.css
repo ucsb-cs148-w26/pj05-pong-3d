@@ -1,0 +1,90 @@
+@import url('https://fonts.googleapis.com/css2?family=VT323&display=swap');
+
+* {
+	font-family: VT323, sans-serif;
+	box-sizing: border-box;
+	font-size: inherit;
+
+	--bg-1: hsl(220, 20%, 8%);
+
+	--fg-1: white;
+}
+
+:root {
+	font-size: 125%;
+}
+
+body {
+	margin: 0 auto;
+	padding: 3rem;
+	width: 90ch;
+	max-width: 100%;
+	color: var(--fg-1);
+	background: var(--bg-1);
+}
+
+input {
+	padding: 0.5rem;
+	border: 0.1rem solid rgba(255, 255, 255, 0.18);
+	background: rgba(0, 0, 0, 0.25);
+	color: var(--fg-1);
+	outline: none;
+	transition:
+		border 0.15s,
+		box-shadow 0.15s;
+}
+
+input::placeholder {
+	color: rgba(255, 255, 255, 0.45);
+}
+
+input:focus {
+	border-color: rgba(255, 255, 255, 0.22);
+	box-shadow: 0 0 0 0.25rem rgba(0, 229, 255, 0.12);
+}
+
+button,
+.link-button {
+	padding: 0.5rem 1rem;
+	border: 0.1rem outset rgba(0, 0, 0, 0.5);
+	background: white;
+	color: var(--bg-1);
+	cursor: pointer;
+	box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.18);
+	transition:
+		transform 0.08s,
+		background 0.15s;
+}
+
+.link-button {
+	text-decoration: none;
+}
+
+button:hover:not(:disabled),
+.link-button:hover:not(:disabled) {
+	background: rgba(255, 255, 255, 0.92);
+}
+
+button:active,
+.link-button:active {
+	border-style: inset;
+	transform: translateY(0.02rem);
+}
+
+h1 {
+	font-size: 3rem;
+	margin-bottom: 1.2rem;
+}
+
+h1:first-child,
+h2:first-child {
+	margin-top: 0;
+}
+
+.card {
+	background: rgba(255, 255, 255, 0.06);
+	border: 0.1rem solid rgba(255, 255, 255, 0.1);
+	box-shadow: 0 0.75rem 2.25rem rgba(0, 0, 0, 0.35);
+	padding: 1.25rem;
+	margin-bottom: 1rem;
+}
