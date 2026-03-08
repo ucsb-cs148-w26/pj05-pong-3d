@@ -50,7 +50,8 @@ animatedScene.registerGameObject(
 	new GameObjectCustom('hudScore', {
 		self: document.createElement('div'),
 		init() {
-			this.self.id = 'hudScore';
+			this.self.id = 'hud-score';
+			this.self.classList.add('hud-overlay');
 			document.body.appendChild(this.self);
 		},
 		update() {
@@ -73,7 +74,8 @@ animatedScene.registerGameObject(
 		self: document.createElement('div'),
 		socket,
 		init() {
-			this.self.id = 'hudStats';
+			this.self.id = 'hud-stats';
+			this.self.classList.add('hud-overlay');
 			document.body.appendChild(this.self);
 		},
 		update(dt) {
@@ -111,7 +113,7 @@ animatedScene.registerGameObject(
 		component: document.getElementById('waiting'),
 		playerListDisplay: document.getElementById('waiting__players'),
 		scoreboardDisplay: document.getElementById('waiting__scoreboard'),
-		lobbyInfoDisplay: document.getElementById('lobby-info'),
+		joinCodeDisplay: document.getElementById('waiting__code'),
 		startButton: document.getElementById('startButton'),
 		leaveLobbyButton: document.getElementById('waiting__leaveButton'),
 		players: animatedScene.state.players,
@@ -138,7 +140,7 @@ animatedScene.registerGameObject(
 				document.getElementById('waiting__title').innerText = `${
 					winner ?? 'A player'
 				} won`;
-				this.lobbyInfoDisplay.style.display = 'none';
+				this.joinCodeDisplay.style.display = 'none';
 				this.playerListDisplay.style.display = 'none';
 				this.startButton.style.display = 'none';
 				this.leaveLobbyButton.style.display = 'block';
@@ -156,7 +158,7 @@ animatedScene.registerGameObject(
 
 			document.getElementById('waiting__title').innerText =
 				'Waiting for players...';
-			this.lobbyInfoDisplay.style.display = 'block';
+			this.joinCodeDisplay.style.display = 'block';
 			this.playerListDisplay.style.display = 'block';
 			this.startButton.style.display = 'block';
 			this.leaveLobbyButton.style.display = 'none';

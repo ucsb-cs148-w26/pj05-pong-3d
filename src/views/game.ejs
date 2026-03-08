@@ -23,6 +23,7 @@
 		<div id="waiting">
 			<div id="waiting__card">
 				<p id="waiting__title">Waiting for players...</p>
+				<p id="waiting__code"><strong>Join code:</strong> <%= code %></p>
 				<div id="waiting__players"></div>
 				<div id="waiting__scoreboard" style="display: none"></div>
 				<button id="startButton" class="game-button" disabled>Start Game</button>
@@ -30,10 +31,6 @@
 					Leave Lobby
 				</button>
 			</div>
-		</div>
-
-		<div id="lobby-info">
-			Join Code<br /><span style="font-size: 2rem"><%= code %></span>
 		</div>
 
 		<div id="escape-menu">
