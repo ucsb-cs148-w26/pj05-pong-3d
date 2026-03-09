@@ -25,6 +25,15 @@
 		<% if (user) { %>
 			<h1>Lobbies</h1>
 
+			<div class="card" style="display: flex; flex-direction: column; gap: 1.5rem;">
+					<input id="name-field" placeholder="Lobby name">
+					<div class="visibility-picker">
+						<span>Lobby visibility</span>
+						<div class="visibility-buttons">
+							<button id="create-public-button" class="visibility-button active">Public</button>
+							<button id="create-private-button" class="visibility-button">Private</button>
+						</div>
+					</div>
 			<div class="card">
 				<div style="margin-bottom: 1.5rem">
 					<input id="name-field" placeholder="Lobby name" style="display: block; width: 100%; margin-bottom: 1rem" />

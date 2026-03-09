@@ -9,3 +9,29 @@
 	padding: 0.5rem 0;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.18);
 }
+
+.visibility-picker {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	color: rgba(255, 255, 255, 0.92);
+}
+
+.visibility-buttons {
+	display: flex;
+	gap: 0.4rem;
+}
+
+.visibility-button {
+	width: auto;
+	padding: 0.4rem 0.75rem;
+	border-radius: 999px;
+	border: 0.1rem solid rgba(255, 255, 255, 0.35);
+	background: rgba(255, 255, 255, 0.08);
+	color: white;
+	box-shadow: none;
+}
+
+.visibility-button.active {
+	background: rgba(255, 255, 255, 0.3);
+}
