@@ -17,6 +17,10 @@ socket.connect();
 const animatedScene = new AnimatedScene(socket);
 window.animatedScene = animatedScene;
 
+socket.addHandler('itemUnlocked', (msg) => {
+	animatedScene.unlockedItem = msg;
+});
+
 animatedScene.registerGameObject(new GameObjectCustom('socket', { socket }));
 
 animatedScene.registerGameObject(
@@ -152,7 +156,10 @@ animatedScene.registerGameObject(
 							`<div>${name}: ${player.lives} ${name === winner ? '(Winner)' : ''}</div>`
 					)
 					.join('');
-				this.scoreboardDisplay.innerHTML = `<div style="margin-top: 0.5rem"><strong>Final Lives:</strong></div>${finalLives}`;
+				const unlockHtml = animatedScene.unlockedItem
+					? `<div style="margin-top: 1rem; color: gold"><strong>Item Unlocked:</strong> ${animatedScene.unlockedItem.displayName}</div>`
+					: '';
+				this.scoreboardDisplay.innerHTML = `<div style="margin-top: 0.5rem"><strong>Final Lives:</strong></div>${finalLives}${unlockHtml}`;
 				return;
 			}
 

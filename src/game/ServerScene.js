@@ -5,6 +5,7 @@ import { PaddleCommon } from '../../public/game/common/PaddleCommon.js';
 import { PaddleController } from './PaddleController.js';
 import { GameState, Player } from '../../public/game/common/GameState.js';
 import { BallServer } from './BallServer.js';
+import db from '../db/db.js';
 
 const SYNC_INTERVAL = 5;
 const INITIAL_LIVES = 3;
@@ -37,6 +38,35 @@ export default class ServerScene extends Scene {
 
 			this.#gameOver = { loser, winner };
 			this.#ball.enabled = false;
+
+			if (!winner) return;
+			const userId = socket.getUserId(winner);
+			if (!userId) return;
+
+			db.get(
+				`SELECT i.id, i.display_name, i.kind FROM items i
+				 WHERE i.is_default = 0
+				 AND i.id NOT IN (SELECT item_id FROM user_unlocks WHERE user_id = ?)
+				 ORDER BY RANDOM() LIMIT 1`,
+				[userId],
+				(err, item) => {
+					if (err || !item) return;
+					db.run(
+						`INSERT INTO user_unlocks (user_id, item_id, unlocked_at) VALUES (?, ?, CURRENT_TIMESTAMP)`,
+						[userId, item.id],
+						(err2) => {
+							if (err2) return;
+							// Tell only the winner what they unlocked.
+							socket.safeSendToUser(winner, {
+								type: 'itemUnlocked',
+								itemId: item.id,
+								displayName: item.display_name,
+								kind: item.kind
+							});
+						}
+					);
+				}
+			);
 		});
 
 		this.registerGameObject(this.#ball);
