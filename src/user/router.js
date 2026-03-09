@@ -231,7 +231,10 @@ export default function createUserRouter() {
 					[userId, row.id],
 					(err2) => {
 						if (err2) return res.status(500).json({ error: 'Database error' });
-						res.json({ message: 'Unlocked a new paddle skin!', itemId: row.id });
+						res.json({
+							message: 'Unlocked a new paddle skin!',
+							itemId: row.id
+						});
 					}
 				);
 			}
