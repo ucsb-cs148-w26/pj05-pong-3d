@@ -182,7 +182,7 @@ animatedScene.registerGameObject(
 			this.playerListDisplay.innerHTML = Array.from(this.players.entries())
 				.map(([name, player]) => {
 					const isHost = name === animatedScene.host;
-					const elo = player?.elo ?? 1000;
+					const elo = player.elo;
 					return `<span style="color: ${isHost ? 'yellow' : 'white'}">
 						${name} (${elo})
 					</span>`;
