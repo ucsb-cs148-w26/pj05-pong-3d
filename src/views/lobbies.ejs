@@ -28,12 +28,16 @@
 			<div class="card" style="display: flex; flex-direction: column; gap: 1.5rem;">
 				<div>
 					<input id="name-field" placeholder="Lobby name" style="display: block; width: 100%; margin-bottom: 1rem" />
-					<div class="visibility-picker">
+					<div class="lobby-option">
 						<span>Lobby visibility</span>
 						<div class="visibility-buttons">
 							<button id="create-public-button" class="visibility-button active">Public</button>
 							<button id="create-private-button" class="visibility-button">Private</button>
 						</div>
+					</div>
+					<div class="lobby-option">
+						<span>Number of lives</span>
+						<input id="create-lives" type="number" value="7" min="1" />
 					</div>
 					<button id="create-button" style="display: block; width: 100%">Create Lobby</button>
 				</div>
@@ -71,6 +75,7 @@
 			const nameField = document.getElementById('name-field');
 			const createPublicButton = document.getElementById('create-public-button');
 			const createPrivateButton = document.getElementById('create-private-button');
+			const createLives = document.getElementById('create-lives');
 			let lobbyIsPublic = true;
 			const setLobbyVisibility = (isPublic) => {
 				lobbyIsPublic = isPublic;
@@ -93,6 +98,7 @@
 						body: JSON.stringify({
 							name: nameField.value.length ? nameField.value : undefined,
 							isPublic: lobbyIsPublic,
+							lives: parseInt(createLives.value),
 							cosmetics: getSelectedCosmetics()
 						}),
 						headers: {
