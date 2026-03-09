@@ -10,14 +10,15 @@ export function initializePaddleSkins() {
 				[style.styleIndex, 'paddle_skin'],
 				(err, row) => {
 					if (err) return console.error(err);
-
-					if (!row) {
-						db.run(
-							`INSERT INTO items (item_key, kind, display_name, is_default)
+					db.serialize(() => {
+						if (!row) {
+							db.run(
+								`INSERT INTO items (item_key, kind, display_name, is_default)
 							VALUES (?, 'paddle_skin', ?, ?)`,
-							[style.styleIndex, style.label, isDefault]
-						);
-					}
+								[style.styleIndex, style.label, isDefault]
+							);
+						}
+					});
 				}
 			);
 		});
