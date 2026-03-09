@@ -96,25 +96,25 @@ export default class ServerScene extends Scene {
 				for (const [username, player] of this.state.players)
 					gatherData[username] = { lives: player.lives };
 
-					this.#socket.forEachClient((username, ws) => {
-						const paddleController =
-							this.state.players.get(username).paddle.controller;
-						const ack = paddleController.ack;
+				this.#socket.forEachClient((username, ws) => {
+					const paddleController =
+						this.state.players.get(username).paddle.controller;
+					const ack = paddleController.ack;
 
-						this.#socket.safeSend(ws, {
-							type: 'sync',
-							ack,
-							active: this.#ball.enabled,
-							physics: physicsState,
-							gameInfo: gatherData,
-							gameOver: this.#gameOver,
-							serverTs: Date.now(),
-							respawnEndsAt: this.#respawn?.endAt ?? null,
-							respawnScorer: this.#respawn?.scorer ?? null,
-							matchStarted: this.#matchStarted
-						});
+					this.#socket.safeSend(ws, {
+						type: 'sync',
+						ack,
+						active: this.#ball.enabled,
+						physics: physicsState,
+						gameInfo: gatherData,
+						gameOver: this.#gameOver,
+						serverTs: Date.now(),
+						respawnEndsAt: this.#respawn?.endAt ?? null,
+						respawnScorer: this.#respawn?.scorer ?? null,
+						matchStarted: this.#matchStarted
 					});
-				}
+				});
+			}
 
 			lastTime = now;
 			ct++;

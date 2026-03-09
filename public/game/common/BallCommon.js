@@ -12,7 +12,6 @@ export class BallCommon extends GameObjectBase {
 	constructor(key) {
 		super(key);
 		this.speed = 0;
-		this.needsToReset = false;
 		this.serveDirection = 1; // 1 = right, -1 = left
 		this.body = new RigidBody(Constants.BALL_MASS);
 		this.body.col = new SphereCollider(
@@ -42,11 +41,6 @@ export class BallCommon extends GameObjectBase {
 		}
 
 		this.speed = this.body.v.norm();
-
-		if (this.needsToReset) {
-			this.needsToReset = false;
-			this.reset();
-		}
 	}
 
 	get bodies() {
