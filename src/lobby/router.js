@@ -75,7 +75,6 @@ export default function createLobbyRouter(server, parseSession) {
 
 	router.get('/', (req, res) => {
 		res.render('lobbies', {
-			lobbies: lobbyState.listLobbies(),
 			user: req.user
 		});
 	});
