@@ -7,15 +7,15 @@ import { GameState, Player } from '../../public/game/common/GameState.js';
 import { BallServer } from './BallServer.js';
 
 const SYNC_INTERVAL = 5;
-const INITIAL_LIVES = 3;
 
 export default class ServerScene extends Scene {
 	#interval = null;
 	#socket = null;
 	#ball = null;
 	#gameOver = null;
+	#numLives = 7;
 
-	constructor(socket) {
+	constructor(socket, lives) {
 		super(new GameState());
 
 		this.#socket = socket;
@@ -60,6 +60,8 @@ export default class ServerScene extends Scene {
 		socket.on('client:disconnect', this.#onDisconnect.bind(this));
 		socket.addHandler('move', this.#recvMove.bind(this));
 		socket.addHandler('start', this.#startGame.bind(this));
+
+		this.#numLives = lives ?? 7;
 	}
 
 	start() {
@@ -169,7 +171,7 @@ export default class ServerScene extends Scene {
 			};
 
 		for (const player of this.state.players.values()) {
-			player.lives = INITIAL_LIVES;
+			player.lives = this.#numLives;
 		}
 
 		this.#gameOver = null;
