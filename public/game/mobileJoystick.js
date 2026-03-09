@@ -21,6 +21,17 @@ export class MobileJoystick {
 		this.zone.style.pointerEvents = 'auto';
 		document.body.appendChild(this.zone);
 
+		this._preventTouchScroll = (event) => {
+			if (event.cancelable) event.preventDefault();
+		};
+
+		this.zone.addEventListener('touchstart', this._preventTouchScroll, {
+			passive: false
+		});
+		this.zone.addEventListener('touchmove', this._preventTouchScroll, {
+			passive: false
+		});
+
 		this.manager = getNippleJs().create({
 			zone: this.zone,
 			mode: 'dynamic',
@@ -67,6 +78,8 @@ export class MobileJoystick {
 
 	destroy() {
 		this.reset();
+		this.zone.removeEventListener('touchstart', this._preventTouchScroll);
+		this.zone.removeEventListener('touchmove', this._preventTouchScroll);
 		this.manager?.off('move', this._onMove);
 		this.manager?.off('end', this._onEnd);
 		this.manager?.destroy();
