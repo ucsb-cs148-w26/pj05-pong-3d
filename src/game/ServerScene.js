@@ -7,6 +7,7 @@ import { GameState, Player } from '../../public/game/common/GameState.js';
 import { BallServer } from './BallServer.js';
 
 const SYNC_INTERVAL = 5;
+const RESPAWN_COUNTDOWN_MS = 3000;
 
 export default class ServerScene extends Scene {
 	#interval = null;
@@ -14,6 +15,8 @@ export default class ServerScene extends Scene {
 	#ball = null;
 	#gameOver = null;
 	#numLives = 7;
+	#respawn = null;
+	#matchStarted = false;
 
 	constructor(socket, lives) {
 		super(new GameState());
@@ -25,10 +28,24 @@ export default class ServerScene extends Scene {
 		this.registerGameObject(new ArenaCommon('gameArena'));
 
 		this.#ball = new BallServer('ball', (ball, wall) => {
-			if (this.#gameOver || !wall?.player) return;
+			if (this.#gameOver || this.#respawn || !wall?.player) return;
 
 			wall.player.lives = Math.max(0, wall.player.lives - 1);
-			if (wall.player.lives > 0) return;
+			this.#ball.enabled = false;
+
+			const scoredOnPlayer = wall.player;
+			if (wall.player.lives > 0) {
+				const scorer = [...this.state.players.values()].find(
+					(player) => player.username !== scoredOnPlayer.username
+				)?.username;
+				const serveDirection = scoredOnPlayer.paddle.body.x.x < 0 ? 1 : -1;
+				this.#respawn = {
+					endAt: Date.now() + RESPAWN_COUNTDOWN_MS,
+					serveDirection,
+					scorer: scorer ?? null
+				};
+				return;
+			}
 
 			const loser = wall.player.username;
 			const winner = [...this.state.players.values()].find(
@@ -36,7 +53,6 @@ export default class ServerScene extends Scene {
 			)?.username;
 
 			this.#gameOver = { loser, winner };
-			this.#ball.enabled = false;
 		});
 
 		this.registerGameObject(this.#ball);
@@ -72,6 +88,7 @@ export default class ServerScene extends Scene {
 			const delta = (now - lastTime) / 1000;
 
 			this.step(delta);
+			this.#updateRespawnState();
 
 			if (ct % SYNC_INTERVAL === 0) {
 				const physicsState = this.state.physics.exportState();
@@ -79,21 +96,25 @@ export default class ServerScene extends Scene {
 				for (const [username, player] of this.state.players)
 					gatherData[username] = { lives: player.lives };
 
-				this.#socket.forEachClient((username, ws) => {
-					const paddleController =
-						this.state.players.get(username).paddle.controller;
-					const ack = paddleController.ack;
+					this.#socket.forEachClient((username, ws) => {
+						const paddleController =
+							this.state.players.get(username).paddle.controller;
+						const ack = paddleController.ack;
 
-					this.#socket.safeSend(ws, {
-						type: 'sync',
-						ack,
-						active: this.#ball.enabled,
-						physics: physicsState,
-						gameInfo: gatherData,
-						gameOver: this.#gameOver
+						this.#socket.safeSend(ws, {
+							type: 'sync',
+							ack,
+							active: this.#ball.enabled,
+							physics: physicsState,
+							gameInfo: gatherData,
+							gameOver: this.#gameOver,
+							serverTs: Date.now(),
+							respawnEndsAt: this.#respawn?.endAt ?? null,
+							respawnScorer: this.#respawn?.scorer ?? null,
+							matchStarted: this.#matchStarted
+						});
 					});
-				});
-			}
+				}
 
 			lastTime = now;
 			ct++;
@@ -175,10 +196,22 @@ export default class ServerScene extends Scene {
 		}
 
 		this.#gameOver = null;
+		this.#respawn = null;
+		this.#matchStarted = true;
 		this.#ball.enabled = true;
 	}
 
 	#recvMove(socket, username, ws, msg) {
 		this.state.players.get(username)?.paddle.controller.enqueueInput(msg);
+	}
+
+	#updateRespawnState() {
+		if (!this.#respawn || this.#gameOver) return;
+
+		if (Date.now() < this.#respawn.endAt) return;
+
+		this.#ball.serveDirection = this.#respawn.serveDirection;
+		this.#ball.enabled = true;
+		this.#respawn = null;
 	}
 }

@@ -74,6 +74,7 @@ export class Ball extends BallCommon {
 	update(dt) {
 		super.update(dt);
 		this.#skin.update(dt, this.body.v.norm());
+		this.#visual.visible = this.enabled;
 	}
 
 	setSkinStyle(styleIndex) {

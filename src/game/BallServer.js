@@ -27,12 +27,10 @@ export class BallServer extends BallCommon {
 
 				case 'greenWall':
 					hitWallCallback(me, other);
-					this.needsToReset = true;
 					return;
 
 				case 'redWall':
 					hitWallCallback(me, other);
-					this.needsToReset = true;
 					return;
 			}
 		};
