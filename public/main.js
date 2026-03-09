@@ -113,16 +113,6 @@ animatedScene.registerGameObject(
 				this.players.size < 2 || !animatedScene.isHost;
 		}
 	}),
-	new GameObjectCustom('gameControls', {
-		component: document.getElementById('game-controls'),
-		leaveButton: document.getElementById('inGameLeaveButton'),
-		socket,
-		init() {
-			this.leaveButton.addEventListener('click', () => {
-				window.location = '/';
-			});
-		}
-	})
 );
 
 animatedScene.start();

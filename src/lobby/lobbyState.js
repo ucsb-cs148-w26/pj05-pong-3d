@@ -47,7 +47,6 @@ export default class LobbyState {
 		const lobby = {
 			lobbyId,
 			name,
-			hostUser: null,
 			isPublic,
 			members: new Map(),
 			emptySince: Date.now(),
@@ -71,7 +70,6 @@ export default class LobbyState {
 				type: 'chat',
 				content: `[System] ${clientId} joined`
 			});
-			this.broadcastLobbyState(lobbyId);
 		});
 
 		socket.on('client:disconnect', (clientId) => {
@@ -80,16 +78,9 @@ export default class LobbyState {
 				type: 'chat',
 				content: `[System] ${clientId} left`
 			});
-			this.broadcastLobbyState(lobbyId);
 		});
 
 		socket.addHandler('chat', chatHandler);
-		socket.addHandler('kick', (socketServer, username, ws, msg) =>
-			this.kickMember(lobbyId, username, msg?.target)
-		);
-		socket.addHandler('setLobbyVisibility', (socketServer, username, ws, msg) =>
-			this.setLobbyVisibility(lobbyId, username, msg?.isPublic)
-		);
 		this.sockets.set(lobbyId, socket);
 
 		const scene = new ServerScene(socket);
@@ -123,10 +114,7 @@ export default class LobbyState {
 
 		lobby.members.set(clientId, {
 			clientId,
-			joinedAt: Date.now()
 		});
-		if (!lobby.hostUser) lobby.hostUser = clientId;
-		this.updateSceneHost(lobbyId);
 		lobby.emptySince = null;
 	}
 
@@ -137,86 +125,10 @@ export default class LobbyState {
 		}
 
 		lobby.members.delete(clientId);
-		if (lobby.hostUser === clientId) {
-			lobby.hostUser = this.pickNextHost(lobbyId, lobby);
-		}
-		this.updateSceneHost(lobbyId);
 
 		if (lobby.members.size === 0) {
 			lobby.emptySince = Date.now();
 		}
-	}
-
-	pickNextHost(lobbyId, lobby) {
-		const scene = this.scenes.get(lobbyId);
-		const activePlayers = new Set(scene ? scene.state.players.keys() : []);
-
-		for (const username of lobby.members.keys()) {
-			if (activePlayers.has(username)) return username;
-		}
-
-		return lobby.members.keys().next().value ?? null;
-	}
-
-	broadcastLobbyState(lobbyId) {
-		const lobby = this.lobbies.get(lobbyId);
-		if (!lobby) return;
-
-		const socket = this.sockets.get(lobbyId);
-		if (!socket) return;
-
-		socket.broadcast({
-			type: 'lobbyState',
-			host: lobby.hostUser,
-			isPublic: lobby.isPublic,
-			members: Array.from(lobby.members.values())
-		});
-	}
-
-	updateSceneHost(lobbyId) {
-		const lobby = this.lobbies.get(lobbyId);
-		const scene = this.scenes.get(lobbyId);
-		if (!lobby || !scene) return;
-		scene.hostUser = lobby.hostUser;
-		scene.updateHostAndPlayers();
-	}
-
-	kickMember(lobbyId, requester, target) {
-		const lobby = this.lobbies.get(lobbyId);
-		if (!lobby) return { type: 'error', message: 'Lobby not found' };
-		if (lobby.hostUser !== requester)
-			return { type: 'error', message: 'Only host can kick players' };
-		if (typeof target !== 'string' || !target.trim())
-			return { type: 'error', message: 'Invalid kick target' };
-		if (target === requester)
-			return { type: 'error', message: 'Host cannot kick themselves' };
-		if (!lobby.members.has(target))
-			return { type: 'error', message: 'Player not found in lobby' };
-
-		const socket = this.sockets.get(lobbyId);
-		socket.safeSendToUser(target, {
-			type: 'error',
-			message: 'You were kicked by the host'
-		});
-		socket.disconnectUser(target, 4001, 'Kicked by host');
-		socket.broadcast({
-			type: 'chat',
-			content: `[System] ${target} was kicked by ${requester}`
-		});
-		return { type: 'ok' };
-	}
-
-	setLobbyVisibility(lobbyId, requester, isPublic) {
-		const lobby = this.lobbies.get(lobbyId);
-		if (!lobby) return { type: 'error', message: 'Lobby not found' };
-		if (lobby.hostUser !== requester)
-			return { type: 'error', message: 'Only host can change visibility' };
-		if (typeof isPublic !== 'boolean')
-			return { type: 'error', message: 'Visibility must be a boolean' };
-
-		lobby.isPublic = isPublic;
-		this.broadcastLobbyState(lobbyId);
-		return { type: 'ok' };
 	}
 
 	cleanup() {
