@@ -744,6 +744,225 @@ export const ShaderLibrary = {
 		gl_FragColor = vec4(color, alpha);
 	}
 `
+		},
+				STANDARD_ARENA_SHADER: {
+			vertexShader: `
+	varying vec3 vLocalPos;
+	varying vec3 vLocalNormal;
+	varying vec3 vWorldPos;
+	varying vec3 vViewDirW;
+
+	void main() {
+		vLocalPos = position;
+		vLocalNormal = normal;
+
+		vec4 worldPos = modelMatrix * vec4(position, 1.0);
+		vWorldPos = worldPos.xyz;
+		vViewDirW = normalize(cameraPosition - worldPos.xyz);
+
+		gl_Position = projectionMatrix * viewMatrix * worldPos;
+	}
+`,
+			fragmentShader: `
+	uniform float uTime;
+	uniform vec3 uArenaHalfExtents;
+	uniform float uFaceMode;
+	uniform float uHoleMaskEnabled;
+	uniform vec2 uHoleHalfExtents;
+	uniform vec3 uHalfExtents;
+	uniform vec3 uBlueColor;
+	uniform vec3 uRedColor;
+	uniform vec3 uNeutralColor;
+	uniform vec3 uLineColor;
+	uniform float uGoalBiasPower;
+	uniform float uEndFaceTint;
+	uniform float uSideFaceTint;
+	uniform float uFloorCeilFaceTint;
+	uniform float uBaseBrightness;
+	uniform float uVerticalGlowStrength;
+	uniform float uGoalAccentBase;
+	uniform float uGoalAccentEndBoost;
+	uniform float uPrimaryGridScale;
+	uniform float uPrimaryGridThickness;
+	uniform float uMinorGridScale;
+	uniform float uMinorGridThickness;
+	uniform vec2 uMinorGridDrift;
+	uniform float uPrimaryGridStrength;
+	uniform float uMinorGridStrength;
+	uniform float uEdgeGlowStrength;
+	uniform float uEdgeGlowInner;
+	uniform float uEdgeGlowOuter;
+	uniform float uGoalHaloInner;
+	uniform float uGoalHaloOuter;
+	uniform float uGoalHaloStrength;
+	uniform float uGoalHaloGoalBoost;
+	uniform float uAccentMix;
+	uniform float uFresnelPower;
+	uniform float uFresnelStrength;
+	uniform float uExpansionSpeedScale;
+	uniform float uExpansionSpeedMin;
+	uniform float uPrimaryExpansionSpeedFactor;
+	uniform float uExpansionPulseFrequency;
+	uniform float uExpansionPulseSpeed;
+	uniform float uExpansionPulseStrength;
+	uniform float uExpansionPhase;
+
+	varying vec3 vLocalPos;
+	varying vec3 vLocalNormal;
+	varying vec3 vWorldPos;
+	varying vec3 vViewDirW;
+
+	float axisLineMask(float value, float scale, float thickness) {
+		float scaled = value * scale;
+		float derivative = max(fwidth(scaled), 1e-4);
+		float grid = abs(fract(scaled - 0.5) - 0.5) / derivative;
+		return 1.0 - smoothstep(thickness, thickness + 1.0, grid);
+	}
+
+	float worldGridField(vec3 pos, float scale, float thickness, vec3 axisWeights) {
+		float xLine = axisLineMask(pos.x, scale, thickness) * axisWeights.x;
+		float yLine = axisLineMask(pos.y, scale, thickness) * axisWeights.y;
+		float zLine = axisLineMask(pos.z, scale, thickness) * axisWeights.z;
+		return max(max(xLine, yLine), zLine);
+	}
+
+	vec2 safeNormalize2(vec2 value, vec2 fallback) {
+		float len = length(value);
+		if (len > 1e-4) return value / len;
+		return fallback;
+	}
+
+	float planeEdgeDistance(vec2 uv) {
+		return min(abs(abs(uv.x) - 1.0), abs(abs(uv.y) - 1.0));
+	}
+
+	void main() {
+		vec3 localNormal = normalize(vLocalNormal);
+		vec3 absNormal = abs(localNormal);
+		vec2 faceUv;
+		if (
+			uHoleMaskEnabled > 0.5 &&
+			abs(vLocalPos.y) < uHoleHalfExtents.x &&
+			abs(vLocalPos.z) < uHoleHalfExtents.y
+		) discard;
+		float endFace = 0.0;
+		float floorCeilFace = 0.0;
+		float sideFace = 0.0;
+
+		if (uFaceMode > 2.5) {
+			sideFace = 1.0;
+			faceUv = vWorldPos.xy / max(uArenaHalfExtents.xy, vec2(1e-4));
+		} else if (uFaceMode > 1.5) {
+			floorCeilFace = 1.0;
+			faceUv = vWorldPos.xz / max(uArenaHalfExtents.xz, vec2(1e-4));
+		} else if (uFaceMode > 0.5) {
+			endFace = 1.0;
+			faceUv = vWorldPos.yz / max(uArenaHalfExtents.yz, vec2(1e-4));
+		} else if (absNormal.x >= absNormal.y && absNormal.x >= absNormal.z) {
+			endFace = 1.0;
+			faceUv = vWorldPos.yz / max(uArenaHalfExtents.yz, vec2(1e-4));
+		} else if (absNormal.y >= absNormal.x && absNormal.y >= absNormal.z) {
+			floorCeilFace = 1.0;
+			faceUv = vWorldPos.xz / max(uArenaHalfExtents.xz, vec2(1e-4));
+		} else {
+			sideFace = 1.0;
+			faceUv = vWorldPos.xy / max(uArenaHalfExtents.xy, vec2(1e-4));
+		}
+
+		vec2 face01 = faceUv * 0.5 + 0.5;
+		vec3 worldGridPos = vWorldPos / max(uArenaHalfExtents, vec3(1e-4));
+		vec2 borderFlowDir = safeNormalize2(
+			worldGridPos.yz,
+			vec2(0.0, face01.y >= 0.5 ? 1.0 : -1.0)
+		);
+		vec3 expansionFlow =
+			endFace > 0.5
+				? vec3(0.0, borderFlowDir.x, borderFlowDir.y)
+				: vec3(vWorldPos.x >= 0.0 ? 1.0 : -1.0, 0.0, 0.0);
+		float expansionSpeed = max(
+			length(uMinorGridDrift) * uExpansionSpeedScale,
+			uExpansionSpeedMin
+		);
+		float expansionDistance =
+			endFace > 0.5 ? 1.0 + length(worldGridPos.yz) : abs(worldGridPos.x);
+		vec3 primaryGridPos =
+			worldGridPos -
+			expansionFlow *
+				(uExpansionPhase * expansionSpeed * uPrimaryExpansionSpeedFactor);
+		vec3 minorGridPos =
+			worldGridPos - expansionFlow * (uExpansionPhase * expansionSpeed);
+		float primaryGrid = worldGridField(
+			primaryGridPos,
+			uPrimaryGridScale,
+			uPrimaryGridThickness,
+			vec3(0.28, 0.88, 1.0)
+		);
+		float minorGrid = worldGridField(
+			minorGridPos,
+			uMinorGridScale,
+			uMinorGridThickness,
+			vec3(0.24, 0.9, 1.0)
+		) * uMinorGridStrength;
+		float expansionPulse = 0.5 + 0.5 * cos(
+			expansionDistance * uExpansionPulseFrequency -
+			uExpansionPhase * uExpansionPulseSpeed
+		);
+		expansionPulse = pow(expansionPulse, 5.0);
+		float teamMix = smoothstep(
+			-uArenaHalfExtents.x,
+			uArenaHalfExtents.x,
+			vWorldPos.x
+		);
+		vec3 teamColor = mix(uBlueColor, uRedColor, teamMix);
+		float goalBias = pow(
+			clamp(abs(vWorldPos.x) / max(uArenaHalfExtents.x, 1e-4), 0.0, 1.0),
+			uGoalBiasPower
+		);
+		float verticalFade = 1.0 - smoothstep(
+			0.0,
+			uArenaHalfExtents.y,
+			min(abs(vWorldPos.y), uArenaHalfExtents.y)
+		);
+		float faceTint =
+			endFace * uEndFaceTint +
+			sideFace * uSideFaceTint +
+			floorCeilFace * uFloorCeilFaceTint;
+
+		vec3 baseColor = mix(uNeutralColor, teamColor, faceTint);
+		baseColor +=
+			teamColor * goalBias * (uGoalAccentBase + endFace * uGoalAccentEndBoost);
+		baseColor *= uBaseBrightness + verticalFade * uVerticalGlowStrength;
+
+		float edgeGlow = 1.0 - smoothstep(
+			uEdgeGlowInner,
+			uEdgeGlowOuter,
+			planeEdgeDistance(faceUv)
+		);
+
+		vec2 goalUv = face01 * 2.0 - 1.0;
+		float goalHalo =
+			endFace *
+			(1.0 - smoothstep(uGoalHaloInner, uGoalHaloOuter, length(goalUv)));
+
+		float fresnel = pow(
+			1.0 - abs(dot(normalize(vLocalNormal), normalize(vViewDirW))),
+			uFresnelPower
+		);
+
+		vec3 accentColor = mix(uLineColor, teamColor, uAccentMix);
+		vec3 accents = accentColor * (
+			primaryGrid * uPrimaryGridStrength +
+			minorGrid +
+			expansionPulse * minorGrid * uExpansionPulseStrength +
+			edgeGlow * uEdgeGlowStrength
+		);
+		accents +=
+			teamColor * goalHalo * (uGoalHaloStrength + uGoalHaloGoalBoost * goalBias);
+		accents += accentColor * fresnel * uFresnelStrength;
+
+		gl_FragColor = vec4(baseColor + accents, 1.0);
+	}
+`
 		}
 	}
 };

@@ -1,6 +1,5 @@
-import * as THREE from 'three';
-import * as Constants from '../constants.js';
 import { ArenaCommon } from '../common/ArenaCommon.js';
+import { ArenaSkin } from '../shaders/arenaSkin.js';
 
 /**
  * Client-side Arena with THREE.js rendering
@@ -8,25 +7,25 @@ import { ArenaCommon } from '../common/ArenaCommon.js';
  */
 export class Arena extends ArenaCommon {
 	#visual = null;
+	#skin = null;
+	#scene = null;
+	#ball = null;
 
 	constructor(key) {
 		super(key);
 
 		// Create THREE.js visual representation
-		const geometry = new THREE.BoxGeometry(
-			Constants.ARENA_DEPTH,
-			Constants.ARENA_SIZE,
-			Constants.ARENA_SIZE
-		);
+		this.#skin = new ArenaSkin();
+		this.#visual = this.#skin.visual;
+	}
 
-		const material = new THREE.MeshStandardMaterial({
-			color: Constants.ARENA_COLOR,
-			side: THREE.BackSide
-		});
+	init(scene) {
+		this.#scene = scene;
+	}
 
-		this.#visual = new THREE.Mesh(geometry, material);
-		this.#visual.position.y = 0;
-		this.#visual.receiveShadow = true;
+	update(dt) {
+		if (!this.#ball) this.#ball = this.#scene?.getGameObject('ball') ?? null;
+		this.#skin.update(dt, this.#ball?.body?.v?.norm?.() ?? 0.0);
 	}
 
 	get visual() {
