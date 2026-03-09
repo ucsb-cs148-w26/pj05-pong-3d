@@ -30,12 +30,14 @@ export default class LobbyState {
 		this.sockets = new Map();
 	}
 
-	createLobby(name) {
+	createLobby(name, isPublic, lives) {
 		const lobbyId = String(nextLobbyId++);
 
 		const lobby = {
 			lobbyId,
 			name,
+			isPublic,
+			lives,
 			members: new Map(),
 			code: generateCode()
 		};
@@ -70,7 +72,7 @@ export default class LobbyState {
 		socket.addHandler('chat', chatHandler);
 		this.sockets.set(lobbyId, socket);
 
-		const scene = new ServerScene(socket);
+		const scene = new ServerScene(socket, lives);
 		scene.start();
 		this.scenes.set(lobbyId, scene);
 
@@ -94,14 +96,15 @@ export default class LobbyState {
 		return !this.isLobbyFull(lobby) && !this.isLobbyInProgress(lobby);
 	}
 
-	listLobbies() {
+	listLobbies({ includePrivate = false } = {}) {
 		return Array.from(this.lobbies.values())
-			.filter((lobby) => this.isLobbyJoinable(lobby))
+			.filter((lobby) => includePrivate || lobby.isPublic)
 			.map((lobby) => ({
 				lobbyId: lobby.lobbyId,
 				name: lobby.name,
 				memberCount: lobby.members.size,
-				code: lobby.code
+				code: lobby.code,
+				isPublic: lobby.isPublic
 			}));
 	}
 
