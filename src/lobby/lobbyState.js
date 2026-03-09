@@ -30,17 +30,7 @@ export default class LobbyState {
 		this.sockets = new Map();
 	}
 
-	createLobby(arg = undefined) {
-		let name = 'My Lobby';
-		let isPublic = true;
-
-		if (typeof arg === 'string' || arg === undefined || arg === null) {
-			name = arg ?? 'My Lobby';
-		} else if (typeof arg === 'object') {
-			name = arg.name ?? 'My Lobby';
-			if (typeof arg.isPublic === 'boolean') isPublic = arg.isPublic;
-		}
-
+	createLobby(name, isPublic) {
 		const lobbyId = String(nextLobbyId++);
 
 		const lobby = {

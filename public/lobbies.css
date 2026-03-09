@@ -15,6 +15,7 @@
 	align-items: center;
 	justify-content: space-between;
 	color: rgba(255, 255, 255, 0.92);
+	margin-bottom: 1rem;
 }
 
 .visibility-buttons {
@@ -31,6 +32,16 @@
 	box-shadow: none;
 }
 
+.visibility-button:hover:not(:disabled) {
+	background: rgba(255, 255, 255, 0.2);
+	transform: translateY(-1px);
+}
+
+.visibility-button:active {
+	border-style: solid;
+}
+
 .visibility-button.active {
 	background: rgba(255, 255, 255, 0.3);
+	border-style: solid;
 }

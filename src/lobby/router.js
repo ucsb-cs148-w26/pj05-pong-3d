@@ -10,10 +10,11 @@ export default function createLobbyRouter(server, parseSession) {
 	});
 
 	router.post('/api/lobbies', (req, res) => {
+		if (!req.user) return res.sendStatus(401);
+
 		const name = req.body?.name ?? `${req.user.display_name}’s lobby`;
 		const isPublic = req.body?.isPublic;
-		const lobby = lobbyState.createLobby({ name, isPublic });
-		if (!req.user) return res.sendStatus(401);
+		const lobby = lobbyState.createLobby(name, isPublic);
 
 		res.json({ lobby });
 	});

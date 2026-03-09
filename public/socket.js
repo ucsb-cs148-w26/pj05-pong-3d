@@ -4,7 +4,6 @@ export default class PongSocketClient {
 	#pingInterval = null;
 	#lastPingTs = null;
 	#lastLatencyMs = null;
-	#manualClose = false;
 
 	#handlers = new Map();
 
@@ -14,7 +13,6 @@ export default class PongSocketClient {
 	}
 
 	connect() {
-		this.#manualClose = false;
 		if (this.#reconnectTimer) {
 			clearTimeout(this.#reconnectTimer);
 			this.#reconnectTimer = null;

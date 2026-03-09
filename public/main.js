@@ -117,8 +117,6 @@ animatedScene.registerGameObject(
 		startButton: document.getElementById('startButton'),
 		leaveLobbyButton: document.getElementById('waiting__leaveButton'),
 		players: animatedScene.state.players,
-		lobbyMembers: [],
-		isPublic: true,
 		socket,
 		init() {
 			this.startButton.addEventListener('click', () => {
