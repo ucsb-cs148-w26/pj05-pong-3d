@@ -6,12 +6,18 @@ body {
 	height: 100vh;
 }
 
+body > canvas {
+	display: block;
+	touch-action: none;
+}
+
 #chat {
 	background: rgba(0, 0, 0, 25%);
 	position: absolute;
 	top: 0;
 	left: 0;
 	padding: 1rem;
+	z-index: 1300;
 }
 
 #chat__text {
@@ -38,6 +44,7 @@ body {
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	z-index: 1400;
 	background: radial-gradient(
 		circle at center,
 		rgba(0, 0, 0, 0.6),
@@ -175,4 +182,17 @@ body {
 
 .game-button--danger:hover:not(:disabled) {
 	background: rgba(235, 87, 87, 0.5);
+}
+
+.touch-joystick-zone {
+	position: fixed;
+	inset: 0;
+	touch-action: none;
+	z-index: 1100;
+}
+
+.touch-joystick-zone .nipple,
+.touch-joystick-zone .front,
+.touch-joystick-zone .back {
+	will-change: transform, opacity;
 }
