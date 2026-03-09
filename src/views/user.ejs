@@ -153,6 +153,72 @@
 			font-size: 0.9rem;
 			color: rgba(255,255,255,.85);
 		}
+
+		.match-history-list {
+			display: flex;
+			flex-direction: column;
+			gap: 0.75rem;
+			margin-top: 0.75rem;
+		}
+
+		.match-row {
+			border: 0.1rem solid var(--border);
+			border-radius: 0.85rem;
+			background: var(--card-2);
+			padding: 0.9rem 1rem;
+		}
+
+		.match-row.win {
+			border-color: rgba(80, 220, 120, 0.45);
+		}
+
+		.match-row.loss {
+			border-color: rgba(255, 110, 110, 0.45);
+		}
+
+		.match-row-top {
+			display: flex;
+			justify-content: space-between;
+			gap: 1rem;
+			flex-wrap: wrap;
+			margin-bottom: 0.35rem;
+		}
+
+		.match-result.win {
+			color: #7CFFB2;
+			font-weight: 700;
+		}
+
+		.match-result.loss {
+			color: #FF9B9B;
+			font-weight: 700;
+		}
+
+		.elo-pill {
+			display: inline-block;
+			padding: 0.2rem 0.45rem;
+			border-radius: 999px;
+			background: rgba(255,255,255,.08);
+			border: 0.1rem solid rgba(255,255,255,.12);
+			font-size: 0.9rem;
+			margin-right: 0.35rem;
+			margin-top: 0.25rem;
+		}
+
+		.elo-chart-wrap {
+			margin-top: 0.75rem;
+			padding: 0.75rem;
+			border: 0.1rem solid var(--border);
+			border-radius: 0.9rem;
+			background: rgba(255,255,255,.04);
+		}
+
+		#stats-elo-chart {
+			display: block;
+			width: 100%;
+			height: auto;
+			max-width: 100%;
+		}
 	</style>
 </head>
 <body>
@@ -185,7 +251,32 @@
 
 	<div class="card">
 		<h2>Rank</h2>
-		<p>ELO: <%= user.elo ?? 1000 %></p>
+		<div id="stats-loading" class="muted">Loading stats...</div>
+
+		<div id="stats-content" style="display:none;">
+			<p><strong>Rank:</strong> <span id="stats-rank">-</span></p>
+			<p><strong>ELO:</strong> <span id="stats-elo"><%= user.elo ?? 1000 %></span></p>
+			<p>
+				<strong>Record:</strong>
+				<span id="stats-wins">0</span> wins /
+				<span id="stats-total-games">0</span> games
+			</p>
+
+			<div style="margin-top: 1rem;">
+				<strong>Previous 10 Games</strong>
+				<div id="stats-match-history" class="item-list" style="margin-top: 0.75rem; flex-direction: column; align-items: stretch;"></div>
+			</div>
+
+			<div style="margin-top: 1rem;">
+				<strong>ELO History</strong>
+				<div class="elo-chart-wrap">
+					<canvas id="stats-elo-chart" width="720" height="260"></canvas>
+				</div>
+				<div id="stats-elo-history" class="muted" style="margin-top: 0.5rem; word-break: break-word;"></div>
+			</div>
+		</div>
+
+		<div id="stats-error" style="display:none; color:#ff8a8a;"></div>
 	</div>
 
 	<div class="card">
@@ -300,9 +391,140 @@
 			});
 		}
 
-		document.querySelectorAll('#paddle-skins .item').forEach(el => equipItem(el, 'paddle_skin', document.getElementById('equipped-paddle-skin')));
-		document.querySelectorAll('#ball-skins .item').forEach(el => equipItem(el, 'ball_skin', document.getElementById('equipped-ball-skin')));
-		document.querySelectorAll('#goal-explosions .item').forEach(el => equipItem(el, 'goal_explosion', document.getElementById('equipped-goal-explosion')));
+		function drawEloChart(values) {
+			const canvas = document.getElementById('stats-elo-chart');
+			if (!canvas) return;
+
+			const ctx = canvas.getContext('2d');
+			if (!ctx) return;
+
+			const dpr = Math.min(window.devicePixelRatio || 1, 2);
+			const cssWidth = canvas.clientWidth || 720;
+			const cssHeight = 260;
+
+			canvas.width = Math.floor(cssWidth * dpr);
+			canvas.height = Math.floor(cssHeight * dpr);
+
+			ctx.setTransform(1, 0, 0, 1, 0, 0);
+			ctx.scale(dpr, dpr);
+			ctx.clearRect(0, 0, cssWidth, cssHeight);
+
+			const points = Array.isArray(values) ? values : [];
+			if (points.length === 0) return;
+
+			const padding = { top: 20, right: 20, bottom: 36, left: 50 };
+			const plotWidth = cssWidth - padding.left - padding.right;
+			const plotHeight = cssHeight - padding.top - padding.bottom;
+
+			const minVal = Math.min(...points);
+			const maxVal = Math.max(...points);
+			const rawRange = Math.max(1, maxVal - minVal);
+			const extraPad = Math.max(5, rawRange * 0.1);
+			const yMin = minVal - extraPad;
+			const yMax = maxVal + extraPad;
+			const yRange = Math.max(1, yMax - yMin);
+
+			const getX = (i) =>
+				padding.left + (points.length === 1 ? plotWidth / 2 : (i / (points.length - 1)) * plotWidth);
+
+			const getY = (value) =>
+				padding.top + (1 - (value - yMin) / yRange) * plotHeight;
+
+			// grid
+			ctx.strokeStyle = 'rgba(255,255,255,0.10)';
+			ctx.lineWidth = 1;
+
+			const horizontalLines = 4;
+			for (let i = 0; i <= horizontalLines; i++) {
+				const y = padding.top + (i / horizontalLines) * plotHeight;
+				ctx.beginPath();
+				ctx.moveTo(padding.left, y);
+				ctx.lineTo(cssWidth - padding.right, y);
+				ctx.stroke();
+			}
+
+			// axes
+			ctx.strokeStyle = 'rgba(255,255,255,0.22)';
+			ctx.beginPath();
+			ctx.moveTo(padding.left, padding.top);
+			ctx.lineTo(padding.left, cssHeight - padding.bottom);
+			ctx.lineTo(cssWidth - padding.right, cssHeight - padding.bottom);
+			ctx.stroke();
+
+			// y-axis labels
+			ctx.fillStyle = 'rgba(255,255,255,0.78)';
+			ctx.font = '12px system-ui, sans-serif';
+			ctx.textAlign = 'right';
+			ctx.textBaseline = 'middle';
+
+			for (let i = 0; i <= horizontalLines; i++) {
+				const ratio = 1 - i / horizontalLines;
+				const value = Math.round(yMin + ratio * yRange);
+				const y = padding.top + (i / horizontalLines) * plotHeight;
+				ctx.fillText(String(value), padding.left - 8, y);
+			}
+
+			// x-axis labels
+			ctx.textAlign = 'center';
+			ctx.textBaseline = 'top';
+			ctx.fillStyle = 'rgba(255,255,255,0.65)';
+
+			for (let i = 0; i < points.length; i++) {
+				const x = getX(i);
+				ctx.fillText(String(i + 1), x, cssHeight - padding.bottom + 8);
+			}
+
+			// line
+			ctx.strokeStyle = 'rgb(0, 229, 255)';
+			ctx.lineWidth = 2;
+			ctx.beginPath();
+			points.forEach((value, i) => {
+				const x = getX(i);
+				const y = getY(value);
+				if (i === 0) ctx.moveTo(x, y);
+				else ctx.lineTo(x, y);
+			});
+			ctx.stroke();
+
+			// points + labels
+			points.forEach((value, i) => {
+				const x = getX(i);
+				const y = getY(value);
+
+				ctx.fillStyle = 'rgb(0, 229, 255)';
+				ctx.beginPath();
+				ctx.arc(x, y, 4, 0, Math.PI * 2);
+				ctx.fill();
+
+				ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+				ctx.lineWidth = 1.5;
+				ctx.stroke();
+
+				ctx.fillStyle = 'rgba(255,255,255,0.92)';
+				ctx.font = '11px system-ui, sans-serif';
+				ctx.textAlign = 'center';
+				ctx.textBaseline = 'bottom';
+				ctx.fillText(String(value), x, y - 8);
+			});
+		}
+
+		let latestEloHistory = [];
+
+		window.addEventListener('resize', () => {
+			if (latestEloHistory.length) {
+				drawEloChart(latestEloHistory);
+			}
+		});
+
+		document.querySelectorAll('#paddle-skins .item').forEach(el =>
+			equipItem(el, 'paddle_skin', document.getElementById('equipped-paddle-skin'))
+		);
+		document.querySelectorAll('#ball-skins .item').forEach(el =>
+			equipItem(el, 'ball_skin', document.getElementById('equipped-ball-skin'))
+		);
+		document.querySelectorAll('#goal-explosions .item').forEach(el =>
+			equipItem(el, 'goal_explosion', document.getElementById('equipped-goal-explosion'))
+		);
 
 		document.querySelectorAll('#goal-explosions .item').forEach(el => {
 			el.addEventListener('click', () => {
@@ -400,6 +622,95 @@
 				msg.textContent = err.message;
 			}
 		});
+
+		async function loadUserStats() {
+			const loadingEl = document.getElementById('stats-loading');
+			const contentEl = document.getElementById('stats-content');
+			const errorEl = document.getElementById('stats-error');
+
+			try {
+				const res = await fetch('/user/stats', {
+					method: 'GET',
+					credentials: 'same-origin'
+				});
+
+				const data = await res.json();
+
+				if (!res.ok || !data.ok) {
+					throw new Error(data?.error || 'Failed to load stats');
+				}
+
+				document.getElementById('stats-rank').textContent = `#${data.rank ?? '-'}`;
+				document.getElementById('stats-elo').textContent = '<%= user.elo ?? 1000 %>';
+				document.getElementById('stats-wins').textContent = data.wins ?? 0;
+				document.getElementById('stats-total-games').textContent = data.totalGames ?? 0;
+
+				latestEloHistory = Array.isArray(data.eloHistory) ? data.eloHistory : [];
+
+				const eloHistoryEl = document.getElementById('stats-elo-history');
+				if (eloHistoryEl) {
+					eloHistoryEl.style.display = 'none';
+				}
+
+				drawEloChart(latestEloHistory);
+
+				const historyEl = document.getElementById('stats-match-history');
+				historyEl.classList.add('match-history-list');
+				historyEl.innerHTML = '';
+
+				const games = Array.isArray(data.previous10Games) ? data.previous10Games : [];
+
+				if (games.length === 0) {
+					historyEl.innerHTML = `<div class="muted">No games played yet.</div>`;
+				} else {
+					games.forEach((game) => {
+						const row = document.createElement('div');
+						row.className = `match-row ${game.result}`;
+
+						const myChange = Number(game.my_elo_change ?? 0);
+						const oppChange = Number(game.opponent_elo_change ?? 0);
+
+						row.innerHTML = `
+							<div class="match-row-top">
+								<div>
+									<strong>${game.my_display_name}</strong> vs
+									<strong>${game.opponent_display_name}</strong>
+								</div>
+								<div class="match-result ${game.result}">
+									${game.result.toUpperCase()}
+								</div>
+							</div>
+
+							<div class="muted">Winner lives remaining: ${game.winner_lives_remaining}</div>
+
+							<div style="margin-top: 0.5rem;">
+								<div class="elo-pill">
+									You: ${game.my_elo_after}
+									(${myChange >= 0 ? '+' : ''}${myChange})
+								</div>
+								<div class="elo-pill">
+									Opponent: ${game.opponent_elo_after}
+									(${oppChange >= 0 ? '+' : ''}${oppChange})
+								</div>
+							</div>
+						`;
+
+						historyEl.appendChild(row);
+					});
+				}
+
+				loadingEl.style.display = 'none';
+				errorEl.style.display = 'none';
+				contentEl.style.display = 'block';
+			} catch (err) {
+				loadingEl.style.display = 'none';
+				contentEl.style.display = 'none';
+				errorEl.style.display = 'block';
+				errorEl.textContent = err.message || 'Failed to load stats';
+			}
+		}
+
+		loadUserStats();
 	</script>
 	<script type="module">
 		import * as THREE from 'three';

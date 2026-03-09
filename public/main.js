@@ -137,7 +137,7 @@ animatedScene.registerGameObject(
 
 			this.component.style.display = 'flex';
 			if (isGameOver) {
-				const { loser, winner } = animatedScene.gameOver;
+				const { loser, winner, ratings } = animatedScene.gameOver;
 				document.getElementById('waiting__title').innerText = `${
 					winner ?? 'A player'
 				} won`;
@@ -154,7 +154,17 @@ animatedScene.registerGameObject(
 							`<div>${name}: ${player.lives} ${name === winner ? '(Winner)' : ''}</div>`
 					)
 					.join('');
-				this.scoreboardDisplay.innerHTML = `<div><strong>Lobby Members:</strong> ${lobbyMembers.join(', ')}</div><div style="margin-top: 0.5rem"><strong>Final Lives:</strong></div>${finalLives}`;
+
+				const eloChanges = `<div><strong>Rating Changes:</strong></div>${
+					Object.entries(ratings)
+						.map(
+							([name, rating]) =>
+								`<div>${name}: ${rating.before} → ${rating.after} (${rating.change >= 0 ? '+' : ''}${rating.change})</div>`
+						)
+						.join('')
+				}`;
+
+				this.scoreboardDisplay.innerHTML = `<div><strong>Lobby Members:</strong> ${lobbyMembers.join(', ')}</div><div style="margin-top: 0.5rem"><strong>Final Lives:</strong></div>${finalLives}${eloChanges}`;
 				return;
 			}
 

@@ -5,6 +5,7 @@ import { PaddleCommon } from '../../public/game/common/PaddleCommon.js';
 import { PaddleController } from './PaddleController.js';
 import { GameState, Player } from '../../public/game/common/GameState.js';
 import { BallServer } from './BallServer.js';
+import db from '../db/db.js';
 
 const SYNC_INTERVAL = 5;
 const INITIAL_LIVES = 3;
@@ -35,8 +36,9 @@ export default class ServerScene extends Scene {
 				(player) => player.username !== loser
 			)?.username;
 
-			this.#gameOver = { loser, winner };
+			this.#gameOver = { loser, winner, ratings: null };
 			this.#ball.enabled = false;
+			void this.#saveGameResult();
 		});
 
 		this.registerGameObject(this.#ball);
@@ -178,5 +180,138 @@ export default class ServerScene extends Scene {
 
 	#recvMove(socket, username, ws, msg) {
 		this.state.players.get(username)?.paddle.controller.enqueueInput(msg);
+	}
+
+	async #saveGameResult() {
+		if (!this.#gameOver?.winner || !this.#gameOver?.loser) return;
+
+		const winnerName = this.#gameOver.winner;
+		const loserName = this.#gameOver.loser;
+
+		try {
+			const winner = await new Promise((resolve, reject) => {
+				db.get(
+					'SELECT id, elo FROM users WHERE display_name = ? LIMIT 1',
+					[winnerName],
+					(err, row) => {
+						if (err) reject(err);
+						else resolve(row);
+					}
+				);
+			});
+			const loser = await new Promise((resolve, reject) => {
+				db.get(
+					'SELECT id, elo FROM users WHERE display_name = ? LIMIT 1',
+					[loserName],
+					(err, row) => {
+						if (err) reject(err);
+						else resolve(row);
+					}
+				);
+			});
+			if (!winner || !loser) {
+				console.warn('skipping elo/match_history update: user lookup failed');
+				return;
+			}
+
+			const winnerExpected = 1 / (1 + 10 ** ((loser.elo - winner.elo) / 400));
+			const loserExpected = 1 / (1 + 10 ** ((winner.elo - loser.elo) / 400));
+			const winnerEloAfter = Math.round(winner.elo + 32 * (1 - winnerExpected));
+			const loserEloAfter = Math.round(loser.elo + 32 * (0 - loserExpected));
+			const winnerDelta = winnerEloAfter - winner.elo;
+			const loserDelta = loserEloAfter - loser.elo;
+
+			const winnerLives = this.state.players.get(winnerName)?.lives;
+
+			const winnerPlayer = this.state.players.get(winnerName);
+			const loserPlayer = this.state.players.get(loserName);
+			if (winnerPlayer) winnerPlayer.elo = winnerEloAfter;
+			if (loserPlayer) loserPlayer.elo = loserEloAfter;
+
+			this.#gameOver = {
+				...this.#gameOver,
+				ratings: {
+					[winnerName]: {
+						before: winner.elo,
+						after: winnerEloAfter,
+						change: winnerDelta
+					},
+					[loserName]: {
+						before: loser.elo,
+						after: loserEloAfter,
+						change: loserDelta
+					}
+				}
+			};
+
+			await new Promise((resolve, reject) => {
+				db.run('BEGIN TRANSACTION', (err) => {
+					if (err) reject(err);
+					else resolve();
+				});
+			});
+
+			try {
+				await new Promise((resolve, reject) => {
+					db.run(
+						'UPDATE users SET elo = ? WHERE id = ?',
+						[winnerEloAfter, winner.id],
+						(err) => {
+							if (err) reject(err);
+							else resolve();
+						}
+					);
+				});
+				await new Promise((resolve, reject) => {
+					db.run(
+						'UPDATE users SET elo = ? WHERE id = ?',
+						[loserEloAfter, loser.id],
+						(err) => {
+							if (err) reject(err);
+							else resolve();
+						}
+					);
+				});
+				await new Promise((resolve, reject) => {
+					db.run(
+						`INSERT INTO match_history (
+							winner_user_id,
+							loser_user_id,
+							winner_lives_remaining,
+							winner_elo_before,
+							winner_elo_after,
+							loser_elo_before,
+							loser_elo_after
+						) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+						[
+							winner.id,
+							loser.id,
+							winnerLives,
+							winner.elo,
+							winnerEloAfter,
+							loser.elo,
+							loserEloAfter
+						],
+						(err) => {
+							if (err) reject(err);
+							else resolve();
+						}
+					);
+				});
+				await new Promise((resolve, reject) => {
+					db.run('COMMIT', (err) => {
+						if (err) reject(err);
+						else resolve();
+					});
+				});
+			} catch (txErr) {
+				await new Promise((resolve) => {
+					db.run('ROLLBACK', () => resolve());
+				});
+				throw txErr;
+			}
+		} catch (err) {
+			console.error('Failed to save game:', err);
+		}
 	}
 }

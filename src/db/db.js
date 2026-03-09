@@ -82,6 +82,23 @@ db.serialize(() => {
 		}
 	);
 
+	db.run(
+		`CREATE TABLE IF NOT EXISTS match_history (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			ended_at TEXT NOT NULL DEFAULT (datetime('now')),
+			winner_user_id INTEGER NOT NULL,
+			loser_user_id INTEGER NOT NULL,
+			winner_lives_remaining INTEGER NOT NULL,
+			winner_elo_before INTEGER NOT NULL,
+			winner_elo_after INTEGER NOT NULL,
+			loser_elo_before INTEGER NOT NULL,
+			loser_elo_after INTEGER NOT NULL
+		)`,
+		(err) => {
+			if (err) console.error('Table creation failed:', err.message);
+		}
+	);
+
 	db.run('CREATE INDEX IF NOT EXISTS idx_items_kind ON items(kind);');
 	db.run(
 		'CREATE INDEX IF NOT EXISTS idx_user_unlocks_user_id ON user_unlocks(user_id);'
