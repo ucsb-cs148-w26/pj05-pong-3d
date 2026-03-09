@@ -46,8 +46,14 @@ export class KeyboardController {
 			this.keys.delete(e.code);
 		};
 
+		this._resetMovement = () => {
+			this.keys.clear();
+		};
+
 		window.addEventListener('keydown', this._onKeyDown);
 		window.addEventListener('keyup', this._onKeyUp);
+		window.addEventListener('visibilitychange', this._resetMovement);
+		window.addEventListener('blur', this._resetMovement);
 	}
 
 	// Returns orthonormal vectors [ e_1, e_2 ] for movement.
