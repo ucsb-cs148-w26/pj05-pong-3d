@@ -47,10 +47,7 @@ export class Arena extends ArenaCommon {
 				);
 				if (!collision) return;
 
-				this.#skin.triggerCollisionEffect(
-					collision.position,
-					collision.normal
-				);
+				this.#skin.triggerCollisionEffect(collision.position, collision.normal);
 			};
 		}
 	}
