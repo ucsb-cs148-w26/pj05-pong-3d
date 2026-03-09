@@ -10,7 +10,9 @@ export default function createLobbyRouter(server, parseSession) {
 	});
 
 	router.post('/api/lobbies', (req, res) => {
-		const name = req.body?.name;
+		if (!req.user) return res.sendStatus(401);
+
+		const name = req.body?.name ?? `${req.user.display_name}’s lobby`;
 		const lobby = lobbyState.createLobby(name);
 		res.json({ lobby });
 	});
@@ -64,7 +66,7 @@ export default function createLobbyRouter(server, parseSession) {
 			return res.status(400).send('Username is taken');
 		}
 
-		res.render('game', { code, username });
+		res.render('game', { code, lobbyName: lobby.name, username });
 	});
 
 	router.get('/', (req, res) => {
