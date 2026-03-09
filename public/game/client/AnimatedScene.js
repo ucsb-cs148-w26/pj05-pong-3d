@@ -254,12 +254,12 @@ export class AnimatedScene extends Scene {
 					paddle.controller = new KeyboardController(socket);
 				} else {
 					cameraController.offset = new THREE.Vector3(4, 3, 0);
-					paddle.controller = new KeyboardController(socket, [
-						'KeyD',
-						'KeyA',
-						'KeyW',
-						'KeyS'
-					]);
+					paddle.controller = new KeyboardController(socket, {
+						left: ['KeyD', 'ArrowRight'],
+						right: ['KeyA', 'ArrowLeft'],
+						up: ['KeyW', 'ArrowUp'],
+						down: ['KeyS', 'ArrowDown']
+					});
 				}
 			}
 		}
