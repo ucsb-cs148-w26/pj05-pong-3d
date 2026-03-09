@@ -127,12 +127,30 @@ export default class ServerScene extends Scene {
 	}
 
 	#onDisconnect(username) {
-		// TODO:
-		// Currently we have two-hardcoded paddles. First to join gets paddle1, second to join gets paddle2.
-		// Adding reconnect logic is not necessary since it would just require tracking which is "open" which won't be needed in the future.
-		// Hence reconnect is disabled for now.
+		const leavingPlayer = this.state.players.get(username);
+		if (!leavingPlayer) return;
 
-		console.warn('Reconnect disabled right now; see ServerScene.#onDisconnect');
+		const winner = [...this.state.players.keys()].find(
+			(otherUsername) => otherUsername !== username
+		);
+		const shouldForfeitEndGame = this.#ball.enabled && this.#gameOver === null;
+		if (shouldForfeitEndGame) {
+			this.#gameOver = { loser: username, winner };
+			this.#ball.enabled = false;
+		}
+
+		this.state.players.delete(username);
+
+		if (this.hostUser === username) {
+			this.hostUser = this.state.players.keys().next().value ?? null;
+		}
+
+		const arena = this.getGameObject('gameArena');
+		for (const body of arena.bodies) {
+			if (body.player?.username === username) body.player = null;
+		}
+
+		this.#updatePaddles();
 	}
 
 	#updatePaddles() {
