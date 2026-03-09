@@ -25,9 +25,16 @@
 		<% if (user) { %>
 			<h1>Lobbies</h1>
 
-			<div class="card">
-				<div style="margin-bottom: 1.5rem">
+			<div class="card" style="display: flex; flex-direction: column; gap: 1.5rem;">
+				<div>
 					<input id="name-field" placeholder="Lobby name" style="display: block; width: 100%; margin-bottom: 1rem" />
+					<div class="visibility-picker">
+						<span>Lobby visibility</span>
+						<div class="visibility-buttons">
+							<button id="create-public-button" class="visibility-button active">Public</button>
+							<button id="create-private-button" class="visibility-button">Private</button>
+						</div>
+					</div>
 					<button id="create-button" style="display: block; width: 100%">Create Lobby</button>
 				</div>
 
@@ -75,6 +82,22 @@
 			}
 
 			const nameField = document.getElementById('name-field');
+			const createPublicButton = document.getElementById('create-public-button');
+			const createPrivateButton = document.getElementById('create-private-button');
+			let lobbyIsPublic = true;
+			const setLobbyVisibility = (isPublic) => {
+				lobbyIsPublic = isPublic;
+				createPublicButton.classList.toggle('active', isPublic);
+				createPrivateButton.classList.toggle('active', !isPublic);
+			};
+			createPublicButton.addEventListener('click', (e) => {
+				e.preventDefault();
+				setLobbyVisibility(true);
+			});
+			createPrivateButton.addEventListener('click', (e) => {
+				e.preventDefault();
+				setLobbyVisibility(false);
+			});
 			document
 				.getElementById('create-button')
 				.addEventListener('click', (e) => {
@@ -82,6 +105,7 @@
 						method: 'POST',
 						body: JSON.stringify({
 							name: nameField.value.length ? nameField.value : undefined,
+							isPublic: lobbyIsPublic,
 							cosmetics: getSelectedCosmetics()
 						}),
 						headers: {

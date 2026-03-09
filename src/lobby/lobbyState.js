@@ -30,12 +30,13 @@ export default class LobbyState {
 		this.sockets = new Map();
 	}
 
-	createLobby(name) {
+	createLobby(name, isPublic) {
 		const lobbyId = String(nextLobbyId++);
 
 		const lobby = {
 			lobbyId,
 			name,
+			isPublic,
 			members: new Map(),
 			code: generateCode()
 		};
@@ -94,14 +95,15 @@ export default class LobbyState {
 		return !this.isLobbyFull(lobby) && !this.isLobbyInProgress(lobby);
 	}
 
-	listLobbies() {
+	listLobbies({ includePrivate = false } = {}) {
 		return Array.from(this.lobbies.values())
-			.filter((lobby) => this.isLobbyJoinable(lobby))
+			.filter((lobby) => includePrivate || lobby.isPublic)
 			.map((lobby) => ({
 				lobbyId: lobby.lobbyId,
 				name: lobby.name,
 				memberCount: lobby.members.size,
-				code: lobby.code
+				code: lobby.code,
+				isPublic: lobby.isPublic
 			}));
 	}
 
