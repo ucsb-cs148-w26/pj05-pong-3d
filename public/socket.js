@@ -64,6 +64,7 @@ export default class PongSocketClient {
 				clearInterval(this.#pingInterval);
 				this.#pingInterval = null;
 			}
+
 			this.#reconnectTimer = setTimeout(this.connect.bind(this), 1000);
 		};
 

@@ -2,7 +2,6 @@ import * as Constants from '../constants.js';
 import { KeyboardController } from '../controllers.js';
 import { PaddleCommon } from '../common/PaddleCommon.js';
 import { PADDLE_STYLE_CATALOG, PaddleSkin } from '../shaders/paddleSkin.js';
-import { Vec3 } from '../../physics/math.js';
 
 /**
  * Client-side Paddle with THREE.js rendering
@@ -42,11 +41,11 @@ export class Paddle extends PaddleCommon {
 		super.update(dt);
 
 		if (this.scene.isReplaying) return;
-		this.#skin.update(dt, this.body.v.norm());
+		this.#skin.update(dt, this.body.v.norm(), this.ball?.body?.x ?? null);
 	}
 
-	setSkinStyle(styleIndex, options = {}) {
-		return this.#skin.setStyle(styleIndex, options);
+	setSkinStyle(styleIndex) {
+		return this.#skin.setStyle(styleIndex);
 	}
 
 	setSkinColor(color) {

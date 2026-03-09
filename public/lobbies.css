@@ -9,3 +9,39 @@
 	padding: 0.5rem 0;
 	border-bottom: 1px solid rgba(255, 255, 255, 0.18);
 }
+
+.lobby-option {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	color: var(--fg-1);
+	margin-bottom: 1rem;
+}
+
+.visibility-buttons {
+	display: flex;
+	gap: 0.4rem;
+}
+
+.visibility-button {
+	width: auto;
+	padding: 0.4rem 0.75rem;
+	border: 0.1rem solid rgba(255, 255, 255, 0.35);
+	background: rgba(255, 255, 255, 0.08);
+	color: white;
+	box-shadow: none;
+}
+
+.visibility-button:hover:not(:disabled) {
+	background: rgba(255, 255, 255, 0.2);
+	transform: translateY(-1px);
+}
+
+.visibility-button:active {
+	border-style: solid;
+}
+
+.visibility-button.active {
+	background: rgba(255, 255, 255, 0.3);
+	border-style: solid;
+}

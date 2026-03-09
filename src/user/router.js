@@ -210,6 +210,37 @@ export default function createUserRouter() {
 		);
 	});
 
+	router.post('/debug/unlockRandomPaddleSkin', ensureAuth, (req, res) => {
+		const userId = req.user.id;
+
+		db.get(
+			`SELECT i.id FROM items i
+            WHERE i.kind = 'paddle_skin'
+            AND i.id NOT IN (
+                SELECT item_id FROM user_unlocks WHERE user_id = ?
+            )
+            ORDER BY RANDOM() LIMIT 1`,
+			[userId],
+			(err, row) => {
+				if (err) return res.status(500).json({ error: 'Database error' });
+				if (!row)
+					return res.json({ message: 'All paddle skins already unlocked!' });
+
+				db.run(
+					`INSERT INTO user_unlocks (user_id, item_id, unlocked_at) VALUES (?, ?, CURRENT_TIMESTAMP)`,
+					[userId, row.id],
+					(err2) => {
+						if (err2) return res.status(500).json({ error: 'Database error' });
+						res.json({
+							message: 'Unlocked a new paddle skin!',
+							itemId: row.id
+						});
+					}
+				);
+			}
+		);
+	});
+
 	router.post('/debug/unlockRandomBallSkin', ensureAuth, (req, res) => {
 		const userId = req.user.id;
 

@@ -324,6 +324,236 @@ export const ShaderLibrary = {
 				CUSTOM_COLOR_LOGIC: 'uColor * intensity'
 			}
 		},
+		STANDARD_PADDLE_SKIN_SHADER: {
+			vertexShader: `
+	uniform float uTime;
+	uniform float uMotionIntensity;
+	uniform float uDisplacement;
+	uniform float uAnimationSpeed;
+	uniform vec3 uBallWorldPos;
+	uniform float uBallRadius;
+	uniform float uBallBehindDepthBias;
+
+	varying vec3 vLocalPos;
+	varying vec3 vLocalNormal;
+	varying vec3 vNormalW;
+	varying vec3 vViewDirW;
+	varying vec2 vPaddleMinNdc;
+	varying vec2 vPaddleMaxNdc;
+	varying vec2 vBallNdc;
+	varying float vBallProjectedRadius;
+	varying float vBallBehindFlag;
+	varying float vBallClipValid;
+
+	void main() {
+		float motion = clamp(uMotionIntensity, 0.0, 2.0);
+		float wave = sin((position.y + position.z) * 8.0 + uTime * 6.0 * uAnimationSpeed);
+		vec3 displaced = position + normal * (wave * uDisplacement * motion);
+		vLocalPos = displaced;
+		vLocalNormal = normal;
+
+		vec4 worldPos = modelMatrix * vec4(displaced, 1.0);
+		vNormalW = normalize(mat3(modelMatrix) * normal);
+		vViewDirW = normalize(cameraPosition - worldPos.xyz);
+
+		mat4 modelView = viewMatrix * modelMatrix;
+		vec4 paddleCenterClip =
+			projectionMatrix * modelView * vec4(0.0, 0.0, 0.0, 1.0);
+		vec4 ballView = viewMatrix * vec4(uBallWorldPos, 1.0);
+		vec4 ballClip = projectionMatrix * ballView;
+		float ballW = max(abs(ballClip.w), 1e-5);
+		vBallNdc = ballClip.xy / ballW;
+
+		vec4 ballRadiusClipX =
+			projectionMatrix * (ballView + vec4(uBallRadius, 0.0, 0.0, 0.0));
+		vec4 ballRadiusClipY =
+			projectionMatrix * (ballView + vec4(0.0, uBallRadius, 0.0, 0.0));
+		vec2 ballRadiusNdcX =
+			ballRadiusClipX.xy / max(abs(ballRadiusClipX.w), 1e-5);
+		vec2 ballRadiusNdcY =
+			ballRadiusClipY.xy / max(abs(ballRadiusClipY.w), 1e-5);
+		vBallProjectedRadius = max(
+			length(ballRadiusNdcX - vBallNdc),
+			length(ballRadiusNdcY - vBallNdc)
+		);
+		vBallProjectedRadius = max(vBallProjectedRadius, 0.001);
+
+		vec2 paddleMinNdc = vec2(1e6);
+		vec2 paddleMaxNdc = vec2(-1e6);
+		vec4 paddleCornerClip;
+		vec2 paddleCornerNdc;
+
+		paddleCornerClip =
+			projectionMatrix *
+			modelView *
+			vec4(-uHalfExtents.x, -uHalfExtents.y, -uHalfExtents.z, 1.0);
+		paddleCornerNdc = paddleCornerClip.xy / max(abs(paddleCornerClip.w), 1e-5);
+		paddleMinNdc = min(paddleMinNdc, paddleCornerNdc);
+		paddleMaxNdc = max(paddleMaxNdc, paddleCornerNdc);
+
+		paddleCornerClip =
+			projectionMatrix *
+			modelView *
+			vec4(-uHalfExtents.x, -uHalfExtents.y, uHalfExtents.z, 1.0);
+		paddleCornerNdc = paddleCornerClip.xy / max(abs(paddleCornerClip.w), 1e-5);
+		paddleMinNdc = min(paddleMinNdc, paddleCornerNdc);
+		paddleMaxNdc = max(paddleMaxNdc, paddleCornerNdc);
+
+		paddleCornerClip =
+			projectionMatrix *
+			modelView *
+			vec4(-uHalfExtents.x, uHalfExtents.y, -uHalfExtents.z, 1.0);
+		paddleCornerNdc = paddleCornerClip.xy / max(abs(paddleCornerClip.w), 1e-5);
+		paddleMinNdc = min(paddleMinNdc, paddleCornerNdc);
+		paddleMaxNdc = max(paddleMaxNdc, paddleCornerNdc);
+
+		paddleCornerClip =
+			projectionMatrix *
+			modelView *
+			vec4(-uHalfExtents.x, uHalfExtents.y, uHalfExtents.z, 1.0);
+		paddleCornerNdc = paddleCornerClip.xy / max(abs(paddleCornerClip.w), 1e-5);
+		paddleMinNdc = min(paddleMinNdc, paddleCornerNdc);
+		paddleMaxNdc = max(paddleMaxNdc, paddleCornerNdc);
+
+		paddleCornerClip =
+			projectionMatrix *
+			modelView *
+			vec4(uHalfExtents.x, -uHalfExtents.y, -uHalfExtents.z, 1.0);
+		paddleCornerNdc = paddleCornerClip.xy / max(abs(paddleCornerClip.w), 1e-5);
+		paddleMinNdc = min(paddleMinNdc, paddleCornerNdc);
+		paddleMaxNdc = max(paddleMaxNdc, paddleCornerNdc);
+
+		paddleCornerClip =
+			projectionMatrix *
+			modelView *
+			vec4(uHalfExtents.x, -uHalfExtents.y, uHalfExtents.z, 1.0);
+		paddleCornerNdc = paddleCornerClip.xy / max(abs(paddleCornerClip.w), 1e-5);
+		paddleMinNdc = min(paddleMinNdc, paddleCornerNdc);
+		paddleMaxNdc = max(paddleMaxNdc, paddleCornerNdc);
+
+		paddleCornerClip =
+			projectionMatrix *
+			modelView *
+			vec4(uHalfExtents.x, uHalfExtents.y, -uHalfExtents.z, 1.0);
+		paddleCornerNdc = paddleCornerClip.xy / max(abs(paddleCornerClip.w), 1e-5);
+		paddleMinNdc = min(paddleMinNdc, paddleCornerNdc);
+		paddleMaxNdc = max(paddleMaxNdc, paddleCornerNdc);
+
+		paddleCornerClip =
+			projectionMatrix *
+			modelView *
+			vec4(uHalfExtents.x, uHalfExtents.y, uHalfExtents.z, 1.0);
+		paddleCornerNdc = paddleCornerClip.xy / max(abs(paddleCornerClip.w), 1e-5);
+		paddleMinNdc = min(paddleMinNdc, paddleCornerNdc);
+		paddleMaxNdc = max(paddleMaxNdc, paddleCornerNdc);
+
+		vPaddleMinNdc = paddleMinNdc;
+		vPaddleMaxNdc = paddleMaxNdc;
+
+		float paddleW = max(abs(paddleCenterClip.w), 1e-5);
+		float paddleDepth = paddleCenterClip.z / paddleW;
+		float ballDepth = ballClip.z / ballW;
+		vBallBehindFlag = step(paddleDepth + uBallBehindDepthBias, ballDepth);
+		vBallClipValid = float(paddleCenterClip.w > 0.0 && ballClip.w > 0.0);
+		gl_Position = projectionMatrix * viewMatrix * worldPos;
+	}
+`,
+			fragmentShader: `
+	uniform sampler2D uMainTex;
+	uniform vec3 uTint;
+	uniform float uUseMainTex;
+	uniform float uTime;
+	uniform float uGlowStrength;
+	uniform float uRimPower;
+	uniform float uScanDensity;
+	uniform float uScanSpeed;
+		uniform float uScanStrength;
+		uniform float uRimStrength;
+		uniform vec3 uGlowTint;
+		uniform float uBallBehindFadeEnabled;
+		uniform float uBallBehindOpacity;
+		uniform float uBallBehindRadiusScale;
+		uniform vec4 uAtlasPosX;
+		uniform vec4 uAtlasNegX;
+		uniform vec4 uAtlasPosY;
+	uniform vec4 uAtlasNegY;
+	uniform vec4 uAtlasPosZ;
+	uniform vec4 uAtlasNegZ;
+
+	varying vec3 vLocalPos;
+	varying vec3 vLocalNormal;
+	varying vec3 vNormalW;
+	varying vec3 vViewDirW;
+	varying vec2 vPaddleMinNdc;
+	varying vec2 vPaddleMaxNdc;
+	varying vec2 vBallNdc;
+	varying float vBallProjectedRadius;
+	varying float vBallBehindFlag;
+	varying float vBallClipValid;
+
+	vec2 mapPaddleFaceToAtlas(vec2 faceUv, vec4 atlasRect) {
+		return atlasRect.xy + faceUv * atlasRect.zw;
+	}
+
+	vec2 resolvePaddleFaceAtlasUv(
+		in vec3 localPos,
+		in vec3 localNormal,
+		out vec2 faceUv
+	) {
+		vec3 n = normalize(localNormal);
+		vec3 an = abs(n);
+		vec4 atlasRect = uAtlasPosX;
+
+		faceUv = resolvePaddleFaceUv(localPos, localNormal);
+
+		if (an.x >= an.y && an.x >= an.z) {
+			atlasRect = n.x >= 0.0 ? uAtlasPosX : uAtlasNegX;
+		} else if (an.y >= an.x && an.y >= an.z) {
+			atlasRect = n.y >= 0.0 ? uAtlasPosY : uAtlasNegY;
+		} else {
+			atlasRect = n.z >= 0.0 ? uAtlasPosZ : uAtlasNegZ;
+		}
+
+		return mapPaddleFaceToAtlas(faceUv, atlasRect);
+	}
+
+	void main() {
+		vec2 faceUv;
+		vec2 atlasUv = resolvePaddleFaceAtlasUv(vLocalPos, vLocalNormal, faceUv);
+		vec3 base = uTint;
+		if (uUseMainTex > 0.5) {
+			base = texture2D(uMainTex, atlasUv).rgb * uTint;
+		}
+
+		float rim = pow(
+			1.0 - max(dot(normalize(vNormalW), normalize(vViewDirW)), 0.0),
+			uRimPower
+		);
+		float scan = 0.5 + 0.5 * sin(faceUv.y * uScanDensity - uTime * uScanSpeed);
+		float glow = (rim * uRimStrength + scan * uScanStrength) * uGlowStrength;
+
+		vec3 color = base + glow * uGlowTint;
+
+		float fadeMask = 0.0;
+		if (uBallBehindFadeEnabled > 0.5 && vBallClipValid > 0.5) {
+			vec2 nearestPaddlePoint = clamp(vBallNdc, vPaddleMinNdc, vPaddleMaxNdc);
+			float overlapDist = length(vBallNdc - nearestPaddlePoint);
+			float overlapRadius = vBallProjectedRadius * uBallBehindRadiusScale;
+			float overlapSoftness = max(vBallProjectedRadius * 0.35, 0.01);
+			float overlap = 1.0 - smoothstep(
+				overlapRadius,
+				overlapRadius + overlapSoftness,
+				overlapDist
+			);
+			fadeMask = clamp(overlap * vBallBehindFlag, 0.0, 1.0);
+		}
+
+		float alpha = mix(1.0, uBallBehindOpacity, fadeMask);
+		gl_FragColor = vec4(color, alpha);
+	}
+`
+		},
+
 		STANDARD_BALL_SKIN_SHADER: {
 			vertexShader: `
 	uniform float uTime;
