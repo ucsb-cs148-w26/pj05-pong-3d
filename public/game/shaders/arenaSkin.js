@@ -12,6 +12,8 @@ const DEFAULT_SHADER_MATERIAL_OPTIONS = Object.freeze({
 	side: THREE.BackSide
 });
 
+const ARENA_RIPPLE_SLOT_COUNT = 4;
+
 export const DEFAULT_ARENA_SHADER_PROFILE = Object.freeze({
 	blueColor: 0x1b63ff,
 	redColor: 0xff4155,
@@ -50,9 +52,28 @@ export const DEFAULT_ARENA_SHADER_PROFILE = Object.freeze({
 	expansionPulseSpeed: 3.6,
 	expansionPulseStrength: 0.22,
 	ballSpeedExpansionReference: Constants.BALL_INITIAL_SPEED,
+	rippleLifetime: 1.25,
+	rippleSpeed: 8.8,
+	rippleWidth: 0.12,
+	rippleSoftness: 0.26,
+	rippleStrength: 0.32,
 	borderExtensionLengthScale: 3.6,
 	borderExtensionInset: 0.05
 });
+
+function createRippleCentersAgeUniform() {
+	return Array.from(
+		{ length: ARENA_RIPPLE_SLOT_COUNT },
+		() => new THREE.Vector4(0, 0, 0, -1.0)
+	);
+}
+
+function createRippleNormalsStrengthUniform() {
+	return Array.from(
+		{ length: ARENA_RIPPLE_SLOT_COUNT },
+		() => new THREE.Vector4(1, 0, 0, 0.0)
+	);
+}
 
 function colorFromValue(value, fallback = 0xffffff) {
 	if (value instanceof THREE.Color) return value.clone();
@@ -149,7 +170,14 @@ function createArenaUniforms(
 		uExpansionPulseFrequency: { value: profile.expansionPulseFrequency },
 		uExpansionPulseSpeed: { value: profile.expansionPulseSpeed },
 		uExpansionPulseStrength: { value: profile.expansionPulseStrength },
-		uExpansionPhase: { value: 0.0 }
+		uExpansionPhase: { value: 0.0 },
+		uRippleCentersAge: { value: createRippleCentersAgeUniform() },
+		uRippleNormalsStrength: { value: createRippleNormalsStrengthUniform() },
+		uRippleLifetime: { value: profile.rippleLifetime },
+		uRippleSpeed: { value: profile.rippleSpeed },
+		uRippleWidth: { value: profile.rippleWidth },
+		uRippleSoftness: { value: profile.rippleSoftness },
+		uRippleStrength: { value: profile.rippleStrength }
 	});
 }
 
@@ -266,6 +294,12 @@ export class ArenaSkin {
 	#visual = null;
 	#uniformGroups = [];
 	#expansionPhase = 0.0;
+	#rippleSlots = Array.from({ length: ARENA_RIPPLE_SLOT_COUNT }, () => ({
+		center: new THREE.Vector3(),
+		normal: new THREE.Vector3(1, 0, 0),
+		age: -1.0,
+		strength: 0.0
+	}));
 
 	constructor({
 		dimensions = DEFAULT_ARENA_DIMENSIONS,
@@ -304,6 +338,8 @@ export class ArenaSkin {
 			this.#visual.add(mesh);
 			this.#uniformGroups.push(uniforms);
 		}
+
+		this.#syncRippleUniforms();
 	}
 
 	update(dt, ballSpeed = 0.0) {
@@ -319,6 +355,18 @@ export class ArenaSkin {
 				uniforms.uExpansionPhase.value = this.#expansionPhase;
 			}
 		}
+
+		for (const ripple of this.#rippleSlots) {
+			if (ripple.age < 0.0) continue;
+
+			ripple.age += dt;
+			if (ripple.age > this.#profile.rippleLifetime) {
+				ripple.age = -1.0;
+				ripple.strength = 0.0;
+			}
+		}
+
+		this.#syncRippleUniforms();
 	}
 
 	get visual() {
@@ -327,5 +375,48 @@ export class ArenaSkin {
 
 	get dimensions() {
 		return { ...this.#dimensions };
+	}
+
+	triggerCollisionEffect(position, normal, strength = 1.0) {
+		let target = this.#rippleSlots[0];
+		for (const ripple of this.#rippleSlots) {
+			if (ripple.age < 0.0) {
+				target = ripple;
+				break;
+			}
+
+			if (ripple.age > target.age) target = ripple;
+		}
+
+		target.center.copy(position);
+		target.normal.copy(normal).normalize();
+		target.age = 0.0;
+		target.strength = strength;
+
+		this.#syncRippleUniforms();
+	}
+
+	#syncRippleUniforms() {
+		for (const uniforms of this.#uniformGroups) {
+			const centersAge = uniforms?.uRippleCentersAge?.value;
+			const normalsStrength = uniforms?.uRippleNormalsStrength?.value;
+			if (!centersAge || !normalsStrength) continue;
+
+			for (let i = 0; i < ARENA_RIPPLE_SLOT_COUNT; i++) {
+				const ripple = this.#rippleSlots[i];
+				centersAge[i].set(
+					ripple.center.x,
+					ripple.center.y,
+					ripple.center.z,
+					ripple.age
+				);
+				normalsStrength[i].set(
+					ripple.normal.x,
+					ripple.normal.y,
+					ripple.normal.z,
+					ripple.strength
+				);
+			}
+		}
 	}
 }

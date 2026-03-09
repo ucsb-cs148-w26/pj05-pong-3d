@@ -70,6 +70,10 @@ export class ArenaCommon extends GameObjectBase {
 		this.#bodies[5].x.addVec(new Vec3(Constants.ARENA_END_OFFSET));
 
 		// Assign ball identifiers for collision detection
+		this.#bodies[0].ballIdentifier = 'topWall';
+		this.#bodies[1].ballIdentifier = 'bottomWall';
+		this.#bodies[2].ballIdentifier = 'positiveZWall';
+		this.#bodies[3].ballIdentifier = 'negativeZWall';
 		this.#bodies[4].ballIdentifier = 'greenWall';
 		this.#bodies[5].ballIdentifier = 'redWall';
 	}

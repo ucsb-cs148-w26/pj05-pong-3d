@@ -745,7 +745,7 @@ export const ShaderLibrary = {
 	}
 `
 		},
-				STANDARD_ARENA_SHADER: {
+		STANDARD_ARENA_SHADER: {
 			vertexShader: `
 	varying vec3 vLocalPos;
 	varying vec3 vLocalNormal;
@@ -765,6 +765,7 @@ export const ShaderLibrary = {
 `,
 			fragmentShader: `
 	uniform float uTime;
+	const int ARENA_RIPPLE_COUNT = 4;
 	uniform vec3 uArenaHalfExtents;
 	uniform float uFaceMode;
 	uniform float uHoleMaskEnabled;
@@ -806,6 +807,13 @@ export const ShaderLibrary = {
 	uniform float uExpansionPulseSpeed;
 	uniform float uExpansionPulseStrength;
 	uniform float uExpansionPhase;
+	uniform vec4 uRippleCentersAge[ARENA_RIPPLE_COUNT];
+	uniform vec4 uRippleNormalsStrength[ARENA_RIPPLE_COUNT];
+	uniform float uRippleLifetime;
+	uniform float uRippleSpeed;
+	uniform float uRippleWidth;
+	uniform float uRippleSoftness;
+	uniform float uRippleStrength;
 
 	varying vec3 vLocalPos;
 	varying vec3 vLocalNormal;
@@ -836,10 +844,114 @@ export const ShaderLibrary = {
 		return min(abs(abs(uv.x) - 1.0), abs(abs(uv.y) - 1.0));
 	}
 
+	float safeSign(float value) {
+		return value < 0.0 ? -1.0 : 1.0;
+	}
+
+	vec3 orientToSourceFrame(vec3 value, vec3 sourceNormal) {
+		vec3 absSourceNormal = abs(sourceNormal);
+		if (absSourceNormal.x > 0.5) {
+			return sourceNormal.x > 0.0 ? value : vec3(-value.x, value.y, -value.z);
+		}
+		if (absSourceNormal.y > 0.5) {
+			return sourceNormal.y > 0.0
+				? vec3(value.y, -value.x, value.z)
+				: vec3(-value.y, value.x, value.z);
+		}
+		return sourceNormal.z > 0.0
+			? vec3(value.z, value.y, -value.x)
+			: vec3(-value.z, value.y, value.x);
+	}
+
+	vec3 orientExtentsToSourceFrame(vec3 extents, vec3 sourceNormal) {
+		vec3 absSourceNormal = abs(sourceNormal);
+		if (absSourceNormal.x > 0.5) return extents;
+		if (absSourceNormal.y > 0.5) return vec3(extents.y, extents.x, extents.z);
+		return vec3(extents.z, extents.y, extents.x);
+	}
+
+	float surfaceRippleDistance(
+		vec3 worldPos,
+		vec3 surfaceNormal,
+		vec3 rippleCenter,
+		vec3 rippleNormal
+	) {
+		vec3 sourceFramePos = orientToSourceFrame(worldPos, rippleNormal);
+		vec3 sourceFrameNormal = orientToSourceFrame(surfaceNormal, rippleNormal);
+		vec3 sourceFrameCenter = orientToSourceFrame(rippleCenter, rippleNormal);
+		vec3 sourceFrameExtents = orientExtentsToSourceFrame(
+			uArenaHalfExtents,
+			rippleNormal
+		);
+		vec2 sourceUv = sourceFrameCenter.yz;
+
+		if (sourceFrameNormal.x > 0.5) {
+			return length(sourceFramePos.yz - sourceUv);
+		}
+		if (sourceFrameNormal.y > 0.5) {
+			vec2 unfoldedUv = vec2(
+				sourceFrameExtents.y + (sourceFrameExtents.x - sourceFramePos.x),
+				sourceFramePos.z
+			);
+			return length(unfoldedUv - sourceUv);
+		}
+		if (sourceFrameNormal.y < -0.5) {
+			vec2 unfoldedUv = vec2(
+				-sourceFrameExtents.y - (sourceFrameExtents.x - sourceFramePos.x),
+				sourceFramePos.z
+			);
+			return length(unfoldedUv - sourceUv);
+		}
+		if (sourceFrameNormal.z > 0.5) {
+			vec2 unfoldedUv = vec2(
+				sourceFramePos.y,
+				sourceFrameExtents.z + (sourceFrameExtents.x - sourceFramePos.x)
+			);
+			return length(unfoldedUv - sourceUv);
+		}
+		if (sourceFrameNormal.z < -0.5) {
+			vec2 unfoldedUv = vec2(
+				sourceFramePos.y,
+				-sourceFrameExtents.z - (sourceFrameExtents.x - sourceFramePos.x)
+			);
+			return length(unfoldedUv - sourceUv);
+		}
+
+		return 1e6;
+	}
+
+	float arenaRippleMask(
+		vec3 worldPos,
+		vec3 surfaceNormal,
+		vec3 center,
+		vec3 normal,
+		float age,
+		float hitStrength
+	) {
+		if (age < 0.0 || hitStrength <= 0.0) return 0.0;
+
+		float ringRadius = age * uRippleSpeed;
+		float ringDist = abs(
+			surfaceRippleDistance(worldPos, surfaceNormal, center, normal) - ringRadius
+		);
+		float ringMask = 1.0 - smoothstep(
+			uRippleWidth,
+			uRippleWidth + uRippleSoftness,
+			ringDist
+		);
+		float ageFade = 1.0 - smoothstep(
+			uRippleLifetime * 0.45,
+			uRippleLifetime,
+			age
+		);
+		return ringMask * ageFade * hitStrength;
+	}
+
 	void main() {
 		vec3 localNormal = normalize(vLocalNormal);
 		vec3 absNormal = abs(localNormal);
 		vec2 faceUv;
+		vec3 surfaceNormal;
 		if (
 			uHoleMaskEnabled > 0.5 &&
 			abs(vLocalPos.y) < uHoleHalfExtents.x &&
@@ -852,21 +964,27 @@ export const ShaderLibrary = {
 		if (uFaceMode > 2.5) {
 			sideFace = 1.0;
 			faceUv = vWorldPos.xy / max(uArenaHalfExtents.xy, vec2(1e-4));
+			surfaceNormal = vec3(0.0, 0.0, safeSign(vWorldPos.z));
 		} else if (uFaceMode > 1.5) {
 			floorCeilFace = 1.0;
 			faceUv = vWorldPos.xz / max(uArenaHalfExtents.xz, vec2(1e-4));
+			surfaceNormal = vec3(0.0, safeSign(vWorldPos.y), 0.0);
 		} else if (uFaceMode > 0.5) {
 			endFace = 1.0;
 			faceUv = vWorldPos.yz / max(uArenaHalfExtents.yz, vec2(1e-4));
+			surfaceNormal = vec3(safeSign(vWorldPos.x), 0.0, 0.0);
 		} else if (absNormal.x >= absNormal.y && absNormal.x >= absNormal.z) {
 			endFace = 1.0;
 			faceUv = vWorldPos.yz / max(uArenaHalfExtents.yz, vec2(1e-4));
+			surfaceNormal = vec3(safeSign(vWorldPos.x), 0.0, 0.0);
 		} else if (absNormal.y >= absNormal.x && absNormal.y >= absNormal.z) {
 			floorCeilFace = 1.0;
 			faceUv = vWorldPos.xz / max(uArenaHalfExtents.xz, vec2(1e-4));
+			surfaceNormal = vec3(0.0, safeSign(vWorldPos.y), 0.0);
 		} else {
 			sideFace = 1.0;
 			faceUv = vWorldPos.xy / max(uArenaHalfExtents.xy, vec2(1e-4));
+			surfaceNormal = vec3(0.0, 0.0, safeSign(vWorldPos.z));
 		}
 
 		vec2 face01 = faceUv * 0.5 + 0.5;
@@ -943,6 +1061,20 @@ export const ShaderLibrary = {
 		float goalHalo =
 			endFace *
 			(1.0 - smoothstep(uGoalHaloInner, uGoalHaloOuter, length(goalUv)));
+		float rippleMask = 0.0;
+		for (int i = 0; i < ARENA_RIPPLE_COUNT; i++) {
+			vec4 rippleCenterAge = uRippleCentersAge[i];
+			vec4 rippleNormalStrength = uRippleNormalsStrength[i];
+			rippleMask += arenaRippleMask(
+				vWorldPos,
+				surfaceNormal,
+				rippleCenterAge.xyz,
+				rippleNormalStrength.xyz,
+				rippleCenterAge.w,
+				rippleNormalStrength.w
+			);
+		}
+		rippleMask = clamp(rippleMask, 0.0, 1.0);
 
 		float fresnel = pow(
 			1.0 - abs(dot(normalize(vLocalNormal), normalize(vViewDirW))),
@@ -950,12 +1082,14 @@ export const ShaderLibrary = {
 		);
 
 		vec3 accentColor = mix(uLineColor, teamColor, uAccentMix);
+		vec3 rippleColor = mix(uLineColor, teamColor, 0.22 + endFace * 0.18);
 		vec3 accents = accentColor * (
 			primaryGrid * uPrimaryGridStrength +
 			minorGrid +
 			expansionPulse * minorGrid * uExpansionPulseStrength +
 			edgeGlow * uEdgeGlowStrength
 		);
+		accents += rippleColor * rippleMask * uRippleStrength;
 		accents +=
 			teamColor * goalHalo * (uGoalHaloStrength + uGoalHaloGoalBoost * goalBias);
 		accents += accentColor * fresnel * uFresnelStrength;
