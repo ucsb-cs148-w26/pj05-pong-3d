@@ -18,7 +18,12 @@ for a controller to inherit from game object if need be. Otherwise, just impleme
 export class KeyboardController {
 	constructor(
 		socket,
-		lrudCodes = ['KeyA', 'KeyD', 'KeyW', 'KeyS'],
+		lrudCodes = {
+			left: ['KeyA', 'ArrowLeft'],
+			right: ['KeyD', 'ArrowRight'],
+			up: ['KeyW', 'ArrowUp'],
+			down: ['KeyS', 'ArrowDown']
+		},
 		plane = 'zy'
 	) {
 		this.keys = new Set();
@@ -73,10 +78,10 @@ export class KeyboardController {
 			return new MATH.Vec3(...this.inputBuffer[this.inputBufferIdx].direction);
 		}
 
-		const left = this.keys.has(this.codes[0]);
-		const right = this.keys.has(this.codes[1]);
-		const up = this.keys.has(this.codes[2]);
-		const down = this.keys.has(this.codes[3]);
+		const left = this.codes.left.some((code) => this.keys.has(code));
+		const right = this.codes.right.some((code) => this.keys.has(code));
+		const up = this.codes.up.some((code) => this.keys.has(code));
+		const down = this.codes.down.some((code) => this.keys.has(code));
 
 		const [e1, e2] = KeyboardController.dirFromPlane(this.plane);
 
