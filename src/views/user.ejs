@@ -27,7 +27,7 @@
 		<% } %>
 
 		<div style="display: flex; gap: 0.5rem; align-items: center">
-            <label for="display-name"><strong>Name:</strong></label>
+			<label for="display-name"><strong>Name:</strong></label>
 			<input
 				type="text"
 				id="display-name"
@@ -46,29 +46,23 @@
 	</div>
 
 	<div class="card">
-		<h2>Rank</h2>
+		<h2>Stats</h2>
 		<div id="stats-loading" class="muted">Loading stats...</div>
 
 		<div id="stats-content" style="display:none;">
-			<p><strong>Rank:</strong> <span id="stats-rank">-</span></p>
-			<p><strong>ELO:</strong> <span id="stats-elo"><%= user.elo ?? 1000 %></span></p>
-			<p>
-				<strong>Record:</strong>
-				<span id="stats-wins">0</span> wins /
-				<span id="stats-total-games">0</span> games
-			</p>
-
-			<div style="margin-top: 1rem;">
-				<strong>Previous 10 Games</strong>
-				<div id="stats-match-history" class="item-list" style="margin-top: 0.75rem; flex-direction: column; align-items: stretch;"></div>
-			</div>
-
-			<div style="margin-top: 1rem;">
-				<strong>ELO History</strong>
-				<div class="elo-chart-wrap">
-					<canvas id="stats-elo-chart" width="720" height="260"></canvas>
+			<div class="summary-grid">
+				<div class="summary-tile">
+					<strong>Rank</strong><br>
+					<span id="stats-rank">-</span>
 				</div>
-				<div id="stats-elo-history" class="muted" style="margin-top: 0.5rem; word-break: break-word;"></div>
+				<div class="summary-tile">
+					<strong>ELO</strong><br>
+					<span id="stats-elo"><%= user.elo ?? 1000 %></span>
+				</div>
+				<div class="summary-tile">
+					<strong>Winrate</strong><br>
+					<span id="stats-winrate">0%</span>
+				</div>
 			</div>
 		</div>
 
@@ -76,89 +70,161 @@
 	</div>
 
 	<div class="card">
-		<h2>Equipped Items</h2>
-		<div class="item-list">
-			<div class="item" id="equipped-paddle-skin" data-label="Paddle Skin">
-				<strong>Paddle Skin:</strong><br>
+		<h2>Equipped Skins</h2>
+		<div class="summary-grid">
+			<div class="summary-tile" id="equipped-paddle-skin" data-label="Paddle Skin">
+				<strong>Paddle Skin</strong><br>
 				<%= equipped.paddle_skin_name || 'Error' %>
 			</div>
-			<div class="item" id="equipped-ball-skin" data-label="Ball Skin">
-				<strong>Ball Skin:</strong><br>
+			<div class="summary-tile" id="equipped-ball-skin" data-label="Ball Skin">
+				<strong>Ball Skin</strong><br>
 				<%= equipped.ball_skin_name || 'Error' %>
 			</div>
-			<div class="item" id="equipped-goal-explosion" data-label="Goal Explosion">
-				<strong>Goal Explosion:</strong><br>
+			<div class="summary-tile" id="equipped-goal-explosion" data-label="Goal Explosion">
+				<strong>Goal Explosion</strong><br>
 				<%= equipped.goal_explosion_name || 'Error' %>
 			</div>
 		</div>
 	</div>
 
-	<div class="card">
-		<h2>Paddle Skins</h2>
-		<% if (paddleSkins.length > 0) { %>
-			<div class="item-list" id="paddle-skins">
-				<% paddleSkins.forEach(skin => { %>
-					<button type="button" class="item <%= skin.unlocked_at ? '' : 'locked' %>" data-item-id="<%= skin.id %>" <%= skin.unlocked_at ? '' : 'disabled' %>>
-						<strong><%= skin.display_name %></strong><br>
-						<%= skin.unlocked_at ? '✅ Unlocked' : '🔒 Locked' %>
-					</button>
-				<% }) %>
-			</div>
-		<% } else { %>
-			<p>No paddle skins available.</p>
-		<% } %>
-	</div>
-
-	<div class="card">
-		<h2>Ball Skins</h2>
-		<% if (ballSkins.length > 0) { %>
-			<div class="item-list" id="ball-skins">
-				<% ballSkins.forEach(skin => { %>
-					<button type="button" class="item <%= skin.unlocked_at ? '' : 'locked' %>" data-item-id="<%= skin.id %>" <%= skin.unlocked_at ? '' : 'disabled' %>>
-						<strong><%= skin.display_name %></strong><br>
-						<%= skin.unlocked_at ? '✅ Unlocked' : '🔒 Locked' %>
-					</button>
-				<% }) %>
-			</div>
-		<% } else { %>
-			<p>No ball skins available.</p>
-		<% } %>
-	</div>
-
-	<div class="card">
-		<h2>Goal Explosions</h2>
-		<div class="goal-layout">
-			<div class="goal-list">
-		<% if (goalExplosions.length > 0) { %>
-			<div class="item-list" id="goal-explosions">
-				<% goalExplosions.forEach(exp => { %>
-					<button type="button" class="item <%= exp.unlocked_at ? '' : 'locked' %>" data-item-id="<%= exp.id %>" data-style-index="<%= exp.item_key %>" <%= exp.unlocked_at ? '' : 'disabled' %>>
-						<strong><%= exp.display_name %></strong><br>
-						<%= exp.unlocked_at ? '✅ Unlocked' : '🔒 Locked' %>
-					</button>
-				<% }) %>
-			</div>
-		<% } else { %>
-			<p>No goal explosions available.</p>
-		<% } %>
-			</div>
-			<div class="goal-preview">
-				<div class="goal-preview-stage" id="goal-preview-stage"></div>
-				<div class="goal-preview-label" id="goal-preview-label">Select a goal explosion to preview</div>
-			</div>
+	<div>
+		<div role="tablist" aria-label="Profile sections" style="display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap;">
+			<button
+				type="button"
+				class="profile-tab"
+				id="profile-tab-history"
+				role="tab"
+				aria-selected="true"
+				aria-controls="profile-panel-history"
+				data-target="profile-panel-history"
+			>
+				Match History
+			</button>
+			<button
+				type="button"
+				class="profile-tab"
+				id="profile-tab-library"
+				role="tab"
+				aria-selected="false"
+				aria-controls="profile-panel-library"
+				data-target="profile-panel-library"
+				tabindex="-1"
+			>
+				Skin Library
+			</button>
 		</div>
-	</div>
 
-	<div style="margin-top:1rem; text-align:center; display: flex; gap: 0.5rem; justify-content: center;">
-		<button id="debug-unlock-paddle">
-			Debug: Unlock Random Paddle Skin
-		</button>
-		<button id="debug-unlock-ball">
-			Debug: Unlock Random Ball Skin
-		</button>
-		<button id="debug-unlock-goal">
-			Debug: Unlock Random Goal Explosion
-		</button>
+		<section
+			class="profile-tab-panel"
+			id="profile-panel-history"
+			role="tabpanel"
+			aria-labelledby="profile-tab-history"
+		>
+			<div class="card">
+				<h2>Match History</h2>
+				<div id="history-loading" class="muted">Loading match history...</div>
+
+				<div id="history-content" style="display:none;">
+					<div>
+						<strong>Previous 10 Games</strong>
+						<div
+							id="stats-match-history"
+							class="item-list"
+							style="margin-top: 0.75rem; flex-direction: column; align-items: stretch;"
+						></div>
+					</div>
+
+					<div style="margin-top: 1rem;">
+						<strong>ELO History</strong>
+						<div class="elo-chart-wrap">
+							<canvas id="stats-elo-chart" width="720" height="260"></canvas>
+						</div>
+					</div>
+				</div>
+
+				<div id="history-error" style="display:none; color:#ff8a8a;"></div>
+			</div>
+		</section>
+
+		<section
+			class="profile-tab-panel"
+			id="profile-panel-library"
+			role="tabpanel"
+			aria-labelledby="profile-tab-library"
+			hidden
+			style="display:none;"
+		>
+			<div class="card">
+				<h2>Paddle Skins</h2>
+				<% if (paddleSkins.length > 0) { %>
+					<div class="item-list" id="paddle-skins">
+						<% paddleSkins.forEach(skin => { %>
+							<button type="button" class="item <%= skin.unlocked_at ? '' : 'locked' %>" data-item-id="<%= skin.id %>" <%= skin.unlocked_at ? '' : 'disabled' %>>
+								<strong><%= skin.display_name %></strong><br>
+								<%- skin.unlocked_at ? '&#x2705; Unlocked' : '&#x1F512; Locked' %>
+							</button>
+						<% }) %>
+					</div>
+				<% } else { %>
+					<p>No paddle skins available.</p>
+				<% } %>
+			</div>
+
+			<div class="card">
+				<h2>Ball Skins</h2>
+				<% if (ballSkins.length > 0) { %>
+					<div class="item-list" id="ball-skins">
+						<% ballSkins.forEach(skin => { %>
+							<button type="button" class="item <%= skin.unlocked_at ? '' : 'locked' %>" data-item-id="<%= skin.id %>" <%= skin.unlocked_at ? '' : 'disabled' %>>
+								<strong><%= skin.display_name %></strong><br>
+								<%- skin.unlocked_at ? '&#x2705; Unlocked' : '&#x1F512; Locked' %>
+							</button>
+						<% }) %>
+					</div>
+				<% } else { %>
+					<p>No ball skins available.</p>
+				<% } %>
+			</div>
+
+			<div class="card">
+				<h2>Goal Explosions</h2>
+				<div class="goal-layout">
+					<div class="goal-list">
+						<% if (goalExplosions.length > 0) { %>
+							<div class="item-list" id="goal-explosions">
+								<% goalExplosions.forEach(exp => { %>
+									<button type="button" class="item <%= exp.unlocked_at ? '' : 'locked' %>" data-item-id="<%= exp.id %>" data-style-index="<%= exp.item_key %>" <%= exp.unlocked_at ? '' : 'disabled' %>>
+										<strong><%= exp.display_name %></strong><br>
+										<%- exp.unlocked_at ? '&#x2705; Unlocked' : '&#x1F512; Locked' %>
+									</button>
+								<% }) %>
+							</div>
+						<% } else { %>
+							<p>No goal explosions available.</p>
+						<% } %>
+					</div>
+					<div class="goal-preview">
+						<div class="goal-preview-stage" id="goal-preview-stage"></div>
+						<div class="goal-preview-label" id="goal-preview-label">Select a goal explosion to preview</div>
+					</div>
+				</div>
+			</div>
+
+			<div class="card">
+				<h2>Debug Unlock</h2>
+				<div style="margin-top: 1rem; text-align: center; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
+					<button id="debug-unlock-paddle">
+						Debug: Unlock Random Paddle Skin
+					</button>
+					<button id="debug-unlock-ball">
+						Debug: Unlock Random Ball Skin
+					</button>
+					<button id="debug-unlock-goal">
+						Debug: Unlock Random Goal Explosion
+					</button>
+				</div>
+			</div>
+		</section>
 	</div>
 
 	<script>
@@ -226,7 +292,6 @@
 			const getY = (value) =>
 				padding.top + (1 - (value - yMin) / yRange) * plotHeight;
 
-			// grid
 			ctx.strokeStyle = 'rgba(255,255,255,0.10)';
 			ctx.lineWidth = 1;
 
@@ -239,7 +304,6 @@
 				ctx.stroke();
 			}
 
-			// axes
 			ctx.strokeStyle = 'rgba(255,255,255,0.22)';
 			ctx.beginPath();
 			ctx.moveTo(padding.left, padding.top);
@@ -247,7 +311,6 @@
 			ctx.lineTo(cssWidth - padding.right, cssHeight - padding.bottom);
 			ctx.stroke();
 
-			// y-axis labels
 			ctx.fillStyle = 'rgba(255,255,255,0.78)';
 			ctx.font = '12px system-ui, sans-serif';
 			ctx.textAlign = 'right';
@@ -260,7 +323,6 @@
 				ctx.fillText(String(value), padding.left - 8, y);
 			}
 
-			// x-axis labels
 			ctx.textAlign = 'center';
 			ctx.textBaseline = 'top';
 			ctx.fillStyle = 'rgba(255,255,255,0.65)';
@@ -270,7 +332,6 @@
 				ctx.fillText(String(i + 1), x, cssHeight - padding.bottom + 8);
 			}
 
-			// line
 			ctx.strokeStyle = 'rgb(0, 229, 255)';
 			ctx.lineWidth = 2;
 			ctx.beginPath();
@@ -282,7 +343,6 @@
 			});
 			ctx.stroke();
 
-			// points + labels
 			points.forEach((value, i) => {
 				const x = getX(i);
 				const y = getY(value);
@@ -304,10 +364,71 @@
 			});
 		}
 
+		function formatWinRate(wins, totalGames) {
+			if (!totalGames) return '0%';
+			const rounded = Math.round((wins / totalGames) * 1000) / 10;
+			return Number.isInteger(rounded) ? `${rounded.toFixed(0)}%` : `${rounded.toFixed(1)}%`;
+		}
+
 		let latestEloHistory = [];
 
+		const profileTabs = Array.from(document.querySelectorAll('.profile-tab'));
+		const profilePanels = Array.from(document.querySelectorAll('.profile-tab-panel'));
+
+		function applyProfileTabState(tab, isActive) {
+			tab.style.borderColor = isActive ? 'rgba(0, 229, 255, 0.55)' : '';
+			tab.style.boxShadow = isActive ? '0 0 0 0.15rem rgba(0, 229, 255, 0.15), 0 0.5rem 1rem rgba(0, 0, 0, 0.18)' : '';
+		}
+
+		function setActiveProfileTab(nextTab) {
+			const targetId = nextTab.dataset.target;
+
+			profileTabs.forEach(tab => {
+				const isActive = tab === nextTab;
+				tab.setAttribute('aria-selected', String(isActive));
+				tab.tabIndex = isActive ? 0 : -1;
+				applyProfileTabState(tab, isActive);
+			});
+
+			profilePanels.forEach(panel => {
+				const isActive = panel.id === targetId;
+				panel.hidden = !isActive;
+				panel.style.display = isActive ? '' : 'none';
+			});
+
+			if (targetId === 'profile-panel-history' && latestEloHistory.length) {
+				window.requestAnimationFrame(() => drawEloChart(latestEloHistory));
+			}
+
+			if (targetId === 'profile-panel-library') {
+				window.requestAnimationFrame(() => window.refreshGoalPreviewLayout?.());
+			}
+		}
+
+		profileTabs.forEach((tab, index) => {
+			tab.addEventListener('click', () => setActiveProfileTab(tab));
+			tab.addEventListener('keydown', event => {
+				if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+				event.preventDefault();
+
+				let nextIndex = index;
+				if (event.key === 'ArrowRight') nextIndex = (index + 1) % profileTabs.length;
+				if (event.key === 'ArrowLeft') nextIndex = (index - 1 + profileTabs.length) % profileTabs.length;
+				if (event.key === 'Home') nextIndex = 0;
+				if (event.key === 'End') nextIndex = profileTabs.length - 1;
+
+				profileTabs[nextIndex].focus();
+				setActiveProfileTab(profileTabs[nextIndex]);
+			});
+		});
+
+		if (profileTabs[0]) {
+			setActiveProfileTab(profileTabs[0]);
+		}
+
 		window.addEventListener('resize', () => {
-			if (latestEloHistory.length) {
+			const historyPanel = document.getElementById('profile-panel-history');
+			if (latestEloHistory.length && historyPanel && !historyPanel.hidden) {
 				drawEloChart(latestEloHistory);
 			}
 		});
@@ -420,9 +541,12 @@
 		});
 
 		async function loadUserStats() {
-			const loadingEl = document.getElementById('stats-loading');
-			const contentEl = document.getElementById('stats-content');
-			const errorEl = document.getElementById('stats-error');
+			const statsLoadingEl = document.getElementById('stats-loading');
+			const statsContentEl = document.getElementById('stats-content');
+			const statsErrorEl = document.getElementById('stats-error');
+			const historyLoadingEl = document.getElementById('history-loading');
+			const historyContentEl = document.getElementById('history-content');
+			const historyErrorEl = document.getElementById('history-error');
 
 			try {
 				const res = await fetch('/user/stats', {
@@ -436,19 +560,14 @@
 					throw new Error(data?.error || 'Failed to load stats');
 				}
 
-				document.getElementById('stats-rank').textContent = `#${data.rank ?? '-'}`;
+				const wins = Number(data.wins ?? 0);
+				const totalGames = Number(data.totalGames ?? 0);
+
+				document.getElementById('stats-rank').textContent = data.rank == null ? '-' : `#${data.rank}`;
 				document.getElementById('stats-elo').textContent = '<%= user.elo ?? 1000 %>';
-				document.getElementById('stats-wins').textContent = data.wins ?? 0;
-				document.getElementById('stats-total-games').textContent = data.totalGames ?? 0;
+				document.getElementById('stats-winrate').textContent = formatWinRate(wins, totalGames);
 
 				latestEloHistory = Array.isArray(data.eloHistory) ? data.eloHistory : [];
-
-				const eloHistoryEl = document.getElementById('stats-elo-history');
-				if (eloHistoryEl) {
-					eloHistoryEl.style.display = 'none';
-				}
-
-				drawEloChart(latestEloHistory);
 
 				const historyEl = document.getElementById('stats-match-history');
 				historyEl.classList.add('match-history-list');
@@ -457,7 +576,7 @@
 				const games = Array.isArray(data.previous10Games) ? data.previous10Games : [];
 
 				if (games.length === 0) {
-					historyEl.innerHTML = `<div class="muted">No games played yet.</div>`;
+					historyEl.innerHTML = '<div class="muted">No games played yet.</div>';
 				} else {
 					games.forEach((game) => {
 						const row = document.createElement('div');
@@ -495,14 +614,29 @@
 					});
 				}
 
-				loadingEl.style.display = 'none';
-				errorEl.style.display = 'none';
-				contentEl.style.display = 'block';
+				if (!document.getElementById('profile-panel-history')?.hidden) {
+					drawEloChart(latestEloHistory);
+				}
+
+				statsLoadingEl.style.display = 'none';
+				statsErrorEl.style.display = 'none';
+				statsContentEl.style.display = 'block';
+
+				historyLoadingEl.style.display = 'none';
+				historyErrorEl.style.display = 'none';
+				historyContentEl.style.display = 'block';
 			} catch (err) {
-				loadingEl.style.display = 'none';
-				contentEl.style.display = 'none';
-				errorEl.style.display = 'block';
-				errorEl.textContent = err.message || 'Failed to load stats';
+				const message = err.message || 'Failed to load stats';
+
+				statsLoadingEl.style.display = 'none';
+				statsContentEl.style.display = 'none';
+				statsErrorEl.style.display = 'block';
+				statsErrorEl.textContent = message;
+
+				historyLoadingEl.style.display = 'none';
+				historyContentEl.style.display = 'none';
+				historyErrorEl.style.display = 'block';
+				historyErrorEl.textContent = message;
 			}
 		}
 
@@ -558,6 +692,7 @@
 				burstPos.set(0, styleIndex === 3 ? -1.9 : 0, 0);
 				previewSpawner.triggerGoalAnimation(styleIndex, null, burstPos);
 			};
+			window.refreshGoalPreviewLayout = resizePreview;
 
 			resizePreview();
 			animatePreview();
