@@ -183,7 +183,7 @@ animatedScene.registerGameObject(
 				this.startButton.disabled = true;
 			}
 		}
-	}),
+	})
 );
 
 animatedScene.start();

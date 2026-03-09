@@ -124,7 +124,7 @@ export default class LobbyState {
 		}
 
 		lobby.members.set(clientId, {
-			clientId,
+			clientId
 		});
 	}
 
