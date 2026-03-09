@@ -1,6 +1,7 @@
 import db from '../db/db.js';
 import passport from 'passport';
 import { Strategy as GoogleStrategy } from 'passport-google-oauth20';
+import { initializeUserDefaults } from '../user/initializeUserDefaults.js';
 
 export default function setupGoogleStrategy() {
 	if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
@@ -52,14 +53,20 @@ export default function setupGoogleStrategy() {
 									function (insertErr) {
 										if (insertErr) return done(insertErr);
 
-										db.get(
-											'SELECT * FROM users WHERE id = ?',
-											[this.lastID],
-											(fetchErr, newUser) => {
-												if (fetchErr) return done(fetchErr);
-												return done(null, newUser);
-											}
-										);
+										const userId = this.lastID;
+
+										initializeUserDefaults(userId)
+											.then(() => {
+												db.get(
+													'SELECT * FROM users WHERE id = ?',
+													[userId],
+													(fetchErr, newUser) => {
+														if (fetchErr) return done(fetchErr);
+														return done(null, newUser);
+													}
+												);
+											})
+											.catch(done);
 									}
 								);
 							}

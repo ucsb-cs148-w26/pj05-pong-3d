@@ -162,6 +162,21 @@ export const ShaderLibrary = {
 			));
 		}
 	`,
+	DissolveChunks: `
+		vec3 computeOrganicDissolveMask(vec3 normal, float progress, float domainScale) {
+			float dissolveProgress = smoothstep(0.18, 0.82, progress);
+			vec3 dissolveDomain = normalize(normal) * domainScale +
+				vec3(progress * 0.65, -progress * 0.42, progress * 0.31);
+			float layerA = fbm(dissolveDomain * 1.1);
+			float layerB = noise(dissolveDomain * 2.3 + vec3(2.7, -1.9, 4.6));
+			float organicNoise = smoothstep(0.2, 0.84, mix(layerA, layerB, 0.28));
+			float band = dissolveProgress - organicNoise;
+			float mask = 1.0 - smoothstep(-0.01, 0.14, band);
+			float edge = smoothstep(-0.005, 0.055, band) *
+				(1.0 - smoothstep(0.055, 0.15, band));
+			return vec3(mask, edge, dissolveProgress);
+		}
+	`,
 	PhysicsChunks: `
 		vec3 applyDisplacement(vec3 position, vec3 normal, float displacement) {
 			return position + normal * displacement;
@@ -308,6 +323,427 @@ export const ShaderLibrary = {
 				CUSTOM_ALPHA_LOGIC: 'clamp(intensity, 0.0, 1.0) * 0.6',
 				CUSTOM_COLOR_LOGIC: 'uColor * intensity'
 			}
+		},
+		STANDARD_BALL_SKIN_SHADER: {
+			vertexShader: `
+	uniform float uTime;
+	uniform float uMotionIntensity;
+	uniform float uDisplacement;
+	uniform float uAnimationSpeed;
+	uniform float uShapeType;
+	uniform float uShapeAmount;
+	uniform vec4 uShapeParamsA;
+	uniform vec4 uShapeParamsB;
+
+	varying vec3 vLocalPos;
+	varying vec3 vWorldPos;
+	varying vec3 vNormalW;
+
+	void main() {
+		float motion = clamp(uMotionIntensity, 0.0, 2.0);
+		float shapeType = uShapeType;
+		float shapeAmount = clamp(uShapeAmount, 0.0, 2.0);
+		vec3 unit = normalize(position);
+		vec3 shaped = position;
+		float shapePulse = 0.5 + 0.5 * sin(uTime * uShapeParamsA.w);
+
+		if (shapeType < 0.5) {
+			float spikeField = pow(
+				abs(
+					sin(
+						unit.x * uShapeParamsA.x +
+							unit.y * uShapeParamsA.y +
+							unit.z * uShapeParamsA.w +
+							uTime * uShapeParamsB.x
+					)
+				),
+				max(uShapeParamsB.y, 1.0)
+			);
+			shaped += unit * (spikeField * uShapeParamsA.z * shapeAmount);
+		} else if (shapeType < 1.5) {
+			float wobble = sin(uTime * uShapeParamsA.x + unit.y * uShapeParamsA.y);
+			wobble *= cos(uTime * uShapeParamsB.x + unit.x * uShapeParamsB.y);
+			shaped += unit * (wobble * uShapeParamsA.z * shapeAmount);
+			shaped +=
+				vec3(unit.x, -2.0 * unit.y, unit.z) *
+				(wobble * uShapeParamsB.z * shapeAmount);
+		} else if (shapeType < 2.5) {
+			float petals = 0.5 + 0.5 * sin(
+				atan(unit.z, unit.x) * uShapeParamsA.x +
+					unit.y * uShapeParamsA.y +
+					uTime * uShapeParamsB.x
+			);
+			float bloom = pow(petals, max(uShapeParamsB.y, 1.0));
+			bloom *= 0.45 + shapePulse * 0.55;
+			shaped += unit * (bloom * uShapeParamsA.z * shapeAmount);
+		} else {
+			float lobeX = abs(
+				sin(unit.x * uShapeParamsA.x + uTime * uShapeParamsB.x)
+			);
+			float lobeY = abs(
+				sin(unit.y * uShapeParamsA.y - uTime * uShapeParamsB.x * 0.7)
+			);
+			float lobeZ = abs(
+				sin(unit.z * uShapeParamsA.w + uTime * uShapeParamsB.x * 0.5)
+			);
+			float evenField = (lobeX + lobeY + lobeZ) / 3.0;
+			float crossField = sqrt(max(lobeX * lobeY * lobeZ, 0.0));
+			float lobes = mix(evenField, crossField, 0.48);
+			float flareSeed = 0.5 + 0.5 * sin(
+				atan(unit.z, unit.x) * uShapeParamsA.y +
+					unit.y * uShapeParamsA.w +
+					uTime * (uShapeParamsB.x * 1.8 + 0.35)
+			);
+			float flareField = lobes * (0.62 + 0.38 * flareSeed);
+			float flareCore = smoothstep(0.74, 0.93, flareField);
+			float flareTail = smoothstep(0.64, 0.84, flareField) * (1.0 - flareCore);
+			float flarePhase = fract(
+				uTime * (uShapeParamsB.x * 2.2 + 0.45) +
+					dot(unit, vec3(1.31, -0.97, 0.73)) * 2.7 +
+					flareSeed * 0.65
+			);
+			float flareEnvelope = 0.0;
+			if (flarePhase < 0.5) {
+				float k = flarePhase / 0.5;
+				flareEnvelope = 0.78 * pow(k, 0.35);
+			} else if (flarePhase < 0.8) {
+				float k = (flarePhase - 0.5) / 0.3;
+				flareEnvelope = mix(0.78, 1.0, pow(k, 1.6));
+			} else {
+				float k = (flarePhase - 0.8) / 0.2;
+				flareEnvelope = 1.0 - pow(k, 0.35);
+			}
+			float starMask =
+				pow(flareCore, max(uShapeParamsB.y, 1.0)) * 0.92 + flareTail * 0.28;
+			starMask *= flareEnvelope;
+			shaped += unit * (starMask * uShapeParamsA.z * shapeAmount);
+		}
+
+		vec3 shapeNormal = normalize(shaped);
+		float wave = sin(
+			(shaped.x + shaped.y + shaped.z) * 8.0 +
+			uTime * 3.2 * uAnimationSpeed
+		);
+		float grain = noise(shaped * 3.6 + vec3(uTime * 0.35 * uAnimationSpeed)) - 0.5;
+		float displacement =
+			(wave * 0.65 + grain * 0.9) *
+			uDisplacement *
+			(0.45 + motion * 0.55);
+
+		vec3 displaced = shaped + shapeNormal * displacement;
+
+		vLocalPos = displaced;
+		vNormalW = normalize(mat3(modelMatrix) * normal);
+		vec4 worldPos = modelMatrix * vec4(displaced, 1.0);
+		vWorldPos = worldPos.xyz;
+
+		gl_Position = projectionMatrix * viewMatrix * worldPos;
+	}
+`,
+			fragmentShader: `
+	uniform float uTime;
+	uniform float uMotionIntensity;
+	uniform float uPatternType;
+	uniform float uGlowStrength;
+	uniform float uRimPower;
+	uniform float uAnimationSpeed;
+	uniform float uDepthStrength;
+	uniform float uDepthDensity;
+	uniform float uInteriorScale;
+	uniform float uInteriorFlow;
+	uniform float uInteriorShapeType;
+	uniform float uGlassFresnelPower;
+	uniform float uGlassClarity;
+	uniform float uSwirlStrength;
+	uniform float uHighlightStrength;
+	uniform float uSpecularStrength;
+	uniform float uFresnelStrength;
+	uniform vec3 uTint;
+	uniform vec3 uAccent;
+	uniform vec3 uAccent2;
+	uniform vec3 uSphereCenter;
+	uniform float uSphereRadius;
+	uniform vec4 uParamsA;
+	uniform vec4 uParamsB;
+
+	varying vec3 vLocalPos;
+	varying vec3 vWorldPos;
+	varying vec3 vNormalW;
+
+	const int INTERIOR_STEPS = 12;
+
+	vec2 raySphere(vec3 ro, vec3 rd, vec3 center, float radius) {
+		vec3 oc = ro - center;
+		float b = dot(oc, rd);
+		float c = dot(oc, oc) - radius * radius;
+		float h = b * b - c;
+		if (h < 0.0) return vec2(-1.0);
+		h = sqrt(h);
+		return vec2(-b - h, -b + h);
+	}
+
+	float interiorShape(vec3 p, float flowTime, float shapeType) {
+		float clouds = clamp(
+			fbm(p + vec3(flowTime * 0.15, -flowTime * 0.09, flowTime * 0.12)),
+			0.0,
+			1.0
+		);
+		float cells = 1.0 - smoothstep(
+			0.12,
+			0.78,
+			voronoi(p * 1.25 + vec3(flowTime * 0.2, -flowTime * 0.13, flowTime * 0.17))
+		);
+		float ribbons = 0.5 + 0.5 * sin(
+			(p.x + p.y * 0.7 + p.z * 0.9) * 3.8 + flowTime * 2.2
+		);
+		float rings = 0.5 + 0.5 * cos(
+			length(p.xy) * 10.0 - flowTime * 2.8 + p.z * 3.0
+		);
+		float lattice = smoothstep(
+			0.74,
+			0.98,
+			abs(sin(p.x * 4.0) * sin(p.y * 4.6) * sin(p.z * 3.7))
+		);
+
+		float shape = clouds;
+		if (shapeType < 0.5) {
+			shape = mix(clouds, ribbons, 0.35);
+		} else if (shapeType < 2.5) {
+			shape = mix(rings, clouds, 0.5);
+		} else if (shapeType < 3.5) {
+			shape = mix(lattice, cells, 0.6);
+		} else {
+			shape = mix(clouds, cells, 0.7);
+		}
+		return clamp(shape, 0.0, 1.0);
+	}
+
+	void main() {
+		vec3 nLocal = normalize(vLocalPos);
+		vec3 nWorld = normalize(vNormalW);
+		vec3 viewDir = normalize(cameraPosition - vWorldPos);
+
+		float speedMul = uAnimationSpeed * (0.75 + uMotionIntensity * 0.35);
+		float fbmField = clamp(
+			fbm(nLocal * uParamsA.x + vec3(uTime * 0.22 * speedMul)),
+			0.0,
+			1.0
+		);
+		float vorField = voronoi(
+			nLocal * uParamsA.y + vec3(uTime * 0.11 * speedMul, -uTime * 0.07 * speedMul, 0.0)
+		);
+		float stripe = 0.5 + 0.5 * sin(
+			(nLocal.x * uParamsA.z + nLocal.y * uParamsA.w + nLocal.z * uParamsB.x) *
+				PI +
+			uTime * uParamsB.x * speedMul
+		);
+		float latitude = 1.0 - abs(nLocal.y);
+		float ripple = 0.5 + 0.5 * cos(
+			(latitude * 7.0 + (nLocal.x * nLocal.z) * uParamsB.w * 2.2) * PI -
+			uTime * 3.8 * speedMul
+		);
+		float spiralSwirl = 0.5 + 0.5 * sin(
+			((nLocal.x * nLocal.z) * uParamsB.y * 3.4 + latitude * uParamsB.z * 3.6) *
+				PI -
+			uTime * (2.4 + uMotionIntensity) * speedMul
+		);
+		float swirl = mix(
+			ripple,
+			spiralSwirl,
+			clamp(uSwirlStrength, 0.0, 1.0)
+		);
+		float scan = 0.5 + 0.5 * sin(
+			(nLocal.y * 18.0 + nLocal.x * 4.0 + nLocal.z * 3.0) -
+				uTime * (8.0 + uMotionIntensity * 4.0) * speedMul
+		);
+		float starField = clamp(
+			fbm(
+				nLocal * (uParamsA.x * 1.4) +
+					vec3(uTime * 0.12 * speedMul, -uTime * 0.08 * speedMul, 0.0)
+			),
+			0.0,
+			1.0
+		);
+		float starMask = smoothstep(0.62, 0.9, starField);
+		float cellMask = 1.0 - smoothstep(0.15, 0.72, vorField);
+
+		float pattern = 0.0;
+		float highlightMask = 0.0;
+
+		if (uPatternType < 0.5) {
+			pattern = mix(fbmField, swirl, 0.6);
+			highlightMask = ripple;
+		} else if (uPatternType < 1.5) {
+			pattern = mix(stripe, ripple, 0.55);
+			highlightMask = stripe;
+		} else if (uPatternType < 3.5) {
+			pattern = mix(scan, stripe, 0.42);
+			highlightMask = scan;
+		} else if (uPatternType < 4.5) {
+			pattern = clamp(mix(cellMask, stripe, 0.45) + scan * 0.16, 0.0, 1.0);
+			highlightMask = cellMask;
+		} else if (uPatternType < 5.5) {
+			pattern = mix(swirl, stripe, 0.68);
+			highlightMask = swirl;
+		} else if (uPatternType < 6.5) {
+			pattern = mix(fbmField, ripple, 0.25);
+			highlightMask = fbmField;
+		} else if (uPatternType < 7.5) {
+			vec3 pixelGrid = floor((nLocal + 1.0) * (4.0 + uParamsB.w * 0.6));
+			float pixels = dot(pixelGrid, vec3(0.73, 1.11, 1.37));
+			float pixelPulse = 0.5 + 0.5 * sin(pixels * 1.7 + uTime * 3.2 * speedMul);
+			pattern = mix(pixelPulse, scan, 0.35);
+		} else if (uPatternType < 8.5) {
+			pattern = clamp(mix(fbmField, swirl, 0.5) + starMask * 0.45, 0.0, 1.0);
+			highlightMask = starMask;
+		} else if (uPatternType < 9.5) {
+			float crackLine = 1.0 - smoothstep(0.07, 0.18, abs(vorField - 0.12));
+			pattern = clamp((1.0 - crackLine) * 0.35 + swirl * 0.45 + fbmField * 0.2, 0.0, 1.0);
+			highlightMask = crackLine;
+		} else {
+			float bubbleField = voronoi(
+				nLocal * (uParamsA.y * 1.35) +
+					vec3(
+						uTime * 0.07 * speedMul,
+						-uTime * 0.09 * speedMul,
+						uTime * 0.05 * speedMul
+					)
+			);
+			float bubbleMask = 1.0 - smoothstep(0.22, 0.62, bubbleField);
+			float jellyNoise = clamp(
+				fbm(
+					nLocal * (uParamsA.x * 0.95) +
+						vec3(0.0, uTime * 0.12 * speedMul, -uTime * 0.08 * speedMul)
+				),
+				0.0,
+				1.0
+			);
+			float jellyWave = 0.5 + 0.5 * sin(
+				(nLocal.x * 4.2 + nLocal.y * 3.1 + nLocal.z * 3.8) * PI +
+					uTime * 2.1 * speedMul
+			);
+			pattern = clamp(mix(jellyNoise, jellyWave, 0.45) + bubbleMask * 0.2, 0.0, 1.0);
+			highlightMask = mix(bubbleMask, jellyWave, 0.35);
+		}
+
+		float pulse = 0.5 + 0.5 * sin(
+			uTime * (1.4 + uAnimationSpeed) +
+			nLocal.x * 9.0 +
+			nLocal.y * 7.0 +
+			nLocal.z * 5.0
+		);
+		float highlightStrength = clamp(uHighlightStrength, 0.0, 1.0);
+		float specularStrength = clamp(uSpecularStrength, 0.0, 2.0);
+		float fresnelStrength = clamp(uFresnelStrength, 0.0, 2.0);
+
+		vec3 palette = mix(uTint, uAccent, pattern);
+		palette = mix(
+			palette,
+			uAccent2,
+			smoothstep(0.55, 1.0, highlightMask) *
+				(0.35 + pulse * 0.3) *
+				highlightStrength
+		);
+
+		vec3 keyLight = normalize(vec3(0.45, 0.82, 0.35));
+		vec3 fillLight = normalize(vec3(-0.36, 0.24, -0.9));
+		float ndlA = max(dot(nWorld, keyLight), 0.0);
+		float ndlB = max(dot(nWorld, fillLight), 0.0);
+		float diffuse = 0.24 + ndlA * 0.78 + ndlB * 0.26;
+
+		vec3 halfA = normalize(keyLight + viewDir);
+		vec3 halfB = normalize(fillLight + viewDir);
+		float specA = pow(max(dot(nWorld, halfA), 0.0), 36.0);
+		float specB = pow(max(dot(nWorld, halfB), 0.0), 22.0);
+		float rim = pow(1.0 - max(dot(nWorld, viewDir), 0.0), uRimPower);
+
+		vec3 shellColor = palette * (0.26 + diffuse * 0.92);
+		shellColor +=
+			(specA * 0.4 + specB * 0.22) *
+			specularStrength *
+			mix(vec3(1.0), uAccent2, 0.5);
+
+		vec3 rayDirW = normalize(vWorldPos - cameraPosition);
+		vec2 hit = raySphere(
+			cameraPosition,
+			rayDirW,
+			uSphereCenter,
+			max(uSphereRadius, 0.001)
+		);
+
+		float volumeAlpha = 0.0;
+		vec3 volumeColor = vec3(0.0);
+		if (hit.x > -0.5 && uDepthStrength > 0.001) {
+			float tEnter = max(hit.x, 0.0) + 0.0008;
+			float tExit = hit.y;
+			float rayLen = max(tExit - tEnter, 0.0001);
+			float stepT = rayLen / float(INTERIOR_STEPS);
+			float flowTime = uTime * uInteriorFlow;
+			float accum = 0.0;
+
+			for (int i = 0; i < INTERIOR_STEPS; i++) {
+				float t = tEnter + (float(i) + 0.5) * stepT;
+				vec3 samplePosW = cameraPosition + rayDirW * t;
+				vec3 samplePosN =
+					(samplePosW - uSphereCenter) / max(uSphereRadius, 0.0001);
+				float coreMask = 1.0 - smoothstep(0.22, 1.02, length(samplePosN));
+				float shape = interiorShape(
+					samplePosN * uInteriorScale,
+					flowTime + float(i) * 0.19,
+					uInteriorShapeType
+				);
+				float density = shape * coreMask * uDepthDensity * uDepthStrength;
+				float opacity = clamp(
+					density * (1.85 / float(INTERIOR_STEPS)),
+					0.0,
+					1.0
+				) * (1.0 - accum);
+				vec3 sampleColor = mix(
+					uAccent,
+					uAccent2,
+					clamp(shape * 0.8 + coreMask * 0.3, 0.0, 1.0)
+				);
+				volumeColor += sampleColor * opacity;
+				accum += opacity;
+			}
+
+			volumeAlpha = clamp(accum, 0.0, 1.0);
+		}
+
+		float glow = rim * (0.3 + pattern * 0.65);
+		float glassFresnel = pow(
+			1.0 - max(dot(nWorld, viewDir), 0.0),
+			uGlassFresnelPower
+		);
+		vec3 glassTint = mix(vec3(0.75, 0.9, 1.0), uAccent2, 0.45);
+
+		vec3 color = shellColor;
+		float depthMix = clamp(uDepthStrength * 0.65 + volumeAlpha * 0.75, 0.0, 1.0);
+		color = mix(
+			color,
+			color * (0.58 + uGlassClarity * 0.35) +
+				volumeColor * (0.58 + uDepthStrength * 0.92),
+			depthMix
+		);
+		color +=
+			glassTint *
+			glassFresnel *
+			(0.18 + uGlassClarity * 0.22) *
+			fresnelStrength;
+		color += (uAccent + uAccent2) * 0.5 * glow * uGlowStrength;
+		float alpha = 1.0;
+		if (uPatternType >= 9.5) {
+			float edgeGel = pow(1.0 - max(dot(nWorld, viewDir), 0.0), 1.4);
+			alpha = clamp(
+				0.42 + volumeAlpha * 0.32 + edgeGel * 0.18 + highlightMask * 0.08,
+				0.42,
+				0.9
+			);
+		}
+
+		gl_FragColor = vec4(color, alpha);
+	}
+`
 		}
 	}
 };

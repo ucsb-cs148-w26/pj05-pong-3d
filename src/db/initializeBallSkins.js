@@ -1,35 +1,20 @@
 import db from './db.js';
-
-// TODO: Replace this with real ball skin configs
-const BALL_SKIN_CONFIGS = [
-	{ id: 'classic', displayName: 'Classic', assetKey: 'classic', isDefault: 0 },
-	{
-		id: 'neon_blue',
-		displayName: 'Neon Blue',
-		assetKey: 'neon_blue',
-		isDefault: 0
-	},
-	{
-		id: 'hot_pink',
-		displayName: 'Hot Pink',
-		assetKey: 'hot_pink',
-		isDefault: 0
-	}
-];
+import { BALL_SKIN_STYLES } from '../../public/game/shaders/ballSkin.js';
 
 export function initializeBallSkins() {
-	BALL_SKIN_CONFIGS.forEach((config) => {
+	BALL_SKIN_STYLES.forEach((style, index) => {
+		const isDefault = index === 0 ? 1 : 0;
 		db.get(
 			'SELECT 1 FROM items WHERE item_key = ? AND kind = ?',
-			[config.id, 'ball_skin'],
+			[style.styleIndex, 'ball_skin'],
 			(err, row) => {
 				if (err) return console.error(err);
 
 				if (!row) {
 					db.run(
-						`INSERT INTO items (item_key, kind, display_name, asset_key, is_default)
-                         VALUES (?, 'ball_skin', ?, ?, ?)`,
-						[config.id, config.displayName, config.assetKey, config.isDefault]
+						`INSERT INTO items (item_key, kind, display_name, is_default)
+                         VALUES (?, 'ball_skin', ?, ?)`,
+						[style.styleIndex, style.label, isDefault]
 					);
 				}
 			}

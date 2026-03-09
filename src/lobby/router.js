@@ -5,18 +5,16 @@ export default function createLobbyRouter(server, parseSession) {
 	const router = Router();
 	const lobbyState = new LobbyState(server, parseSession);
 
-	setInterval(() => {
-		lobbyState.cleanup();
-	}, 5000);
-
 	router.get('/api/lobbies', (_req, res) => {
 		res.json({ lobbies: lobbyState.listLobbies() });
 	});
 
 	router.post('/api/lobbies', (req, res) => {
-		const name = req.body?.name;
+		const name = req.body?.name ?? `${req.user.display_name}’s lobby`;
 		const isPublic = req.body?.isPublic;
 		const lobby = lobbyState.createLobby({ name, isPublic });
+		if (!req.user) return res.sendStatus(401);
+
 		res.json({ lobby });
 	});
 
@@ -58,12 +56,20 @@ export default function createLobbyRouter(server, parseSession) {
 			return res.status(404).send('Lobby not found');
 		}
 
+		if (lobbyState.isLobbyFull(lobby)) {
+			return res.status(400).send('Lobby is full');
+		}
+
+		if (lobbyState.isLobbyInProgress(lobby)) {
+			return res.status(400).send('Game already in progress');
+		}
+
 		const username = req.user.display_name;
 		if (lobby.members.get(username)) {
 			return res.status(400).send('Username is taken');
 		}
 
-		res.render('game', { code, username });
+		res.render('game', { code, lobbyName: lobby.name, username });
 	});
 
 	router.get('/', (req, res) => {

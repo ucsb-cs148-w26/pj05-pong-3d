@@ -24,6 +24,7 @@ db.serialize(() => {
 			email TEXT NOT NULL UNIQUE,
 			display_name TEXT,
 			avatar_url TEXT,
+			elo INTEGER NOT NULL DEFAULT 1000,
 			created_at TEXT NOT NULL DEFAULT (datetime('now')),
 			updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 		)`,
@@ -35,12 +36,12 @@ db.serialize(() => {
 	db.run(
 		`CREATE TABLE IF NOT EXISTS items (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
-			item_key TEXT NOT NULL UNIQUE,
+			item_key TEXT NOT NULL,
 			kind TEXT NOT NULL CHECK (kind IN ('paddle_skin', 'ball_skin', 'goal_explosion')),
 			display_name TEXT NOT NULL,
-			asset_key TEXT NOT NULL,
 			is_default INTEGER NOT NULL DEFAULT 0,
-			created_at TEXT NOT NULL DEFAULT (datetime('now'))
+			created_at TEXT NOT NULL DEFAULT (datetime('now')),
+			UNIQUE (item_key, kind)
 		)`,
 		(err) => {
 			if (err) console.error('Table creation failed:', err.message);

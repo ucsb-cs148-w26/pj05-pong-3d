@@ -5,26 +5,21 @@ import { GameObjectBase } from '../common/GameObject.js';
  * Camera controller for following the target paddle, looking at the ball, and allowing for camera-shake behavior. (to make collisions or goals more impactful feeling)
  */
 export class CameraController extends GameObjectBase {
-	constructor(key, followTarget, lookTarget, config = {}) {
+	constructor(key, followTarget, config = {}) {
 		super(key);
 
 		this.followTarget = followTarget;
-		this.lookTarget = lookTarget;
 
 		this.offset = config.offset ?? new THREE.Vector3(-6, 3, 0);
-		this.lookLerpSpeed = config.lookLerpSpeed ?? 2;
 		this.shakeSpeed = config.shakeSpeed ?? 28;
-		this.shakeDecay = config.shakeDecay ?? 8;
+		this.shakeDecay = config.shakeDecay ?? 6;
 
 		this.shakeTimer = 0;
 		this.shakeIntensity = 0;
 		this._shakePhase = 0;
-		this._lookInitialized = false;
 
 		this._shakeOffset = new THREE.Vector3();
 		this._tmpFollowTarget = new THREE.Vector3();
-		this._tmpLookTarget = new THREE.Vector3();
-		this._currentLookAt = new THREE.Vector3();
 	}
 
 	init(scene) {
@@ -60,23 +55,19 @@ export class CameraController extends GameObjectBase {
 	}
 
 	update(dt) {
-		if (!this.followTarget || !this.lookTarget || this.scene.isReplaying)
-			return;
+		if (!this.followTarget || this.scene.isReplaying) return;
 
 		CameraController._copyPosition(this.followTarget, this._tmpFollowTarget);
 		this.camera.position.copy(this._tmpFollowTarget).add(this.offset);
 
-		CameraController._copyPosition(this.lookTarget, this._tmpLookTarget);
-		if (!this._lookInitialized) {
-			this._currentLookAt.copy(this._tmpLookTarget);
-			this._lookInitialized = true;
-		} else {
-			const lookStep = Math.min(1, this.lookLerpSpeed * dt);
-			this._currentLookAt.lerp(this._tmpLookTarget, lookStep);
-		}
-
 		this._updateShake(dt);
 		this.camera.position.add(this._shakeOffset);
-		this.camera.lookAt(this._currentLookAt);
+
+		// FIXME
+		if (this.camera.position.x < 0) {
+			this.camera.rotation.y = -Math.PI / 2;
+		} else {
+			this.camera.rotation.y = Math.PI / 2;
+		}
 	}
 }

@@ -47,70 +47,141 @@ animatedScene.registerGameObject(
 			this.visual.shadow.mapSize.set(1024, 1024);
 		}
 	}),
-	new GameObjectCustom('infoDiv', {
+	new GameObjectCustom('hudScore', {
+		self: document.createElement('div'),
+		init() {
+			this.self.id = 'hud-score';
+			this.self.classList.add('hud-overlay');
+			document.body.appendChild(this.self);
+		},
+		update() {
+			// works for two players only
+			const selfPlayer = animatedScene.state.players.get(
+				animatedScene.username
+			);
+			const otherPlayer = animatedScene.state.players
+				.values()
+				.find((p) => p.username !== animatedScene.username);
+			if (selfPlayer && otherPlayer && animatedScene.enabled) {
+				this.self.style.display = '';
+				this.self.textContent = `${selfPlayer.lives} - ${otherPlayer.lives}`;
+			} else {
+				this.self.style.display = 'none';
+			}
+		}
+	}),
+	new GameObjectCustom('hudStats', {
 		self: document.createElement('div'),
 		socket,
 		init() {
-			this.self.style.position = 'absolute';
-			this.self.style.textAlign = 'right';
-			this.self.style.top = '10px';
-			this.self.style.right = '10px';
-			this.self.style.color = 'white';
-			this.self.style.fontFamily = 'monospace';
+			this.self.id = 'hud-stats';
+			this.self.classList.add('hud-overlay');
 			document.body.appendChild(this.self);
 		},
 		update(dt) {
-			const ball = animatedScene.getGameObject('ball');
 			const pingText =
 				this.socket?.lastLatencyMs == null
 					? '-- ms'
 					: `${this.socket.lastLatencyMs.toFixed(0)} ms`;
-			const scoresText =
-				animatedScene.state.players.size > 0
-					? Array.from(animatedScene.state.players)
-							.map(([username, player]) => `${username}: ${player.score}`)
-							.join(', ')
-					: 'N/A';
-			this.self.innerText = `Control with WASD
-				Camera tracks the ball
-				Score: ${scoresText}
-				Ball Speed: ${ball.body.v.norm().toFixed(2)}
+			const fpsText = dt > 0 ? `${(1 / dt).toFixed(0)}` : '--';
+			this.self.textContent = `FPS: ${fpsText}   Ping: ${pingText}`;
+		}
+	}),
+	new GameObjectCustom('escapeMenu', {
+		component: document.getElementById('escape-menu'),
+		resumeButton: document.getElementById('escape-menu__resume'),
+		exitButton: document.getElementById('escape-menu__exit'),
+		setOpen(isOpen) {
+			this.component.classList.toggle('is-open', isOpen);
+		},
+		init() {
+			window.addEventListener('keydown', (event) => {
+				if (event.key !== 'Escape') return;
+				this.setOpen(!this.component.classList.contains('is-open'));
+			});
 
-				Camera: ${animatedScene.camera.position.x.toFixed(1)}, ${animatedScene.camera.position.y.toFixed(1)}, ${animatedScene.camera.position.z.toFixed(1)}
+			this.resumeButton.addEventListener('click', () => {
+				this.setOpen(false);
+			});
 
-                FPS: ${(1 / dt).toFixed(0)}
-				Ping: ${pingText}`;
+			this.exitButton.addEventListener('click', () => {
+				window.location.href = '/';
+			});
 		}
 	}),
 	new GameObjectCustom('waitingScreen', {
 		component: document.getElementById('waiting'),
 		playerListDisplay: document.getElementById('waiting__players'),
-		startButtion: document.getElementById('startButton'),
+		scoreboardDisplay: document.getElementById('waiting__scoreboard'),
+		joinCodeDisplay: document.getElementById('waiting__code'),
+		startButton: document.getElementById('startButton'),
+		leaveLobbyButton: document.getElementById('waiting__leaveButton'),
 		players: animatedScene.state.players,
 		lobbyMembers: [],
 		isPublic: true,
 		socket,
 		init() {
-			this.startButtion.addEventListener('click', () => {
+			this.startButton.addEventListener('click', () => {
 				socket.send({ type: 'start' });
+			});
+
+			this.leaveLobbyButton.addEventListener('click', async () => {
+				window.location.href = '/';
 			});
 		},
 		update(dt) {
-			if (animatedScene.enabled) {
+			const isGameOver = animatedScene.gameOver !== null;
+			if (animatedScene.enabled && !isGameOver) {
 				this.component.style.display = 'none';
 				return;
 			}
 
 			this.component.style.display = 'flex';
-			this.playerListDisplay.innerHTML = Array.from(this.players.keys())
-				.map(
-					(name) =>
-						`<span style="color: ${name === animatedScene.host ? 'yellow' : 'white'}" >${name}</span>`
-				)
+			if (isGameOver) {
+				const { loser, winner } = animatedScene.gameOver;
+				document.getElementById('waiting__title').innerText = `${
+					winner ?? 'A player'
+				} won`;
+				this.joinCodeDisplay.style.display = 'none';
+				this.playerListDisplay.style.display = 'none';
+				this.startButton.style.display = 'none';
+				this.leaveLobbyButton.style.display = 'block';
+				this.scoreboardDisplay.style.display = 'block';
+
+				const finalLives = Array.from(this.players.entries())
+					.map(
+						([name, player]) =>
+							`<div>${name}: ${player.lives} ${name === winner ? '(Winner)' : ''}</div>`
+					)
+					.join('');
+				this.scoreboardDisplay.innerHTML = `<div style="margin-top: 0.5rem"><strong>Final Lives:</strong></div>${finalLives}`;
+				return;
+			}
+
+			document.getElementById('waiting__title').innerText =
+				'Waiting for players...';
+			this.joinCodeDisplay.style.display = 'block';
+			this.playerListDisplay.style.display = 'block';
+			this.startButton.style.display = 'block';
+			this.leaveLobbyButton.style.display = 'none';
+			this.scoreboardDisplay.style.display = 'none';
+			this.playerListDisplay.innerHTML = Array.from(this.players.entries())
+				.map(([name, player]) => {
+					const isHost = name === animatedScene.host;
+					const elo = player?.elo ?? 1000;
+					return `<span style="color: ${isHost ? 'yellow' : 'white'}">
+						${name} (${elo})
+					</span>`;
+				})
 				.join('');
 
-			this.startButtion.disabled =
-				this.players.size < 2 || !animatedScene.isHost;
+			if (animatedScene.isHost) {
+				this.startButton.textContent = 'Start Game';
+				this.startButton.disabled = this.players.size < 2;
+			} else {
+				this.startButton.textContent = 'Waiting for host to start the game';
+				this.startButton.disabled = true;
+			}
 		}
 	}),
 );

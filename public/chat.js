@@ -30,6 +30,9 @@ export function initChat(socket) {
 		msgs.push(msg.content);
 		msgs = msgs.slice(-MAX_CHAT);
 		chatText.innerText = msgs.join('\n');
+
+		chatText.scrollTop = chatText.scrollHeight;
+
 		return true;
 	});
 }

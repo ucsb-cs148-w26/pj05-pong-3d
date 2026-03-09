@@ -7,11 +7,13 @@ import { GameState, Player } from '../../public/game/common/GameState.js';
 import { BallServer } from './BallServer.js';
 
 const SYNC_INTERVAL = 5;
+const INITIAL_LIVES = 3;
 
 export default class ServerScene extends Scene {
 	#interval = null;
 	#socket = null;
 	#ball = null;
+	#gameOver = null;
 
 	constructor(socket) {
 		super(new GameState());
@@ -23,8 +25,18 @@ export default class ServerScene extends Scene {
 		this.registerGameObject(new ArenaCommon('gameArena'));
 
 		this.#ball = new BallServer('ball', (ball, wall) => {
-			// Hacky. Should probably change later.
-			if (wall?.player) wall.player.score += 1;
+			if (this.#gameOver || !wall?.player) return;
+
+			wall.player.lives = Math.max(0, wall.player.lives - 1);
+			if (wall.player.lives > 0) return;
+
+			const loser = wall.player.username;
+			const winner = [...this.state.players.values()].find(
+				(player) => player.username !== loser
+			)?.username;
+
+			this.#gameOver = { loser, winner };
+			this.#ball.enabled = false;
 		});
 
 		this.registerGameObject(this.#ball);
@@ -63,7 +75,7 @@ export default class ServerScene extends Scene {
 				const physicsState = this.state.physics.exportState();
 				const gatherData = {};
 				for (const [username, player] of this.state.players)
-					gatherData[username] = player.score;
+					gatherData[username] = { lives: player.lives };
 
 				this.#socket.forEachClient((username, ws) => {
 					const paddleController =
@@ -75,7 +87,8 @@ export default class ServerScene extends Scene {
 						ack,
 						active: this.#ball.enabled,
 						physics: physicsState,
-						gameInfo: gatherData
+						gameInfo: gatherData,
+						gameOver: this.#gameOver
 					});
 				});
 			}
@@ -88,6 +101,10 @@ export default class ServerScene extends Scene {
 	stop() {
 		if (this.#interval) clearInterval(this.#interval);
 		this.#interval = null;
+	}
+
+	get inProgress() {
+		return this.#ball.enabled;
 	}
 
 	#onConnect(username) {
@@ -121,10 +138,6 @@ export default class ServerScene extends Scene {
 	#updatePaddles() {
 		// TODO: n-player support
 
-		const scores = {};
-		for (const [username, player] of this.state.players)
-			scores[username] = player.score;
-
 		this.#socket.forEachClient((thisUsername, ws) => {
 			const players = this.state.players.entries().map(([username, player]) => {
 				const paddle = player.paddle;
@@ -154,6 +167,12 @@ export default class ServerScene extends Scene {
 				type: 'error',
 				message: 'bruh we gotta wait for another person'
 			};
+
+		for (const player of this.state.players.values()) {
+			player.lives = INITIAL_LIVES;
+		}
+
+		this.#gameOver = null;
 		this.#ball.enabled = true;
 	}
 
