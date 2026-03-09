@@ -744,6 +744,359 @@ export const ShaderLibrary = {
 		gl_FragColor = vec4(color, alpha);
 	}
 `
+		},
+		STANDARD_ARENA_SHADER: {
+			vertexShader: `
+	varying vec3 vLocalPos;
+	varying vec3 vLocalNormal;
+	varying vec3 vWorldPos;
+	varying vec3 vViewDirW;
+
+	void main() {
+		vLocalPos = position;
+		vLocalNormal = normal;
+
+		vec4 worldPos = modelMatrix * vec4(position, 1.0);
+		vWorldPos = worldPos.xyz;
+		vViewDirW = normalize(cameraPosition - worldPos.xyz);
+
+		gl_Position = projectionMatrix * viewMatrix * worldPos;
+	}
+`,
+			fragmentShader: `
+	uniform float uTime;
+	const int ARENA_RIPPLE_COUNT = 4;
+	uniform vec3 uArenaHalfExtents;
+	uniform float uFaceMode;
+	uniform float uHoleMaskEnabled;
+	uniform vec2 uHoleHalfExtents;
+	uniform vec3 uHalfExtents;
+	uniform vec3 uBlueColor;
+	uniform vec3 uRedColor;
+	uniform vec3 uNeutralColor;
+	uniform vec3 uLineColor;
+	uniform float uGoalBiasPower;
+	uniform float uEndFaceTint;
+	uniform float uSideFaceTint;
+	uniform float uFloorCeilFaceTint;
+	uniform float uBaseBrightness;
+	uniform float uVerticalGlowStrength;
+	uniform float uGoalAccentBase;
+	uniform float uGoalAccentEndBoost;
+	uniform float uPrimaryGridScale;
+	uniform float uPrimaryGridThickness;
+	uniform float uMinorGridScale;
+	uniform float uMinorGridThickness;
+	uniform vec2 uMinorGridDrift;
+	uniform float uPrimaryGridStrength;
+	uniform float uMinorGridStrength;
+	uniform float uEdgeGlowStrength;
+	uniform float uEdgeGlowInner;
+	uniform float uEdgeGlowOuter;
+	uniform float uGoalHaloInner;
+	uniform float uGoalHaloOuter;
+	uniform float uGoalHaloStrength;
+	uniform float uGoalHaloGoalBoost;
+	uniform float uAccentMix;
+	uniform float uFresnelPower;
+	uniform float uFresnelStrength;
+	uniform float uExpansionSpeedScale;
+	uniform float uExpansionSpeedMin;
+	uniform float uPrimaryExpansionSpeedFactor;
+	uniform float uExpansionPulseFrequency;
+	uniform float uExpansionPulseSpeed;
+	uniform float uExpansionPulseStrength;
+	uniform float uExpansionPhase;
+	uniform vec4 uRippleCentersAge[ARENA_RIPPLE_COUNT];
+	uniform vec4 uRippleNormalsStrength[ARENA_RIPPLE_COUNT];
+	uniform float uRippleLifetime;
+	uniform float uRippleSpeed;
+	uniform float uRippleWidth;
+	uniform float uRippleSoftness;
+	uniform float uRippleStrength;
+
+	varying vec3 vLocalPos;
+	varying vec3 vLocalNormal;
+	varying vec3 vWorldPos;
+	varying vec3 vViewDirW;
+
+	float axisLineMask(float value, float scale, float thickness) {
+		float scaled = value * scale;
+		float derivative = max(fwidth(scaled), 1e-4);
+		float grid = abs(fract(scaled - 0.5) - 0.5) / derivative;
+		return 1.0 - smoothstep(thickness, thickness + 1.0, grid);
+	}
+
+	float worldGridField(vec3 pos, float scale, float thickness, vec3 axisWeights) {
+		float xLine = axisLineMask(pos.x, scale, thickness) * axisWeights.x;
+		float yLine = axisLineMask(pos.y, scale, thickness) * axisWeights.y;
+		float zLine = axisLineMask(pos.z, scale, thickness) * axisWeights.z;
+		return max(max(xLine, yLine), zLine);
+	}
+
+	vec2 safeNormalize2(vec2 value, vec2 fallback) {
+		float len = length(value);
+		if (len > 1e-4) return value / len;
+		return fallback;
+	}
+
+	float planeEdgeDistance(vec2 uv) {
+		return min(abs(abs(uv.x) - 1.0), abs(abs(uv.y) - 1.0));
+	}
+
+	float safeSign(float value) {
+		return value < 0.0 ? -1.0 : 1.0;
+	}
+
+	vec3 orientToSourceFrame(vec3 value, vec3 sourceNormal) {
+		vec3 absSourceNormal = abs(sourceNormal);
+		if (absSourceNormal.x > 0.5) {
+			return sourceNormal.x > 0.0 ? value : vec3(-value.x, value.y, -value.z);
+		}
+		if (absSourceNormal.y > 0.5) {
+			return sourceNormal.y > 0.0
+				? vec3(value.y, -value.x, value.z)
+				: vec3(-value.y, value.x, value.z);
+		}
+		return sourceNormal.z > 0.0
+			? vec3(value.z, value.y, -value.x)
+			: vec3(-value.z, value.y, value.x);
+	}
+
+	vec3 orientExtentsToSourceFrame(vec3 extents, vec3 sourceNormal) {
+		vec3 absSourceNormal = abs(sourceNormal);
+		if (absSourceNormal.x > 0.5) return extents;
+		if (absSourceNormal.y > 0.5) return vec3(extents.y, extents.x, extents.z);
+		return vec3(extents.z, extents.y, extents.x);
+	}
+
+	float surfaceRippleDistance(
+		vec3 worldPos,
+		vec3 surfaceNormal,
+		vec3 rippleCenter,
+		vec3 rippleNormal
+	) {
+		vec3 sourceFramePos = orientToSourceFrame(worldPos, rippleNormal);
+		vec3 sourceFrameNormal = orientToSourceFrame(surfaceNormal, rippleNormal);
+		vec3 sourceFrameCenter = orientToSourceFrame(rippleCenter, rippleNormal);
+		vec3 sourceFrameExtents = orientExtentsToSourceFrame(
+			uArenaHalfExtents,
+			rippleNormal
+		);
+		vec2 sourceUv = sourceFrameCenter.yz;
+
+		if (sourceFrameNormal.x > 0.5) {
+			return length(sourceFramePos.yz - sourceUv);
+		}
+		if (sourceFrameNormal.y > 0.5) {
+			vec2 unfoldedUv = vec2(
+				sourceFrameExtents.y + (sourceFrameExtents.x - sourceFramePos.x),
+				sourceFramePos.z
+			);
+			return length(unfoldedUv - sourceUv);
+		}
+		if (sourceFrameNormal.y < -0.5) {
+			vec2 unfoldedUv = vec2(
+				-sourceFrameExtents.y - (sourceFrameExtents.x - sourceFramePos.x),
+				sourceFramePos.z
+			);
+			return length(unfoldedUv - sourceUv);
+		}
+		if (sourceFrameNormal.z > 0.5) {
+			vec2 unfoldedUv = vec2(
+				sourceFramePos.y,
+				sourceFrameExtents.z + (sourceFrameExtents.x - sourceFramePos.x)
+			);
+			return length(unfoldedUv - sourceUv);
+		}
+		if (sourceFrameNormal.z < -0.5) {
+			vec2 unfoldedUv = vec2(
+				sourceFramePos.y,
+				-sourceFrameExtents.z - (sourceFrameExtents.x - sourceFramePos.x)
+			);
+			return length(unfoldedUv - sourceUv);
+		}
+
+		return 1e6;
+	}
+
+	float arenaRippleMask(
+		vec3 worldPos,
+		vec3 surfaceNormal,
+		vec3 center,
+		vec3 normal,
+		float age,
+		float hitStrength
+	) {
+		if (age < 0.0 || hitStrength <= 0.0) return 0.0;
+
+		float ringRadius = age * uRippleSpeed;
+		float ringDist = abs(
+			surfaceRippleDistance(worldPos, surfaceNormal, center, normal) - ringRadius
+		);
+		float ringMask = 1.0 - smoothstep(
+			uRippleWidth,
+			uRippleWidth + uRippleSoftness,
+			ringDist
+		);
+		float ageFade = 1.0 - smoothstep(
+			uRippleLifetime * 0.45,
+			uRippleLifetime,
+			age
+		);
+		return ringMask * ageFade * hitStrength;
+	}
+
+	void main() {
+		vec3 localNormal = normalize(vLocalNormal);
+		vec3 absNormal = abs(localNormal);
+		vec2 faceUv;
+		vec3 surfaceNormal;
+		if (
+			uHoleMaskEnabled > 0.5 &&
+			abs(vLocalPos.y) < uHoleHalfExtents.x &&
+			abs(vLocalPos.z) < uHoleHalfExtents.y
+		) discard;
+		float endFace = 0.0;
+		float floorCeilFace = 0.0;
+		float sideFace = 0.0;
+
+		if (uFaceMode > 2.5) {
+			sideFace = 1.0;
+			faceUv = vWorldPos.xy / max(uArenaHalfExtents.xy, vec2(1e-4));
+			surfaceNormal = vec3(0.0, 0.0, safeSign(vWorldPos.z));
+		} else if (uFaceMode > 1.5) {
+			floorCeilFace = 1.0;
+			faceUv = vWorldPos.xz / max(uArenaHalfExtents.xz, vec2(1e-4));
+			surfaceNormal = vec3(0.0, safeSign(vWorldPos.y), 0.0);
+		} else if (uFaceMode > 0.5) {
+			endFace = 1.0;
+			faceUv = vWorldPos.yz / max(uArenaHalfExtents.yz, vec2(1e-4));
+			surfaceNormal = vec3(safeSign(vWorldPos.x), 0.0, 0.0);
+		} else if (absNormal.x >= absNormal.y && absNormal.x >= absNormal.z) {
+			endFace = 1.0;
+			faceUv = vWorldPos.yz / max(uArenaHalfExtents.yz, vec2(1e-4));
+			surfaceNormal = vec3(safeSign(vWorldPos.x), 0.0, 0.0);
+		} else if (absNormal.y >= absNormal.x && absNormal.y >= absNormal.z) {
+			floorCeilFace = 1.0;
+			faceUv = vWorldPos.xz / max(uArenaHalfExtents.xz, vec2(1e-4));
+			surfaceNormal = vec3(0.0, safeSign(vWorldPos.y), 0.0);
+		} else {
+			sideFace = 1.0;
+			faceUv = vWorldPos.xy / max(uArenaHalfExtents.xy, vec2(1e-4));
+			surfaceNormal = vec3(0.0, 0.0, safeSign(vWorldPos.z));
+		}
+
+		vec2 face01 = faceUv * 0.5 + 0.5;
+		vec3 worldGridPos = vWorldPos / max(uArenaHalfExtents, vec3(1e-4));
+		vec2 borderFlowDir = safeNormalize2(
+			worldGridPos.yz,
+			vec2(0.0, face01.y >= 0.5 ? 1.0 : -1.0)
+		);
+		vec3 expansionFlow =
+			endFace > 0.5
+				? vec3(0.0, borderFlowDir.x, borderFlowDir.y)
+				: vec3(vWorldPos.x >= 0.0 ? 1.0 : -1.0, 0.0, 0.0);
+		float expansionSpeed = max(
+			length(uMinorGridDrift) * uExpansionSpeedScale,
+			uExpansionSpeedMin
+		);
+		float expansionDistance =
+			endFace > 0.5 ? 1.0 + length(worldGridPos.yz) : abs(worldGridPos.x);
+		vec3 primaryGridPos =
+			worldGridPos -
+			expansionFlow *
+				(uExpansionPhase * expansionSpeed * uPrimaryExpansionSpeedFactor);
+		vec3 minorGridPos =
+			worldGridPos - expansionFlow * (uExpansionPhase * expansionSpeed);
+		float primaryGrid = worldGridField(
+			primaryGridPos,
+			uPrimaryGridScale,
+			uPrimaryGridThickness,
+			vec3(0.28, 0.88, 1.0)
+		);
+		float minorGrid = worldGridField(
+			minorGridPos,
+			uMinorGridScale,
+			uMinorGridThickness,
+			vec3(0.24, 0.9, 1.0)
+		) * uMinorGridStrength;
+		float expansionPulse = 0.5 + 0.5 * cos(
+			expansionDistance * uExpansionPulseFrequency -
+			uExpansionPhase * uExpansionPulseSpeed
+		);
+		expansionPulse = pow(expansionPulse, 5.0);
+		float teamMix = smoothstep(
+			-uArenaHalfExtents.x,
+			uArenaHalfExtents.x,
+			vWorldPos.x
+		);
+		vec3 teamColor = mix(uBlueColor, uRedColor, teamMix);
+		float goalBias = pow(
+			clamp(abs(vWorldPos.x) / max(uArenaHalfExtents.x, 1e-4), 0.0, 1.0),
+			uGoalBiasPower
+		);
+		float verticalFade = 1.0 - smoothstep(
+			0.0,
+			uArenaHalfExtents.y,
+			min(abs(vWorldPos.y), uArenaHalfExtents.y)
+		);
+		float faceTint =
+			endFace * uEndFaceTint +
+			sideFace * uSideFaceTint +
+			floorCeilFace * uFloorCeilFaceTint;
+
+		vec3 baseColor = mix(uNeutralColor, teamColor, faceTint);
+		baseColor +=
+			teamColor * goalBias * (uGoalAccentBase + endFace * uGoalAccentEndBoost);
+		baseColor *= uBaseBrightness + verticalFade * uVerticalGlowStrength;
+
+		float edgeGlow = 1.0 - smoothstep(
+			uEdgeGlowInner,
+			uEdgeGlowOuter,
+			planeEdgeDistance(faceUv)
+		);
+
+		vec2 goalUv = face01 * 2.0 - 1.0;
+		float goalHalo =
+			endFace *
+			(1.0 - smoothstep(uGoalHaloInner, uGoalHaloOuter, length(goalUv)));
+		float rippleMask = 0.0;
+		for (int i = 0; i < ARENA_RIPPLE_COUNT; i++) {
+			vec4 rippleCenterAge = uRippleCentersAge[i];
+			vec4 rippleNormalStrength = uRippleNormalsStrength[i];
+			rippleMask += arenaRippleMask(
+				vWorldPos,
+				surfaceNormal,
+				rippleCenterAge.xyz,
+				rippleNormalStrength.xyz,
+				rippleCenterAge.w,
+				rippleNormalStrength.w
+			);
+		}
+		rippleMask = clamp(rippleMask, 0.0, 1.0);
+
+		float fresnel = pow(
+			1.0 - abs(dot(normalize(vLocalNormal), normalize(vViewDirW))),
+			uFresnelPower
+		);
+
+		vec3 accentColor = mix(uLineColor, teamColor, uAccentMix);
+		vec3 rippleColor = mix(uLineColor, teamColor, 0.22 + endFace * 0.18);
+		vec3 accents = accentColor * (
+			primaryGrid * uPrimaryGridStrength +
+			minorGrid +
+			expansionPulse * minorGrid * uExpansionPulseStrength +
+			edgeGlow * uEdgeGlowStrength
+		);
+		accents += rippleColor * rippleMask * uRippleStrength;
+		accents +=
+			teamColor * goalHalo * (uGoalHaloStrength + uGoalHaloGoalBoost * goalBias);
+		accents += accentColor * fresnel * uFresnelStrength;
+
+		gl_FragColor = vec4(baseColor + accents, 1.0);
+	}
+`
 		}
 	}
 };
