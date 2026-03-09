@@ -1,4 +1,4 @@
-export const STATIC_MASS = 999999;
+export const STATIC_MASS = 999_999_999_999;
 
 export const SIMULATION_RATE = 120; // must be ~same between client and server
 

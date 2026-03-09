@@ -36,27 +36,27 @@ export class ArenaCommon extends GameObjectBase {
 			this.bodies[1].transform
 		);
 		this.#bodies[2].col = new BoxCollider(
-			Constants.ARENA_DEPTH,
-			Constants.ARENA_SIZE,
+			Constants.ARENA_DEPTH + 2 * Constants.WALL_THICKNESS, // should cover the sidewall-paddlewall corners
+			Constants.ARENA_SIZE + 2 * Constants.WALL_THICKNESS, // should cover the sidewall-upperwall corners
 			Constants.WALL_THICKNESS,
 			this.#bodies[2].transform
 		);
 		this.#bodies[3].col = new BoxCollider(
-			Constants.ARENA_DEPTH,
-			Constants.ARENA_SIZE,
+			Constants.ARENA_DEPTH + 2 * Constants.WALL_THICKNESS,
+			Constants.ARENA_SIZE + 2 * Constants.WALL_THICKNESS,
 			Constants.WALL_THICKNESS,
 			this.#bodies[3].transform
 		);
 
 		this.#bodies[4].col = new BoxCollider(
 			Constants.WALL_THICKNESS,
-			Constants.ARENA_SIZE,
+			Constants.ARENA_SIZE + 2 * Constants.WALL_THICKNESS,
 			Constants.ARENA_SIZE,
 			this.#bodies[4].transform
 		);
 		this.#bodies[5].col = new BoxCollider(
 			Constants.WALL_THICKNESS,
-			Constants.ARENA_SIZE,
+			Constants.ARENA_SIZE + 2 * Constants.WALL_THICKNESS,
 			Constants.ARENA_SIZE,
 			this.#bodies[5].transform
 		);
