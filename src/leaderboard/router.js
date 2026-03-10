@@ -48,9 +48,7 @@ export default function createLeaderboardRouter() {
 				const wins = Number(player.wins ?? 0);
 				const totalGames = Number(player.total_games ?? 0);
 				const winRate =
-					totalGames > 0
-						? Math.round((wins / totalGames) * 1000) / 10
-						: 0;
+					totalGames > 0 ? Math.round((wins / totalGames) * 1000) / 10 : 0;
 
 				return {
 					id: player.id,
