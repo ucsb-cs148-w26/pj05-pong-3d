@@ -32,14 +32,7 @@ export default class ServerScene extends Scene {
 			wall.player.lives = Math.max(0, wall.player.lives - 1);
 			if (wall.player.lives > 0) return;
 
-			const loser = wall.player.username;
-			const winner = [...this.state.players.values()].find(
-				(player) => player.username !== loser
-			)?.username;
-
-			this.#gameOver = { loser, winner, ratings: null };
-			this.#ball.enabled = false;
-			this.#saveGameResult();
+			this.#endGame(wall.player.username);
 		});
 
 		this.registerGameObject(this.#ball);
@@ -139,27 +132,7 @@ export default class ServerScene extends Scene {
 		const leavingPlayer = this.state.players.get(username);
 		if (!leavingPlayer) return;
 
-		const winner = [...this.state.players.keys()].find(
-			(otherUsername) => otherUsername !== username
-		);
-		const shouldForfeitEndGame = this.#ball.enabled && this.#gameOver === null;
-		if (shouldForfeitEndGame) {
-			this.#gameOver = { loser: username, winner };
-			this.#ball.enabled = false;
-		}
-
-		this.state.players.delete(username);
-
-		if (this.hostUser === username) {
-			this.hostUser = this.state.players.keys().next().value ?? null;
-		}
-
-		const arena = this.getGameObject('gameArena');
-		for (const body of arena.bodies) {
-			if (body.player?.username === username) body.player = null;
-		}
-
-		this.#updatePaddles();
+		this.#endGame(username);
 	}
 
 	#updatePaddles() {
@@ -231,6 +204,16 @@ export default class ServerScene extends Scene {
 
 	#recvMove(socket, username, ws, msg) {
 		this.state.players.get(username)?.paddle.controller.enqueueInput(msg);
+	}
+
+	#endGame(loser) {
+		const winner = [...this.state.players.values()].find(
+			(player) => player.username !== loser
+		)?.username;
+
+		this.#gameOver = { loser, winner, ratings: null };
+		this.#ball.enabled = false;
+		this.#saveGameResult();
 	}
 
 	async #saveGameResult() {
