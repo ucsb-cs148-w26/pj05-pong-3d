@@ -22,6 +22,10 @@ export class AnimatedScene extends Scene {
 		this.host = null;
 		this.username = null;
 		this.gameOver = null;
+		this.respawnEndsAt = null;
+		this.respawnScorer = null;
+		this.matchStarted = false;
+		this.serverTimeOffsetMs = 0;
 		this.unlockedItem = null;
 		this.renderer = new THREE.WebGLRenderer();
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -190,6 +194,13 @@ export class AnimatedScene extends Scene {
 		this.state.physics.importState(msg.physics);
 
 		this.#ball.enabled = msg.active;
+		this.gameOver = msg.gameOver ?? null;
+		this.respawnEndsAt =
+			typeof msg.respawnEndsAt === 'number' ? msg.respawnEndsAt : null;
+		this.respawnScorer =
+			typeof msg.respawnScorer === 'string' ? msg.respawnScorer : null;
+		this.matchStarted = msg.matchStarted === true;
+		this.#updateServerTimeOffset(msg.serverTs);
 
 		for (const [username, gameInfo] of Object.entries(msg.gameInfo)) {
 			const player = this.state.players.get(username);
@@ -234,6 +245,10 @@ export class AnimatedScene extends Scene {
 
 	get enabled() {
 		return this.#ball.enabled;
+	}
+
+	get serverNowMs() {
+		return Date.now() + this.serverTimeOffsetMs;
 	}
 
 	#playerSync(msg) {
@@ -285,6 +300,15 @@ export class AnimatedScene extends Scene {
 				}
 			}
 		}
+	}
+
+	#updateServerTimeOffset(serverTs) {
+		if (typeof serverTs !== 'number') return;
+
+		const socket = this.getGameObject('socket')?.config?.socket;
+		const oneWayLatencyMs =
+			typeof socket?.lastLatencyMs === 'number' ? socket.lastLatencyMs / 2 : 0;
+		this.serverTimeOffsetMs = serverTs + oneWayLatencyMs - Date.now();
 	}
 
 	#itemUnlocked(msg) {

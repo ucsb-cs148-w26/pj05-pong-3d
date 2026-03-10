@@ -125,6 +125,26 @@ body > canvas {
 	font-size: 0.8rem;
 }
 
+#hud-countdown {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	text-align: center;
+	line-height: 1.1;
+}
+
+#hud-countdown .hud-countdown__scorer {
+	font-size: 1.25rem;
+	font-weight: 500;
+	margin-bottom: 0.35rem;
+}
+
+#hud-countdown .hud-countdown__value {
+	font-size: 4rem;
+	font-weight: 700;
+}
+
 #escape-menu {
 	position: fixed;
 	inset: 0;
