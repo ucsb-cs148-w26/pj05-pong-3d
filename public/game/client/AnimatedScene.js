@@ -60,6 +60,7 @@ export class AnimatedScene extends Scene {
 		socket.addHandler('sync', this.#sync.bind(this));
 		socket.addHandler('gameOver', this.#gameOver.bind(this));
 		socket.addHandler('playerSync', this.#playerSync.bind(this));
+		socket.addHandler('gameCancelled', this.#gameCancelled.bind(this));
 
 		// Order matters: Sync with ServerScene.js
 		this.registerGameObject(new Arena('gameArena'));
@@ -268,5 +269,9 @@ export class AnimatedScene extends Scene {
 				}
 			}
 		}
+	}
+
+	#gameCancelled(msg) {
+		this.gameCancelled = true;
 	}
 }

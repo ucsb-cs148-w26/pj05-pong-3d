@@ -130,9 +130,16 @@ export default class ServerScene extends Scene {
 	}
 
 	#onDisconnect(username) {
-		const leavingPlayer = this.state.players.get(username);
-		if (!leavingPlayer) return;
-		if (!this.inProgress) return;
+		if (!this.inProgress) {
+			if (username === this.hostUser) {
+				this.#socket.broadcast({
+					type: 'gameCancelled'
+				});
+				this.#onGameEnd?.();
+			}
+
+			return;
+		}
 
 		this.#endGame(username);
 	}
