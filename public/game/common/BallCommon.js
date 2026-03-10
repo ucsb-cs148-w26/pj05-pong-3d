@@ -12,14 +12,11 @@ export class BallCommon extends GameObjectBase {
 	constructor(key) {
 		super(key);
 		this.speed = 0;
-		this.serveDirection = 1; // 1 = right, -1 = left
 		this.body = new RigidBody(Constants.BALL_MASS);
 		this.body.col = new SphereCollider(
 			Constants.BALL_RADIUS,
 			this.body.transform
 		);
-
-		this.reset();
 	}
 
 	get enabled() {
@@ -28,9 +25,7 @@ export class BallCommon extends GameObjectBase {
 
 	set enabled(enabled) {
 		if (this.#enabled == enabled) return;
-
 		this.#enabled = enabled;
-		if (enabled) this.reset();
 	}
 
 	update(dt) {
@@ -49,22 +44,5 @@ export class BallCommon extends GameObjectBase {
 
 	get syncedBodies() {
 		return [this.body];
-	}
-
-	reset() {
-		this.body.x.assign(0, 0, 0);
-
-		let theta = (Math.random() * Math.PI) / 2 + Math.PI / 4;
-
-		let phi = (Math.random() * Math.PI) / 2 + Math.PI / 4;
-
-		this.body.v
-			.assign(
-				Math.sin(theta) * Math.sin(phi) * this.serveDirection,
-				Math.cos(phi),
-				Math.cos(theta) * Math.sin(phi)
-			)
-			.scale(Constants.BALL_INITIAL_SPEED);
-		this.serveDirection *= -1;
 	}
 }

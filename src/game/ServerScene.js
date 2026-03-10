@@ -37,19 +37,10 @@ export default class ServerScene extends Scene {
 			if (this.#gameOver || this.#respawn || !wall?.player) return;
 
 			wall.player.lives = Math.max(0, wall.player.lives - 1);
-			this.#ball.enabled = false;
 
 			const scoredOnPlayer = wall.player;
 			if (wall.player.lives > 0) {
-				const scorer = [...this.state.players.values()].find(
-					(player) => player.username !== scoredOnPlayer.username
-				)?.username;
-				const serveDirection = scoredOnPlayer.paddle.body.x.x < 0 ? 1 : -1;
-				this.#respawn = {
-					endAt: Date.now() + RESPAWN_COUNTDOWN_MS,
-					serveDirection,
-					scorer: scorer ?? null
-				};
+				this.#startServe(scoredOnPlayer);
 				return;
 			}
 
@@ -238,6 +229,12 @@ export default class ServerScene extends Scene {
 		this.#matchStarted = true;
 		this.#ball.enabled = true;
 		this.#inProgress = true;
+
+		// ???
+		this.#startServe(
+			Array.from(this.state.players.values())[Math.floor(Math.random() * 2)],
+			true
+		);
 	}
 
 	#recvMove(socket, username, ws, msg) {
@@ -249,8 +246,8 @@ export default class ServerScene extends Scene {
 
 		if (Date.now() < this.#respawn.endAt) return;
 
-		this.#ball.serveDirection = this.#respawn.serveDirection;
-		this.#ball.enabled = true;
+		this.#ball.serve();
+		this.#ball.setServer(null);
 		this.#respawn = null;
 	}
 
@@ -425,5 +422,13 @@ export default class ServerScene extends Scene {
 		} catch (err) {
 			console.error('Failed to save game:', err);
 		}
+	}
+
+	#startServe(playerObj, initial = false) {
+		this.#ball.setServer(playerObj);
+		this.#respawn = {
+			endAt: Date.now() + RESPAWN_COUNTDOWN_MS,
+			scorer: initial ? null : playerObj.username
+		};
 	}
 }

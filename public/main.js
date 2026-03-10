@@ -93,11 +93,6 @@ animatedScene.registerGameObject(
 			document.body.appendChild(this.self);
 		},
 		update() {
-			if (animatedScene.enabled || animatedScene.gameOver) {
-				this.self.style.display = 'none';
-				return;
-			}
-
 			const countdown = getRespawnCountdownSeconds();
 			const scorer = animatedScene.respawnScorer;
 			if (typeof countdown !== 'number' || countdown <= 0) {
