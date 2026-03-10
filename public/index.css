@@ -88,3 +88,25 @@ h2:first-child {
 	padding: 1.25rem;
 	margin-bottom: 1rem;
 }
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+	table-layout: fixed;
+	font-size: clamp(0.8rem, 1.15vw, 1rem);
+}
+
+th,
+td {
+	padding: 0.6rem 0.45rem;
+	border-bottom: 0.1rem solid rgba(255, 255, 255, 0.1);
+	text-align: left;
+	vertical-align: middle;
+	overflow-wrap: anywhere;
+}
+
+th {
+	color: rgba(255, 255, 255, 0.68);
+	font-weight: 400;
+	letter-spacing: 0.04em;
+}

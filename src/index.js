@@ -4,6 +4,7 @@ dotenv.config();
 import express from 'express';
 import path from 'path';
 import createLobbyRouter from './lobby/router.js';
+import createLeaderboardRouter from './leaderboard/router.js';
 import createUserRouter from './user/router.js';
 import setupAuth from './auth/index.js';
 import './db/db.js';
@@ -31,6 +32,7 @@ app.get('/map-upload', (req, res) => res.render('map-upload'));
 const server = app.listen(PORT);
 
 app.use('/', createLobbyRouter(server, parseSession));
+app.use('/leaderboard', createLeaderboardRouter());
 app.use('/user', createUserRouter());
 
 export default app;

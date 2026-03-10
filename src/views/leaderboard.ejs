@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Leaderboard - 3D Pong</title>
+		<link rel="stylesheet" href="/index.css" />
+		<link rel="stylesheet" href="/leaderboard.css" />
+	</head>
+	<body>
+		<a class="link-button" href="/">Back</a>
+		<h1>Leaderboard</h1>
+
+		<div class="card leaderboard-card">
+			<% if (players.length === 0) { %>
+				<p style="margin: 0;">No players have been ranked yet.</p>
+			<% } else { %>
+				<table class="leaderboard-table">
+					<thead>
+						<tr>
+							<th>Rank</th>
+							<th>Player</th>
+							<th>ELO</th>
+							<th>Record</th>
+							<th>Win Rate</th>
+						</tr>
+					</thead>
+					<tbody>
+						<% players.forEach((player) => { %>
+							<tr class="<%= player.isCurrentUser ? 'current-player' : '' %>">
+								<td>
+									<span class="rank-badge">#<%= player.rank %></span>
+								</td>
+								<td>
+									<div class="player-cell">
+										<% if (player.avatarUrl) { %>
+											<img
+												class="player-avatar"
+												src="<%= player.avatarUrl %>"
+												alt="<%= player.displayName %>"
+											/>
+										<% } else { %>
+											<span class="player-fallback">
+												<%= player.displayName.slice(0, 1).toUpperCase() %>
+											</span>
+										<% } %>
+										<div class="player-meta">
+											<strong><%= player.displayName %></strong>
+											<% if (player.isCurrentUser) { %>
+												<span class="player-note">You</span>
+											<% } %>
+										</div>
+									</div>
+								</td>
+								<td><%= player.elo %></td>
+								<td><%= player.record %></td>
+								<td><%= player.winRate.toFixed(1) %>%</td>
+							</tr>
+						<% }) %>
+					</tbody>
+				</table>
+			<% } %>
+		</div>
+	</body>
+</html>
