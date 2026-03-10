@@ -156,46 +156,81 @@
 		>
 			<div class="card">
 				<h2>Paddle Skins</h2>
-				<% if (paddleSkins.length > 0) { %>
-					<div class="item-list" id="paddle-skins">
-						<% paddleSkins.forEach(skin => { %>
-							<button type="button" class="item <%= skin.unlocked_at ? '' : 'locked' %>" data-item-id="<%= skin.id %>" <%= skin.unlocked_at ? '' : 'disabled' %>>
-								<strong><%= skin.display_name %></strong><br>
-								<%- skin.unlocked_at ? '&#x2705; Unlocked' : '&#x1F512; Locked' %>
-							</button>
-						<% }) %>
+				<div class="preview-layout">
+					<div class="preview-list">
+						<% if (paddleSkins.length > 0) { %>
+							<div class="item-list" id="paddle-skins">
+								<% paddleSkins.forEach(skin => { %>
+									<button
+										type="button"
+										class="item <%= skin.unlocked_at ? '' : 'locked' %>"
+										data-item-id="<%= skin.id %>"
+										data-style-index="<%= skin.item_key %>"
+										<%= skin.unlocked_at ? '' : 'disabled' %>
+									>
+										<strong><%= skin.display_name %></strong>
+									</button>
+								<% }) %>
+							</div>
+						<% } else { %>
+							<p>No paddle skins available.</p>
+						<% } %>
 					</div>
-				<% } else { %>
-					<p>No paddle skins available.</p>
-				<% } %>
+					<div class="preview-panel">
+						<div class="preview-stage" id="paddle-preview-stage"></div>
+						<div class="preview-label" id="paddle-preview-label">
+							Select a paddle skin to preview
+						</div>
+					</div>
+				</div>
 			</div>
 
 			<div class="card">
 				<h2>Ball Skins</h2>
-				<% if (ballSkins.length > 0) { %>
-					<div class="item-list" id="ball-skins">
-						<% ballSkins.forEach(skin => { %>
-							<button type="button" class="item <%= skin.unlocked_at ? '' : 'locked' %>" data-item-id="<%= skin.id %>" <%= skin.unlocked_at ? '' : 'disabled' %>>
-								<strong><%= skin.display_name %></strong><br>
-								<%- skin.unlocked_at ? '&#x2705; Unlocked' : '&#x1F512; Locked' %>
-							</button>
-						<% }) %>
+				<div class="preview-layout">
+					<div class="preview-list">
+						<% if (ballSkins.length > 0) { %>
+							<div class="item-list" id="ball-skins">
+								<% ballSkins.forEach(skin => { %>
+									<button
+										type="button"
+										class="item <%= skin.unlocked_at ? '' : 'locked' %>"
+										data-item-id="<%= skin.id %>"
+										data-style-index="<%= skin.item_key %>"
+										<%= skin.unlocked_at ? '' : 'disabled' %>
+									>
+										<strong><%= skin.display_name %></strong>
+									</button>
+								<% }) %>
+							</div>
+						<% } else { %>
+							<p>No ball skins available.</p>
+						<% } %>
 					</div>
-				<% } else { %>
-					<p>No ball skins available.</p>
-				<% } %>
+					<div class="preview-panel">
+						<div class="preview-stage" id="ball-preview-stage"></div>
+						<div class="preview-label" id="ball-preview-label">
+							Select a ball skin to preview
+						</div>
+					</div>
+				</div>
 			</div>
 
 			<div class="card">
 				<h2>Goal Explosions</h2>
-				<div class="goal-layout">
-					<div class="goal-list">
+				<div class="preview-layout">
+					<div class="preview-list">
 						<% if (goalExplosions.length > 0) { %>
 							<div class="item-list" id="goal-explosions">
 								<% goalExplosions.forEach(exp => { %>
-									<button type="button" class="item <%= exp.unlocked_at ? '' : 'locked' %>" data-item-id="<%= exp.id %>" data-style-index="<%= exp.item_key %>" <%= exp.unlocked_at ? '' : 'disabled' %>>
-										<strong><%= exp.display_name %></strong><br>
-										<%- exp.unlocked_at ? '&#x2705; Unlocked' : '&#x1F512; Locked' %>
+									<button
+										type="button"
+										class="item <%= exp.unlocked_at ? '' : 'locked' %>"
+										data-item-id="<%= exp.id %>"
+										data-style-index="<%= exp.item_key %>"
+										<%= exp.unlocked_at ? '' : 'disabled' %>
+									>
+										<strong><%= exp.display_name %></strong>
 									</button>
 								<% }) %>
 							</div>
@@ -203,9 +238,11 @@
 							<p>No goal explosions available.</p>
 						<% } %>
 					</div>
-					<div class="goal-preview">
-						<div class="goal-preview-stage" id="goal-preview-stage"></div>
-						<div class="goal-preview-label" id="goal-preview-label">Select a goal explosion to preview</div>
+					<div class="preview-panel">
+						<div class="preview-stage" id="goal-preview-stage"></div>
+						<div class="preview-label" id="goal-preview-label">
+							Select a goal explosion to preview
+						</div>
 					</div>
 				</div>
 			</div>
@@ -213,6 +250,14 @@
 	</div>
 
 	<script>
+		function selectEquippedItem(el) {
+			const container = el.closest('.item-list');
+			container
+				?.querySelectorAll('.item')
+				.forEach(item => item.classList.remove('equipped'));
+			el.classList.add('equipped');
+		}
+
 		function equipItem(el, slot, displayEl) {
 			el.addEventListener('click', () => {
 				if (el.classList.contains('locked') || el.disabled) return;
@@ -226,15 +271,14 @@
 					credentials: 'same-origin',
 					body: JSON.stringify({ itemId, slot })
 				})
-				.then(res => res.json())
-				.then(data => {
-					if (data.ok) {
-						displayEl.innerHTML = `<strong>${displayEl.dataset.label}:</strong><br>${name}`;
-						const container = el.closest('.item-list');
-						container.querySelectorAll('.item').forEach(i => i.style.borderColor = 'rgba(255,255,255,.18)');
-						el.style.borderColor = 'rgb(0, 229, 255)';
-					}
-				});
+					.then(res => res.json())
+					.then(data => {
+						if (!data.ok) return;
+						if (data.ok) {
+							displayEl.innerHTML = `<strong>${displayEl.dataset.label}:</strong><br>${name}`;
+							selectEquippedItem(el);
+						}
+					});
 			});
 		}
 
@@ -410,76 +454,86 @@
 			}
 		});
 
-		document.querySelectorAll('#paddle-skins .item').forEach(el =>
-			equipItem(el, 'paddle_skin', document.getElementById('equipped-paddle-skin'))
-		);
-		document.querySelectorAll('#ball-skins .item').forEach(el =>
-			equipItem(el, 'ball_skin', document.getElementById('equipped-ball-skin'))
-		);
-		document.querySelectorAll('#goal-explosions .item').forEach(el =>
-			equipItem(el, 'goal_explosion', document.getElementById('equipped-goal-explosion'))
-		);
-
-		document.querySelectorAll('#goal-explosions .item').forEach(el => {
-			el.addEventListener('click', () => {
-				if (el.classList.contains('locked') || el.disabled) return;
-				const name = el.querySelector('strong').innerText;
-				window.triggerGoalPreview?.(name, el.dataset.styleIndex);
-			});
-		});
-
-		const equippedPaddleSkinName = '<%= equipped.paddle_skin_name || "" %>';
-		document.querySelectorAll('#paddle-skins .item').forEach(el => {
-			if (el.querySelector('strong').innerText === equippedPaddleSkinName) {
-				el.style.borderColor = 'rgb(0, 229, 255)';
-			}
-		});
-
-		const equippedBallSkinName = '<%= equipped.ball_skin_name || "" %>';
-		document.querySelectorAll('#ball-skins .item').forEach(el => {
-			if (el.querySelector('strong').innerText === equippedBallSkinName) {
-				el.style.borderColor = 'rgb(0, 229, 255)';
-			}
-		});
-
-		const equippedGoalName = '<%= equipped.goal_explosion_name || "" %>';
-		document.querySelectorAll('#goal-explosions .item').forEach(el => {
-			if (el.querySelector('strong').innerText === equippedGoalName) {
-				el.style.borderColor = 'rgb(0, 229, 255)';
-				window.triggerGoalPreview?.(equippedGoalName, el.dataset.styleIndex);
-			}
-		});
-
-		document.getElementById('update-display-name').addEventListener('click', async () => {
-			const input = document.getElementById('display-name');
-			const newName = input.value.trim();
-			const msg = document.getElementById('update-msg');
-
-			if (!newName) {
-				msg.style.color = 'red';
-				msg.textContent = 'Display name cannot be empty.';
-				return;
-			}
-
-			try {
-				const res = await fetch('/user/updateDisplayName', {
-					method: 'POST',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ display_name: newName })
+		function bindItemList(listSelector, slot, displayEl, previewTriggerName) {
+			document.querySelectorAll(`${listSelector} .item`).forEach(el => {
+				equipItem(el, slot, displayEl);
+				el.addEventListener('click', () => {
+					if (el.classList.contains('locked') || el.disabled) return;
+					const name =
+						el.querySelector('strong')?.innerText || displayEl.dataset.label;
+					window[previewTriggerName]?.(name, el.dataset.styleIndex);
 				});
+			});
+		}
 
-				if (!res.ok) {
-					const data = await res.json();
-					throw new Error(data?.message || 'Failed to update display name.');
+		function markEquippedItem(listSelector, itemId) {
+			if (!itemId) return;
+			document.querySelectorAll(`${listSelector} .item`).forEach(el => {
+				if (el.dataset.itemId === itemId) {
+					el.classList.add('equipped');
+				}
+			});
+		}
+
+		bindItemList(
+			'#paddle-skins',
+			'paddle_skin',
+			document.getElementById('equipped-paddle-skin'),
+			'triggerPaddlePreview'
+		);
+		bindItemList(
+			'#ball-skins',
+			'ball_skin',
+			document.getElementById('equipped-ball-skin'),
+			'triggerBallPreview'
+		);
+		bindItemList(
+			'#goal-explosions',
+			'goal_explosion',
+			document.getElementById('equipped-goal-explosion'),
+			'triggerGoalPreview'
+		);
+
+		const equippedPaddleSkinId = <%- JSON.stringify(String(equipped.paddle_skin_id ?? '')) %>;
+		const equippedBallSkinId = <%- JSON.stringify(String(equipped.ball_skin_id ?? '')) %>;
+		const equippedGoalExplosionId = <%- JSON.stringify(String(equipped.goal_explosion_id ?? '')) %>;
+
+		markEquippedItem('#paddle-skins', equippedPaddleSkinId);
+		markEquippedItem('#ball-skins', equippedBallSkinId);
+		markEquippedItem('#goal-explosions', equippedGoalExplosionId);
+
+		document
+			.getElementById('update-display-name')
+			.addEventListener('click', async () => {
+				const input = document.getElementById('display-name');
+				const newName = input.value.trim();
+				const msg = document.getElementById('update-msg');
+
+				if (!newName) {
+					msg.style.color = 'red';
+					msg.textContent = 'Display name cannot be empty.';
+					return;
 				}
 
-				msg.style.color = 'lightgreen';
-				msg.textContent = `Display name updated successfully to ${newName}!`;
-			} catch (err) {
-				msg.style.color = 'red';
-				msg.textContent = err.message;
-			}
-		});
+				try {
+					const res = await fetch('/user/updateDisplayName', {
+						method: 'POST',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ display_name: newName })
+					});
+
+					if (!res.ok) {
+						const data = await res.json();
+						throw new Error(data?.message || 'Failed to update display name.');
+					}
+
+					msg.style.color = 'lightgreen';
+					msg.textContent = `Display name updated successfully to ${newName}!`;
+				} catch (err) {
+					msg.style.color = 'red';
+					msg.textContent = err.message;
+				}
+			});
 
 		async function loadUserStats() {
 			const statsLoadingEl = document.getElementById('stats-loading');
@@ -583,69 +637,6 @@
 
 		loadUserStats();
 	</script>
-	<script type="module">
-		import * as THREE from 'three';
-		import { GoalAnimationSpawner } from '/game/shaders/goalAnimationSpawner.js';
-
-		const stage = document.getElementById('goal-preview-stage');
-		const label = document.getElementById('goal-preview-label');
-		if (stage && label) {
-			const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
-			renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
-			stage.appendChild(renderer.domElement);
-
-			const scene = new THREE.Scene();
-			const camera = new THREE.PerspectiveCamera(50, 1, 0.1, 100);
-			camera.position.set(4.5, 2.1, 4.5);
-			camera.lookAt(0, 0, 0);
-
-			const ambient = new THREE.AmbientLight(0xffffff, 0.75);
-			scene.add(ambient);
-			const keyLight = new THREE.DirectionalLight(0xffffff, 0.9);
-			keyLight.position.set(3, 4, 5);
-			scene.add(keyLight);
-
-			const previewSpawner = new GoalAnimationSpawner('profileGoalPreview');
-			scene.add(previewSpawner.visual);
-
-			const previewClock = new THREE.Clock();
-			const burstPos = new THREE.Vector3(0, 0, 0);
-
-			function resizePreview() {
-				const width = stage.clientWidth || 180;
-				const height = stage.clientHeight || width;
-				renderer.setSize(width, height, false);
-				camera.aspect = width / height;
-				camera.updateProjectionMatrix();
-			}
-
-			function animatePreview() {
-				requestAnimationFrame(animatePreview);
-				const dt = Math.min(0.05, previewClock.getDelta());
-				previewSpawner.update(dt);
-				renderer.render(scene, camera);
-			}
-
-			window.triggerGoalPreview = (name, styleIndexRaw) => {
-				const styleIndex = Number(styleIndexRaw);
-				if (!Number.isFinite(styleIndex)) return;
-				label.textContent = `Preview: ${name}`;
-				burstPos.set(0, styleIndex === 3 ? -1.9 : 0, 0);
-				previewSpawner.triggerGoalAnimation(styleIndex, null, burstPos);
-			};
-
-			resizePreview();
-			animatePreview();
-			window.addEventListener('resize', resizePreview);
-
-			const selected = document.querySelector('#goal-explosions .item[style*="rgb(0, 229, 255)"]');
-			const fallback = document.querySelector('#goal-explosions .item:not(.locked):not(:disabled)');
-			const initial = selected || fallback;
-			if (initial) {
-				const name = initial.querySelector('strong')?.innerText || 'Goal Explosion';
-				window.triggerGoalPreview(name, initial.dataset.styleIndex);
-			}
-		}
-	</script>
+	<script type="module" src="/game/userProfilePreviews.js"></script>
 </body>
 </html>
