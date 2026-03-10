@@ -7,23 +7,29 @@
         <link rel="stylesheet" href="/lobbies.css" />
 	</head>
 	<body>
+		<h1 class="game-title"><span>3D</span> <span>Pong</span></h1>
+
 		<div>
 			<% if (user) { %>
-				<div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;">
-					<a href="/user" class="link-button">
+				<div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
+					<a href="/user" style="flex-grow: 1" class="link-button">
 						Logged in as <%= user.display_name %> (<%= user.elo %>) — My Profile
 					</a>
+					<a href="/leaderboard" class="link-button">Leaderboard</a>
 					<button onclick="logout()" style="width: auto; padding: 0.5rem 1rem;">
 						Log out
 					</button>
 				</div>
 			<% } else { %>
-				<a class="link-button" href="/auth/google" style="display: block; width: 100%">Log in with Google</a>
+				<div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
+					<a class="link-button" style="flex-grow: 1" href="/auth/google">Log in with Google</a>
+					<a class="link-button" href="/leaderboard">Leaderboard</a>
+				</div>
 			<% } %>
 		</div>
 
 		<% if (user) { %>
-			<h1>Lobbies</h1>
+			<h2 class="h2-but-h1">Lobbies</h2>
 
 			<div class="card" style="display: flex; flex-direction: column; gap: 1.5rem;">
 				<div>
