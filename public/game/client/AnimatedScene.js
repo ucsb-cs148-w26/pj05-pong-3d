@@ -9,6 +9,7 @@ import { CameraController } from './CameraController.js';
 import { GameState, Player } from '../common/GameState.js';
 import { GoalAnimationSpawner } from '../shaders/goalAnimationSpawner.js';
 import { GameObjectCustom } from '../common/GameObject.js';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
 /**
  * Scene with rendering capabilities. Uses the `visual` on each game object.
@@ -35,6 +36,26 @@ export class AnimatedScene extends Scene {
 			0.1,
 			1000
 		);
+		
+		this.controls = new OrbitControls( this.camera, this.renderer.domElement );
+		const cameraDistance = 14;
+		this.controls.minDistance = cameraDistance;
+		this.controls.maxDistance = cameraDistance;
+		this.controls.enablePan = false;
+		this.camera.position.set(0, 0, 0);
+		this.controls.update();
+		this.whichPerson = 0;
+
+		this.filpPerson = ((e) => {
+			if ( !e.key === "ArrowRight" && !e.key === "ArrowLeft" ) return;
+
+			this.whichPerson = ( this.whichPerson + 1 ) % 2;
+			
+			this.updateOrbitCamera();			
+
+		}).bind(this);
+
+		window.addEventListener('keydown', this.filpPerson);
 
 		const goalSpawner = new GoalAnimationSpawner('goalSpawner');
 		this.registerGameObject(goalSpawner);
@@ -80,6 +101,21 @@ export class AnimatedScene extends Scene {
 		);
 	}
 
+	updateOrbitCamera() {		
+		const degreeToRad = Math.PI / 180;
+
+		const verticalDegreesOfFreedom = 10;
+		const horizontalDegreesOfFreedom = 10;
+
+		this.controls.minPolarAngle = Math.PI / 2 - horizontalDegreesOfFreedom * degreeToRad;
+		this.controls.maxPolarAngle = Math.PI / 2 + horizontalDegreesOfFreedom * degreeToRad;
+
+		const sign = ( this.whichPerson == 0 ) ? -1 : 1;
+
+		this.controls.minAzimuthAngle = sign * Math.PI / 2 - verticalDegreesOfFreedom * degreeToRad;
+		this.controls.maxAzimuthAngle = sign * Math.PI / 2 + verticalDegreesOfFreedom * degreeToRad;
+	}
+
 	get active() {
 		return this.#ball.enabled;
 	}
@@ -118,6 +154,11 @@ export class AnimatedScene extends Scene {
 		}
 
 		requestAnimationFrame(() => this.animate());
+
+		if (this.controls !== null) {
+			this.controls.update();
+		}
+
 		this.renderer.render(this.scene, this.camera);
 	}
 
@@ -194,7 +235,11 @@ export class AnimatedScene extends Scene {
 			player.lives = gameInfo.lives;
 		}
 
-		const controller = this.state.players.get(this.username).paddle.controller;
+		const player = this.state.players.get(this.username);
+
+		if (player === undefined) return;
+		
+		const controller = player.paddle.controller;
 
 		// prediction!
 		let idx = -1;
@@ -246,22 +291,37 @@ export class AnimatedScene extends Scene {
 
 			const socket = this.getGameObject('socket').config.socket;
 
-			if (!player.remote) {
-				// TODO: this is silly
-				cameraController.followTarget = paddle;
-				if (player.pos[0] < 0) {
-					cameraController.offset = new THREE.Vector3(-4, 3, 0);
-					paddle.controller = new KeyboardController(socket);
-				} else {
-					cameraController.offset = new THREE.Vector3(4, 3, 0);
-					paddle.controller = new KeyboardController(socket, [
-						'KeyD',
-						'KeyA',
-						'KeyW',
-						'KeyS'
-					]);
-				}
+			if (player.remote) {
+				continue;
 			}
+
+			// TODO: this is silly
+			cameraController.followTarget = paddle;
+			if ( this.controls !== null ) {
+				this.controls.dispose();
+				this.controls = null;
+
+				window.removeEventListener('keydown', this.filpPerson);
+			}
+
+			if (player.pos[0] < 0) {
+				cameraController.offset = new THREE.Vector3(-4, 3, 0);
+				paddle.controller = new KeyboardController(socket);
+			} else {
+				cameraController.offset = new THREE.Vector3(4, 3, 0);
+				paddle.controller = new KeyboardController(socket, {
+					right: ['KeyA', 'ArrowLeft'],
+					left: ['KeyD', 'ArrowRight'],
+					up: ['KeyW', 'ArrowUp'],
+					down: ['KeyS', 'ArrowDown']
+				});
+			}
+
 		}
+
+		if (this.controls !== null) {
+			this.updateOrbitCamera();
+		}
+		
 	}
 }
