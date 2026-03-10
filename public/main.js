@@ -136,23 +136,55 @@ animatedScene.registerGameObject(
 
 			this.component.style.display = 'flex';
 			if (isGameOver) {
-				const { loser, winner } = animatedScene.gameOver;
+				const { winner, ratings } = animatedScene.gameOver;
+
 				document.getElementById('waiting__title').innerText = `${
 					winner ?? 'A player'
 				} won`;
+
 				this.joinCodeDisplay.style.display = 'none';
 				this.playerListDisplay.style.display = 'none';
 				this.startButton.style.display = 'none';
 				this.leaveLobbyButton.style.display = 'block';
 				this.scoreboardDisplay.style.display = 'block';
 
-				const finalLives = Array.from(this.players.entries())
-					.map(
-						([name, player]) =>
-							`<div>${name}: ${player.lives} ${name === winner ? '(Winner)' : ''}</div>`
-					)
-					.join('');
-				this.scoreboardDisplay.innerHTML = `<div style="margin-top: 0.5rem"><strong>Final Lives:</strong></div>${finalLives}`;
+				this.scoreboardDisplay.innerHTML = `
+					<table>
+						<thead>
+							<tr>
+								<th>Name</th>
+								<th>Final Lives</th>
+								<th>Old Elo</th>
+								<th>New Elo</th>
+							</tr>
+						</thead>
+						<tbody>
+							${Array.from(this.players.keys())
+								.map(
+									(name) => `<tr>
+	<td>${name}</td>
+	<td>${this.players.get(name).lives}${name === winner ? ' (Winner)' : ''}</td>
+	<td>${ratings[name].before}</td>
+	<td style="color: ${ratings[name].change >= 0 ? 'lightgreen' : 'red'}">${ratings[name].after} (${ratings[name].change >= 0 ? '+' : ''}${ratings[name].change})</td>
+</tr>`
+								)
+								.join('\n')}
+						</tbody>
+					</table>
+					${animatedScene.unlockedItem ? `<div style="margin-top: 1rem; color: gold"><strong>Item Unlocked:</strong> ${animatedScene.unlockedItem.displayName}</div>` : ''}
+				`;
+
+				return;
+			} else if (animatedScene.gameCancelled) {
+				this.joinCodeDisplay.style.display = 'none';
+				this.playerListDisplay.style.display = 'none';
+				this.startButton.style.display = 'none';
+				this.leaveLobbyButton.style.display = 'block';
+				this.scoreboardDisplay.style.display = 'none';
+
+				document.getElementById('waiting__title').innerText =
+					'Host left the game';
+
 				return;
 			}
 
@@ -166,7 +198,7 @@ animatedScene.registerGameObject(
 			this.playerListDisplay.innerHTML = Array.from(this.players.entries())
 				.map(([name, player]) => {
 					const isHost = name === animatedScene.host;
-					const elo = player?.elo ?? 1000;
+					const elo = player.elo;
 					return `<span style="color: ${isHost ? 'yellow' : 'white'}">
 						${name} (${elo})
 					</span>`;

@@ -71,7 +71,8 @@ button:active,
 	transform: translateY(0.02rem);
 }
 
-h1 {
+h1,
+.h2-but-h1 {
 	font-size: 3rem;
 	margin-bottom: 1.2rem;
 }
@@ -87,4 +88,26 @@ h2:first-child {
 	box-shadow: 0 0.75rem 2.25rem rgba(0, 0, 0, 0.35);
 	padding: 1.25rem;
 	margin-bottom: 1rem;
+}
+
+table {
+	width: 100%;
+	border-collapse: collapse;
+	table-layout: fixed;
+	font-size: clamp(0.8rem, 1.15vw, 1rem);
+}
+
+th,
+td {
+	padding: 0.6rem 0.45rem;
+	border-bottom: 0.1rem solid rgba(255, 255, 255, 0.1);
+	text-align: left;
+	vertical-align: middle;
+	overflow-wrap: anywhere;
+}
+
+th {
+	color: rgba(255, 255, 255, 0.68);
+	font-weight: 400;
+	letter-spacing: 0.04em;
 }

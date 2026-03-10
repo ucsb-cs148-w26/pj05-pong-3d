@@ -3,6 +3,7 @@ import chatHandler from './chat.js';
 import ServerScene from '../game/ServerScene.js';
 
 let nextLobbyId = 1;
+const EMPTY_LOBBY_DELETE_TIME = 60_000;
 
 function generateCode() {
 	const length = 5;
@@ -30,19 +31,23 @@ export default class LobbyState {
 		this.sockets = new Map();
 	}
 
-	createLobby(name, isPublic) {
+	createLobby(name, isPublic, lives) {
 		const lobbyId = String(nextLobbyId++);
 
 		const lobby = {
 			lobbyId,
 			name,
 			isPublic,
+			lives,
 			members: new Map(),
+			emptySince: Date.now(),
 			code: generateCode()
 		};
 
 		this.lobbies.set(lobbyId, lobby);
 		this.codeToLobby.set(lobby.code, lobby);
+
+		let destroyed = false;
 
 		const socket = new PongSocketServer(
 			this.#server,
@@ -65,13 +70,16 @@ export default class LobbyState {
 				type: 'chat',
 				content: `[System] ${clientId} left`
 			});
-			this.leaveLobby(lobbyId, clientId);
+			if (!destroyed) this.leaveLobby(lobbyId, clientId);
 		});
 
 		socket.addHandler('chat', chatHandler);
 		this.sockets.set(lobbyId, socket);
 
-		const scene = new ServerScene(socket);
+		const scene = new ServerScene(socket, lives, () => {
+			destroyed = true;
+			this.deleteLobby(lobbyId);
+		});
 		scene.start();
 		this.scenes.set(lobbyId, scene);
 
@@ -92,12 +100,16 @@ export default class LobbyState {
 	}
 
 	isLobbyJoinable(lobby) {
-		return !this.isLobbyFull(lobby) && !this.isLobbyInProgress(lobby);
+		return (
+			lobby.isPublic &&
+			!this.isLobbyFull(lobby) &&
+			!this.isLobbyInProgress(lobby)
+		);
 	}
 
-	listLobbies({ includePrivate = false } = {}) {
+	listLobbies() {
 		return Array.from(this.lobbies.values())
-			.filter((lobby) => includePrivate || lobby.isPublic)
+			.filter((lobby) => this.isLobbyJoinable(lobby))
 			.map((lobby) => ({
 				lobbyId: lobby.lobbyId,
 				name: lobby.name,
@@ -116,6 +128,8 @@ export default class LobbyState {
 		lobby.members.set(clientId, {
 			clientId
 		});
+
+		lobby.emptySince = null;
 	}
 
 	deleteLobby(lobbyId) {
@@ -148,6 +162,20 @@ export default class LobbyState {
 
 		if (lobby.members.size === 0) {
 			this.deleteLobby(lobbyId);
+		}
+	}
+
+	cleanup() {
+		const now = Date.now();
+
+		for (const [lobbyId, lobby] of this.lobbies.entries()) {
+			if (
+				lobby.members.size === 0 &&
+				lobby.emptySince !== null &&
+				now - lobby.emptySince >= EMPTY_LOBBY_DELETE_TIME
+			) {
+				this.deleteLobby(lobbyId);
+			}
 		}
 	}
 }

@@ -1,3 +1,27 @@
+.game-title {
+	--mirror: 1;
+
+	margin: 0 0 1.5rem;
+	font-size: clamp(3.5rem, 11vw, 6rem);
+	line-height: 1;
+	text-align: center;
+	text-transform: uppercase;
+}
+
+.game-title span {
+	text-shadow:
+		calc(var(--mirror) * 0.1rem) 0.1rem 0 #efefef,
+		calc(var(--mirror) * 0.2rem) 0.2rem 0 #cfcfcf,
+		calc(var(--mirror) * 0.3rem) 0.3rem 0 #afafaf,
+		calc(var(--mirror) * 0.4rem) 0.4rem 0 #8f8f8f,
+		calc(var(--mirror) * 0.5rem) 0.5rem 0 #6f6f6f,
+		calc(var(--mirror) * 0.6rem) 0.6rem 0 #4f4f4f;
+}
+
+.game-title :last-child {
+	--mirror: -1;
+}
+
 .lobbies {
 	padding: 0;
 	list-style-type: none;
@@ -10,11 +34,11 @@
 	border-bottom: 1px solid rgba(255, 255, 255, 0.18);
 }
 
-.visibility-picker {
+.lobby-option {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	color: rgba(255, 255, 255, 0.92);
+	color: var(--fg-1);
 	margin-bottom: 1rem;
 }
 
