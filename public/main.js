@@ -148,25 +148,29 @@ animatedScene.registerGameObject(
 				this.leaveLobbyButton.style.display = 'block';
 				this.scoreboardDisplay.style.display = 'block';
 
-				const finalLives = Array.from(this.players.entries())
-					.map(
-						([name, player]) =>
-							`<div>${name}: ${player.lives} ${name === winner ? '(Winner)' : ''}</div>`
-					)
-					.join('');
-
-				const eloChanges = Object.entries(ratings)
-					.map(
-						([name, rating]) =>
-							`<div>${name}: ${rating.before} → ${rating.after} (${rating.change >= 0 ? '+' : ''}${rating.change})</div>`
-					)
-					.join('');
-
 				this.scoreboardDisplay.innerHTML = `
-					<div><strong>Final Lives:</strong></div>
-					${finalLives}
-					<div><strong>Rating Changes:</strong></div>
-					${eloChanges}
+					<table>
+						<thead>
+							<tr>
+								<th>Name</th>
+								<th>Final Lives</th>
+								<th>Old Elo</th>
+								<th>New Elo</th>
+							</tr>
+						</thead>
+						<tbody>
+							${Array.from(this.players.keys())
+								.map(
+									(name) => `<tr>
+	<td>${name}</td>
+	<td>${this.players.get(name).lives}${name === winner ? ' (Winner)' : ''}</td>
+	<td>${ratings[name].before}</td>
+	<td style="color: ${ratings[name].change >= 0 ? 'lightgreen' : 'red'}">${ratings[name].after} (${ratings[name].change >= 0 ? '+' : ''}${ratings[name].change})</td>
+</tr>`
+								)
+								.join('\n')}
+						</tbody>
+					</table>
 				`;
 
 				return;
