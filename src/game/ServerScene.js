@@ -210,13 +210,15 @@ export default class ServerScene extends Scene {
 				};
 			});
 
-			this.#socket.safeSend(ws, {
+			const packet = {
 				type: 'playerSync',
 				// order must be the same between client and server
 				players: [...players],
 				host: this.hostUser,
 				username: thisUsername
-			});
+			};
+
+			this.#socket.safeSend(ws, packet);
 		});
 	}
 
