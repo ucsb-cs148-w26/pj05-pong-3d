@@ -92,8 +92,8 @@ export default class ServerScene extends Scene {
 
 				this.#socket.forEachClient((username, ws) => {
 					const paddleController =
-						this.state.players.get(username).paddle.controller;
-					const ack = paddleController.ack;
+						this.state.players.get(username)?.paddle.controller;
+					const ack = paddleController?.ack ?? 0;
 
 					this.#socket.safeSend(ws, {
 						type: 'sync',
@@ -125,8 +125,10 @@ export default class ServerScene extends Scene {
 	}
 
 	#onConnect(username) {
-		// TODO: n-player support
-		if (this.state.players.size >= 2) return;
+		if (this.state.players.size >= 2) {
+			this.#updatePaddles();
+			return;
+		}
 		const pid = this.state.players.size;
 		const myPaddle = this.getGameObject(`paddle${pid + 1}`);
 		const thisPlayer = new Player(username, myPaddle, DEFAULT_ELO);
@@ -158,12 +160,10 @@ export default class ServerScene extends Scene {
 			return;
 		}
 
-		this.#endGame(username);
+		if (this.state.players.has(username)) this.#endGame(username);
 	}
 
 	#updatePaddles() {
-		// TODO: n-player support
-
 		this.#socket.forEachClient((thisUsername, ws) => {
 			const players = this.state.players.entries().map(([username, player]) => {
 				const paddle = player.paddle;
