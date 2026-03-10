@@ -92,9 +92,9 @@ export default class PongSocketServer extends EventEmitter {
 			this.emit('client:connect', username);
 
 			ws.on('close', () => {
+				this.emit('client:disconnect', username);
 				this.#wsByUsername.delete(username);
 				this.#userIdByUsername.delete(username);
-				this.emit('client:disconnect', username);
 			});
 		});
 	}
@@ -124,6 +124,9 @@ export default class PongSocketServer extends EventEmitter {
 	}
 
 	stop() {
+		this.#wss.clients.forEach((ws) => {
+			ws.close();
+		});
 		this.#server.off('upgrade', this.#upgradeHandler);
 	}
 

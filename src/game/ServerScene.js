@@ -18,6 +18,7 @@ export default class ServerScene extends Scene {
 	#numLives = 7;
 	#inProgress = false;
 	#onGameEnd = null;
+	#gameEnded = false;
 
 	constructor(socket, lives, onGameEnd) {
 		super(new GameState());
@@ -130,6 +131,8 @@ export default class ServerScene extends Scene {
 	}
 
 	#onDisconnect(username) {
+		if (this.#gameEnded) return;
+
 		if (!this.inProgress) {
 			if (username === this.hostUser) {
 				this.#socket.broadcast({
@@ -217,6 +220,8 @@ export default class ServerScene extends Scene {
 	}
 
 	#endGame(loser) {
+		this.#gameEnded = true;
+
 		const winner = [...this.state.players.values()].find(
 			(player) => player.username !== loser
 		)?.username;
@@ -242,24 +247,16 @@ export default class ServerScene extends Scene {
 
 		try {
 			const winner = await new Promise((resolve, reject) => {
-				db.get(
-					'SELECT elo FROM users WHERE id = ? LIMIT 1',
-					[winnerId],
-					(err, row) => {
-						if (err) reject(err);
-						else resolve(row);
-					}
-				);
+				db.get('SELECT elo FROM users WHERE id = ?', [winnerId], (err, row) => {
+					if (err) reject(err);
+					else resolve(row);
+				});
 			});
 			const loser = await new Promise((resolve, reject) => {
-				db.get(
-					'SELECT elo FROM users WHERE id = ? LIMIT 1',
-					[loserId],
-					(err, row) => {
-						if (err) reject(err);
-						else resolve(row);
-					}
-				);
+				db.get('SELECT elo FROM users WHERE id = ?', [loserId], (err, row) => {
+					if (err) reject(err);
+					else resolve(row);
+				});
 			});
 			if (!winner || !loser) {
 				console.warn('skipping elo/match_history update: user lookup failed');
