@@ -31,6 +31,9 @@
 
 			<div class="card" style="display: flex; flex-direction: column; gap: 1.5rem;">
 				<div>
+					<button id="random-lobby-button" style="display: block; width: 100%; margin-bottom: 1rem">
+						Start Random Matchmaking
+					</button>
 					<input id="name-field" placeholder="Lobby name" style="display: block; width: 100%; margin-bottom: 1rem" />
 					<div class="lobby-option">
 						<span>Lobby visibility</span>
@@ -80,6 +83,8 @@
 			const createPublicButton = document.getElementById('create-public-button');
 			const createPrivateButton = document.getElementById('create-private-button');
 			const createLives = document.getElementById('create-lives');
+			const randomLobbyButton = document.getElementById('random-lobby-button');
+
 			let lobbyIsPublic = true;
 			const setLobbyVisibility = (isPublic) => {
 				lobbyIsPublic = isPublic;
@@ -94,25 +99,42 @@
 				e.preventDefault();
 				setLobbyVisibility(false);
 			});
+			
+			async function createLobbyAndRedirect(isPublic = lobbyIsPublic) {
+				const res = await fetch('/api/lobbies', {
+					method: 'POST',
+					body: JSON.stringify({
+						name: nameField.value.length ? nameField.value : undefined,
+						isPublic,
+						lives: parseInt(createLives.value),
+						cosmetics: getSelectedCosmetics()
+					}),
+					headers: {
+						'Content-Type': 'application/json'
+					}
+				});
+				const { lobby } = await res.json();
+				window.location = `/game?code=${lobby.code}`;
+			}
+
 			document
 				.getElementById('create-button')
-				.addEventListener('click', (e) => {
-					fetch('/api/lobbies', {
-						method: 'POST',
-						body: JSON.stringify({
-							name: nameField.value.length ? nameField.value : undefined,
-							isPublic: lobbyIsPublic,
-							lives: parseInt(createLives.value),
-							cosmetics: getSelectedCosmetics()
-						}),
-						headers: {
-							'Content-Type': 'application/json'
-						}
-					}).then(async (res) => {
-						const { lobby } = await res.json();
-						window.location = `/game?code=${lobby.code}`;
-					});
+				.addEventListener('click', async (e) => {
+					await createLobbyAndRedirect();
 				});
+
+			randomLobbyButton.addEventListener('click', async (e) => {
+				const res = await fetch('/api/lobbies', { cache: 'no-store' });
+				const { lobbies } = await res.json();
+
+				if (lobbies.length) {
+					const randomLobby = lobbies[Math.floor(Math.random() * lobbies.length)];
+					join(randomLobby.code);
+					return;
+				}
+
+				await createLobbyAndRedirect(true);
+			});
 
 			const codeField = document.getElementById('code-field');
 			document.getElementById('join-button').addEventListener('click', (e) => {

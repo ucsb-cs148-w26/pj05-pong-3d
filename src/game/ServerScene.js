@@ -356,7 +356,7 @@ export default class ServerScene extends Scene {
 						[winnerId],
 						(err, item) => {
 							if (err) return reject(err);
-							if (!item) return;
+							if (!item) return resolve();
 							db.run(
 								`INSERT INTO user_unlocks (user_id, item_id, unlocked_at) VALUES (?, ?, CURRENT_TIMESTAMP)`,
 								[winnerId, item.id],
