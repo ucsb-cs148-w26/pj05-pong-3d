@@ -174,6 +174,17 @@ animatedScene.registerGameObject(
 				`;
 
 				return;
+			} else if (animatedScene.gameCancelled) {
+				this.joinCodeDisplay.style.display = 'none';
+				this.playerListDisplay.style.display = 'none';
+				this.startButton.style.display = 'none';
+				this.leaveLobbyButton.style.display = 'block';
+				this.scoreboardDisplay.style.display = 'none';
+
+				document.getElementById('waiting__title').innerText =
+					'Host left the game';
+
+				return;
 			}
 
 			document.getElementById('waiting__title').innerText =

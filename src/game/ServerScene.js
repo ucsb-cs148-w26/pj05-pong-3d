@@ -16,11 +16,14 @@ export default class ServerScene extends Scene {
 	#ball = null;
 	#gameOver = null;
 	#numLives = 7;
+	#inProgress = false;
+	#onGameEnd = null;
 
-	constructor(socket, lives) {
+	constructor(socket, lives, onGameEnd) {
 		super(new GameState());
 
 		this.#socket = socket;
+		this.#onGameEnd = onGameEnd;
 		this.hostUser = null;
 
 		// Order matters: Sync with public/main.js
@@ -32,14 +35,7 @@ export default class ServerScene extends Scene {
 			wall.player.lives = Math.max(0, wall.player.lives - 1);
 			if (wall.player.lives > 0) return;
 
-			const loser = wall.player.username;
-			const winner = [...this.state.players.values()].find(
-				(player) => player.username !== loser
-			)?.username;
-
-			this.#gameOver = { loser, winner, ratings: null };
-			this.#ball.enabled = false;
-			this.#saveGameResult();
+			this.#endGame(wall.player.username);
 		});
 
 		this.registerGameObject(this.#ball);
@@ -81,8 +77,7 @@ export default class ServerScene extends Scene {
 				const gatherData = {};
 				for (const [username, player] of this.state.players)
 					gatherData[username] = {
-						lives: player.lives,
-						elo: player.elo
+						lives: player.lives
 					};
 
 				this.#socket.forEachClient((username, ws) => {
@@ -95,8 +90,7 @@ export default class ServerScene extends Scene {
 						ack,
 						active: this.#ball.enabled,
 						physics: physicsState,
-						gameInfo: gatherData,
-						gameOver: this.#gameOver
+						gameInfo: gatherData
 					});
 				});
 			}
@@ -112,7 +106,7 @@ export default class ServerScene extends Scene {
 	}
 
 	get inProgress() {
-		return this.#ball.enabled;
+		return this.#inProgress;
 	}
 
 	#onConnect(username) {
@@ -136,12 +130,18 @@ export default class ServerScene extends Scene {
 	}
 
 	#onDisconnect(username) {
-		// TODO:
-		// Currently we have two-hardcoded paddles. First to join gets paddle1, second to join gets paddle2.
-		// Adding reconnect logic is not necessary since it would just require tracking which is "open" which won't be needed in the future.
-		// Hence reconnect is disabled for now.
+		if (!this.inProgress) {
+			if (username === this.hostUser) {
+				this.#socket.broadcast({
+					type: 'gameCancelled'
+				});
+				this.#onGameEnd?.();
+			}
 
-		console.warn('Reconnect disabled right now; see ServerScene.#onDisconnect');
+			return;
+		}
+
+		this.#endGame(username);
 	}
 
 	#updatePaddles() {
@@ -209,10 +209,27 @@ export default class ServerScene extends Scene {
 
 		this.#gameOver = null;
 		this.#ball.enabled = true;
+		this.#inProgress = true;
 	}
 
 	#recvMove(socket, username, ws, msg) {
 		this.state.players.get(username)?.paddle.controller.enqueueInput(msg);
+	}
+
+	#endGame(loser) {
+		const winner = [...this.state.players.values()].find(
+			(player) => player.username !== loser
+		)?.username;
+
+		this.#gameOver = { loser, winner, ratings: null };
+		this.#ball.enabled = false;
+		this.#saveGameResult().then(() => {
+			this.#socket.broadcast({
+				type: 'gameOver',
+				...this.#gameOver
+			});
+			this.#onGameEnd?.();
+		});
 	}
 
 	async #saveGameResult() {

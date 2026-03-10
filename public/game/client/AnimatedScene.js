@@ -58,7 +58,9 @@ export class AnimatedScene extends Scene {
 		this.isReplaying = false;
 
 		socket.addHandler('sync', this.#sync.bind(this));
+		socket.addHandler('gameOver', this.#gameOver.bind(this));
 		socket.addHandler('playerSync', this.#playerSync.bind(this));
+		socket.addHandler('gameCancelled', this.#gameCancelled.bind(this));
 
 		// Order matters: Sync with ServerScene.js
 		this.registerGameObject(new Arena('gameArena'));
@@ -186,13 +188,11 @@ export class AnimatedScene extends Scene {
 		this.state.physics.importState(msg.physics);
 
 		this.#ball.enabled = msg.active;
-		this.gameOver = msg.gameOver ?? null;
 
 		for (const [username, gameInfo] of Object.entries(msg.gameInfo)) {
 			const player = this.state.players.get(username);
 			if (!player) continue;
 			player.lives = gameInfo.lives;
-			player.elo = gameInfo.elo;
 		}
 
 		const controller = this.state.players.get(this.username).paddle.controller;
@@ -219,6 +219,11 @@ export class AnimatedScene extends Scene {
 
 		this.isReplaying = false;
 		controller.useInputBuffer = false;
+	}
+
+	#gameOver(msg) {
+		this.gameOver = msg;
+		this.#ball.enabled = false;
 	}
 
 	get isHost() {
@@ -264,5 +269,9 @@ export class AnimatedScene extends Scene {
 				}
 			}
 		}
+	}
+
+	#gameCancelled(msg) {
+		this.gameCancelled = true;
 	}
 }
