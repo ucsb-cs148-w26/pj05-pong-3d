@@ -1,4 +1,5 @@
 import * as MATH from '../physics/math.js';
+import { MobileJoystick } from './mobileJoystick.js';
 
 /*
 ------------------
@@ -24,11 +25,17 @@ export class KeyboardController {
 			up: ['KeyW', 'ArrowUp'],
 			down: ['KeyS', 'ArrowDown']
 		},
-		plane = 'zy'
+		plane = 'zy',
+		{ touchHost = null, touchHorizontalSign = 1, touchVerticalSign = 1 } = {}
 	) {
 		this.keys = new Set();
 		this.codes = lrudCodes;
 		this.plane = plane;
+		this.touchHorizontalSign = Math.sign(touchHorizontalSign) || 1;
+		this.touchVerticalSign = Math.sign(touchVerticalSign) || 1;
+		this.touchJoystick = touchHost
+			? new MobileJoystick({ host: touchHost })
+			: null;
 
 		this.inputBuffer = [];
 		this.seq = 0;
@@ -48,6 +55,7 @@ export class KeyboardController {
 
 		this._resetMovement = () => {
 			this.keys.clear();
+			this.touchJoystick?.reset();
 		};
 
 		window.addEventListener('keydown', this._onKeyDown);
@@ -98,7 +106,18 @@ export class KeyboardController {
 		if (up) retDirection.addVec(e2.clone());
 		if (down) retDirection.addVec(e2.clone().scale(-1));
 
-		retDirection.normalize();
+		const touchVector = this.touchJoystick?.getVector();
+		if (touchVector) {
+			retDirection.addVec(
+				e1.clone().scale(touchVector.x * this.touchHorizontalSign)
+			);
+			retDirection.addVec(
+				e2.clone().scale(touchVector.y * this.touchVerticalSign)
+			);
+		}
+
+		const magnitude = retDirection.norm();
+		if (magnitude > 1) retDirection.scale(1 / magnitude);
 
 		this.inputBuffer.push({
 			type: 'move',
@@ -109,5 +128,15 @@ export class KeyboardController {
 		this.seq++;
 
 		return retDirection;
+	}
+
+	destroy() {
+		this._resetMovement();
+		window.removeEventListener('keydown', this._onKeyDown);
+		window.removeEventListener('keyup', this._onKeyUp);
+		window.removeEventListener('visibilitychange', this._resetMovement);
+		window.removeEventListener('blur', this._resetMovement);
+		this.touchJoystick?.destroy();
+		this.touchJoystick = null;
 	}
 }
