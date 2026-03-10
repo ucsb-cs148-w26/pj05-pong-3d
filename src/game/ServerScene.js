@@ -8,7 +8,6 @@ import { BallServer } from './BallServer.js';
 import db from '../db/db.js';
 
 const SYNC_INTERVAL = 5;
-const INITIAL_LIVES = 7;
 const DEFAULT_ELO = 1000;
 
 export default class ServerScene extends Scene {
@@ -40,7 +39,7 @@ export default class ServerScene extends Scene {
 
 			this.#gameOver = { loser, winner, ratings: null };
 			this.#ball.enabled = false;
-			void this.#saveGameResult();
+			this.#saveGameResult();
 		});
 
 		this.registerGameObject(this.#ball);
@@ -133,7 +132,7 @@ export default class ServerScene extends Scene {
 		if (this.hostUser === null) this.hostUser = username;
 
 		this.#updatePaddles();
-		void this.#loadPlayerElo(thisPlayer);
+		this.#loadPlayerElo(thisPlayer);
 	}
 
 	#onDisconnect(username) {

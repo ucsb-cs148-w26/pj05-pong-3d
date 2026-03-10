@@ -192,7 +192,7 @@ export class AnimatedScene extends Scene {
 			const player = this.state.players.get(username);
 			if (!player) continue;
 			player.lives = gameInfo.lives;
-			if (gameInfo.elo != null) player.elo = gameInfo.elo;
+			player.elo = gameInfo.elo;
 		}
 
 		const controller = this.state.players.get(this.username).paddle.controller;

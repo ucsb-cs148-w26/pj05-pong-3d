@@ -89,32 +89,3 @@
 	font-size: 0.8rem;
 	line-height: 1;
 }
-
-@media (max-width: 700px) {
-	.leaderboard-card {
-		padding: 0.8rem;
-	}
-
-	.leaderboard-table {
-		font-size: 0.78rem;
-	}
-
-	.leaderboard-table th,
-	.leaderboard-table td {
-		padding: 0.5rem 0.3rem;
-	}
-
-	.player-avatar,
-	.player-fallback {
-		width: 1.55rem;
-		height: 1.55rem;
-	}
-
-	.player-cell {
-		gap: 0.35rem;
-	}
-
-	.player-note {
-		display: none;
-	}
-}
