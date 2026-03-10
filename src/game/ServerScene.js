@@ -8,6 +8,7 @@ import { BallServer } from './BallServer.js';
 import db from '../db/db.js';
 
 const SYNC_INTERVAL = 5;
+const RESPAWN_COUNTDOWN_MS = 3000;
 const DEFAULT_ELO = 1000;
 
 export default class ServerScene extends Scene {
@@ -16,6 +17,8 @@ export default class ServerScene extends Scene {
 	#ball = null;
 	#gameOver = null;
 	#numLives = 7;
+	#respawn = null;
+	#matchStarted = false;
 	#inProgress = false;
 	#onGameEnd = null;
 	#gameEnded = false;
@@ -31,10 +34,15 @@ export default class ServerScene extends Scene {
 		this.registerGameObject(new ArenaCommon('gameArena'));
 
 		this.#ball = new BallServer('ball', (ball, wall) => {
-			if (this.#gameOver || !wall?.player) return;
+			if (this.#gameOver || this.#respawn || !wall?.player) return;
 
 			wall.player.lives = Math.max(0, wall.player.lives - 1);
-			if (wall.player.lives > 0) return;
+
+			const scoredOnPlayer = wall.player;
+			if (wall.player.lives > 0) {
+				this.#startServe(scoredOnPlayer);
+				return;
+			}
 
 			this.#endGame(wall.player.username);
 		});
@@ -72,6 +80,7 @@ export default class ServerScene extends Scene {
 			const delta = (now - lastTime) / 1000;
 
 			this.step(delta);
+			this.#updateRespawnState();
 
 			if (ct % SYNC_INTERVAL === 0) {
 				const physicsState = this.state.physics.exportState();
@@ -83,15 +92,20 @@ export default class ServerScene extends Scene {
 
 				this.#socket.forEachClient((username, ws) => {
 					const paddleController =
-						this.state.players.get(username).paddle.controller;
-					const ack = paddleController.ack;
+						this.state.players.get(username)?.paddle.controller;
+					const ack = paddleController?.ack ?? 0;
 
 					this.#socket.safeSend(ws, {
 						type: 'sync',
 						ack,
 						active: this.#ball.enabled,
 						physics: physicsState,
-						gameInfo: gatherData
+						gameInfo: gatherData,
+						gameOver: this.#gameOver,
+						serverTs: Date.now(),
+						respawnEndsAt: this.#respawn?.endAt ?? null,
+						respawnScorer: this.#respawn?.scorer ?? null,
+						matchStarted: this.#matchStarted
 					});
 				});
 			}
@@ -111,8 +125,10 @@ export default class ServerScene extends Scene {
 	}
 
 	#onConnect(username) {
-		// TODO: n-player support
-		if (this.state.players.size >= 2) return;
+		if (this.state.players.size >= 2) {
+			this.#updatePaddles();
+			return;
+		}
 		const pid = this.state.players.size;
 		const myPaddle = this.getGameObject(`paddle${pid + 1}`);
 		const thisPlayer = new Player(username, myPaddle, DEFAULT_ELO);
@@ -144,7 +160,7 @@ export default class ServerScene extends Scene {
 			return;
 		}
 
-		this.#endGame(username);
+		if (this.state.players.has(username)) this.#endGame(username);
 	}
 
 	async #updatePaddles() {
@@ -243,12 +259,30 @@ export default class ServerScene extends Scene {
 		}
 
 		this.#gameOver = null;
+		this.#respawn = null;
+		this.#matchStarted = true;
 		this.#ball.enabled = true;
 		this.#inProgress = true;
+
+		// ???
+		this.#startServe(
+			Array.from(this.state.players.values())[Math.floor(Math.random() * 2)],
+			true
+		);
 	}
 
 	#recvMove(socket, username, ws, msg) {
 		this.state.players.get(username)?.paddle.controller.enqueueInput(msg);
+	}
+
+	#updateRespawnState() {
+		if (!this.#respawn || this.#gameOver) return;
+
+		if (Date.now() < this.#respawn.endAt) return;
+
+		this.#ball.serve();
+		this.#ball.setServer(null);
+		this.#respawn = null;
 	}
 
 	#endGame(loser) {
@@ -388,7 +422,7 @@ export default class ServerScene extends Scene {
 						[winnerId],
 						(err, item) => {
 							if (err) return reject(err);
-							if (!item) return;
+							if (!item) return resolve();
 							db.run(
 								`INSERT INTO user_unlocks (user_id, item_id, unlocked_at) VALUES (?, ?, CURRENT_TIMESTAMP)`,
 								[winnerId, item.id],
@@ -422,5 +456,13 @@ export default class ServerScene extends Scene {
 		} catch (err) {
 			console.error('Failed to save game:', err);
 		}
+	}
+
+	#startServe(playerObj, initial = false) {
+		this.#ball.setServer(playerObj);
+		this.#respawn = {
+			endAt: Date.now() + RESPAWN_COUNTDOWN_MS,
+			scorer: initial ? null : playerObj.username
+		};
 	}
 }

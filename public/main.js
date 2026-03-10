@@ -17,6 +17,15 @@ socket.connect();
 const animatedScene = new AnimatedScene(socket);
 window.animatedScene = animatedScene;
 
+function getRespawnCountdownSeconds() {
+	const respawnEndsAt = animatedScene.respawnEndsAt;
+	if (typeof respawnEndsAt !== 'number') return null;
+
+	const msRemaining = Math.max(0, respawnEndsAt - animatedScene.serverNowMs);
+	if (msRemaining <= 0) return null;
+	return Math.ceil(msRemaining / 1000);
+}
+
 animatedScene.registerGameObject(new GameObjectCustom('socket', { socket }));
 
 animatedScene.registerGameObject(
@@ -62,12 +71,43 @@ animatedScene.registerGameObject(
 			const otherPlayer = animatedScene.state.players
 				.values()
 				.find((p) => p.username !== animatedScene.username);
-			if (selfPlayer && otherPlayer && animatedScene.enabled) {
+			if (selfPlayer && otherPlayer) {
 				this.self.style.display = '';
 				this.self.textContent = `${selfPlayer.lives} - ${otherPlayer.lives}`;
 			} else {
 				this.self.style.display = 'none';
 			}
+		}
+	}),
+	new GameObjectCustom('hudCountdown', {
+		self: document.createElement('div'),
+		scorerText: document.createElement('div'),
+		countdownText: document.createElement('div'),
+		init() {
+			this.self.id = 'hud-countdown';
+			this.self.classList.add('hud-overlay');
+			this.scorerText.className = 'hud-countdown__scorer';
+			this.countdownText.className = 'hud-countdown__value';
+			this.self.appendChild(this.scorerText);
+			this.self.appendChild(this.countdownText);
+			document.body.appendChild(this.self);
+		},
+		update() {
+			const countdown = getRespawnCountdownSeconds();
+			const scorer = animatedScene.respawnScorer;
+			if (typeof countdown !== 'number' || countdown <= 0) {
+				this.self.style.display = 'none';
+				return;
+			}
+
+			this.self.style.display = '';
+			const scoredText =
+				typeof scorer === 'string' && scorer.length > 0
+					? `${scorer} scored!`
+					: '';
+			this.scorerText.style.display = scoredText ? '' : 'none';
+			this.scorerText.textContent = scoredText;
+			this.countdownText.textContent = `${countdown}`;
 		}
 	}),
 	new GameObjectCustom('hudStats', {
@@ -129,7 +169,7 @@ animatedScene.registerGameObject(
 		},
 		update(dt) {
 			const isGameOver = animatedScene.gameOver !== null;
-			if (animatedScene.enabled && !isGameOver) {
+			if (animatedScene.matchStarted && !isGameOver) {
 				this.component.style.display = 'none';
 				return;
 			}

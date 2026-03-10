@@ -90,26 +90,14 @@ export default class LobbyState {
 		return this.codeToLobby.get(code);
 	}
 
-	isLobbyFull(lobby) {
-		return lobby.members.size >= 2;
-	}
-
 	isLobbyInProgress(lobby) {
 		const scene = this.scenes.get(lobby.lobbyId);
 		return scene?.inProgress;
 	}
 
-	isLobbyJoinable(lobby) {
-		return (
-			lobby.isPublic &&
-			!this.isLobbyFull(lobby) &&
-			!this.isLobbyInProgress(lobby)
-		);
-	}
-
 	listLobbies() {
 		return Array.from(this.lobbies.values())
-			.filter((lobby) => this.isLobbyJoinable(lobby))
+			.filter((lobby) => lobby.isPublic)
 			.map((lobby) => ({
 				lobbyId: lobby.lobbyId,
 				name: lobby.name,
