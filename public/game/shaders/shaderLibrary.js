@@ -1,4 +1,3 @@
-import { label } from "three/tsl";
 
 export const ShaderLibrary = {
 	MathChunks: `
