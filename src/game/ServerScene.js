@@ -18,6 +18,7 @@ export default class ServerScene extends Scene {
 	#numLives = 7;
 	#inProgress = false;
 	#onGameEnd = null;
+	#gameEnded = false;
 
 	constructor(socket, lives, onGameEnd) {
 		super(new GameState());
@@ -130,6 +131,8 @@ export default class ServerScene extends Scene {
 	}
 
 	#onDisconnect(username) {
+		if (this.#gameEnded) return;
+
 		if (!this.inProgress) {
 			if (username === this.hostUser) {
 				this.#socket.broadcast({
@@ -217,6 +220,8 @@ export default class ServerScene extends Scene {
 	}
 
 	#endGame(loser) {
+		this.#gameEnded = true;
+
 		const winner = [...this.state.players.values()].find(
 			(player) => player.username !== loser
 		)?.username;
@@ -237,27 +242,21 @@ export default class ServerScene extends Scene {
 
 		const winnerName = this.#gameOver.winner;
 		const loserName = this.#gameOver.loser;
+		const winnerId = this.#socket.getUserId(winnerName);
+		const loserId = this.#socket.getUserId(loserName);
 
 		try {
 			const winner = await new Promise((resolve, reject) => {
-				db.get(
-					'SELECT id, elo FROM users WHERE display_name = ? LIMIT 1',
-					[winnerName],
-					(err, row) => {
-						if (err) reject(err);
-						else resolve(row);
-					}
-				);
+				db.get('SELECT elo FROM users WHERE id = ?', [winnerId], (err, row) => {
+					if (err) reject(err);
+					else resolve(row);
+				});
 			});
 			const loser = await new Promise((resolve, reject) => {
-				db.get(
-					'SELECT id, elo FROM users WHERE display_name = ? LIMIT 1',
-					[loserName],
-					(err, row) => {
-						if (err) reject(err);
-						else resolve(row);
-					}
-				);
+				db.get('SELECT elo FROM users WHERE id = ?', [loserId], (err, row) => {
+					if (err) reject(err);
+					else resolve(row);
+				});
 			});
 			if (!winner || !loser) {
 				console.warn('skipping elo/match_history update: user lookup failed');
@@ -305,7 +304,7 @@ export default class ServerScene extends Scene {
 				await new Promise((resolve, reject) => {
 					db.run(
 						'UPDATE users SET elo = ? WHERE id = ?',
-						[winnerEloAfter, winner.id],
+						[winnerEloAfter, winnerId],
 						(err) => {
 							if (err) reject(err);
 							else resolve();
@@ -315,7 +314,7 @@ export default class ServerScene extends Scene {
 				await new Promise((resolve, reject) => {
 					db.run(
 						'UPDATE users SET elo = ? WHERE id = ?',
-						[loserEloAfter, loser.id],
+						[loserEloAfter, loserId],
 						(err) => {
 							if (err) reject(err);
 							else resolve();
@@ -334,8 +333,8 @@ export default class ServerScene extends Scene {
 							loser_elo_after
 						) VALUES (?, ?, ?, ?, ?, ?, ?)`,
 						[
-							winner.id,
-							loser.id,
+							winnerId,
+							loserId,
 							winnerLives,
 							winner.elo,
 							winnerEloAfter,
@@ -345,6 +344,34 @@ export default class ServerScene extends Scene {
 						(err) => {
 							if (err) reject(err);
 							else resolve();
+						}
+					);
+				});
+				await new Promise((resolve, reject) => {
+					db.get(
+						`SELECT i.id, i.display_name, i.kind FROM items i
+							WHERE i.is_default = 0
+							AND i.id NOT IN (SELECT item_id FROM user_unlocks WHERE user_id = ?)
+							ORDER BY RANDOM() LIMIT 1`,
+						[winnerId],
+						(err, item) => {
+							if (err) return reject(err);
+							if (!item) return;
+							db.run(
+								`INSERT INTO user_unlocks (user_id, item_id, unlocked_at) VALUES (?, ?, CURRENT_TIMESTAMP)`,
+								[winnerId, item.id],
+								(err2) => {
+									if (err2) return reject(err2);
+									// Tell only the winner what they unlocked.
+									this.#socket.safeSendToUser(winnerName, {
+										type: 'itemUnlocked',
+										itemId: item.id,
+										displayName: item.display_name,
+										kind: item.kind
+									});
+									resolve();
+								}
+							);
 						}
 					);
 				});

@@ -209,21 +209,6 @@
 					</div>
 				</div>
 			</div>
-
-			<div class="card">
-				<h2>Debug Unlock</h2>
-				<div style="margin-top: 1rem; text-align: center; display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;">
-					<button id="debug-unlock-paddle">
-						Debug: Unlock Random Paddle Skin
-					</button>
-					<button id="debug-unlock-ball">
-						Debug: Unlock Random Ball Skin
-					</button>
-					<button id="debug-unlock-goal">
-						Debug: Unlock Random Goal Explosion
-					</button>
-				</div>
-			</div>
 		</section>
 	</div>
 
@@ -440,42 +425,6 @@
 				if (el.classList.contains('locked') || el.disabled) return;
 				const name = el.querySelector('strong').innerText;
 				window.triggerGoalPreview?.(name, el.dataset.styleIndex);
-			});
-		});
-
-		document.getElementById('debug-unlock-ball')?.addEventListener('click', () => {
-			fetch('/user/debug/unlockRandomBallSkin', {
-				method: 'POST',
-				credentials: 'same-origin'
-			})
-			.then(res => res.json())
-			.then(data => {
-				alert(data.message);
-				window.location.reload();
-			});
-		});
-
-		document.getElementById('debug-unlock-paddle')?.addEventListener('click', () => {
-			fetch('/user/debug/unlockRandomPaddleSkin', {
-				method: 'POST',
-				credentials: 'same-origin'
-			})
-			.then(res => res.json())
-			.then(data => {
-				alert(data.message);
-				window.location.reload();
-			});
-		});
-
-		document.getElementById('debug-unlock-goal')?.addEventListener('click', () => {
-			fetch('/user/debug/unlockRandomGoalExplosion', {
-				method: 'POST',
-				credentials: 'same-origin'
-			})
-			.then(res => res.json())
-			.then(data => {
-				alert(data.message);
-				window.location.reload();
 			});
 		});
 

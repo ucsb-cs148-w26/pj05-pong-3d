@@ -171,6 +171,7 @@ animatedScene.registerGameObject(
 								.join('\n')}
 						</tbody>
 					</table>
+					${animatedScene.unlockedItem ? `<div style="margin-top: 1rem; color: gold"><strong>Item Unlocked:</strong> ${animatedScene.unlockedItem.displayName}</div>` : ''}
 				`;
 
 				return;
