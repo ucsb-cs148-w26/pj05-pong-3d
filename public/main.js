@@ -103,7 +103,7 @@ animatedScene.registerGameObject(
 			this.self.style.display = '';
 			const scoredText =
 				typeof scorer === 'string' && scorer.length > 0
-					? `${scorer} scored!`
+					? `${scorer} lost a life!`
 					: '';
 			this.scorerText.style.display = scoredText ? '' : 'none';
 			this.scorerText.textContent = scoredText;
