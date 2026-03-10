@@ -67,23 +67,27 @@
 .item:active {
 	border-style: solid;
 }
+.item.equipped {
+	background: var(--accent-bg);
+	border-color: rgb(0, 229, 255);
+}
 
-.goal-layout {
+.preview-layout {
 	display: flex;
 	gap: 1rem;
 	align-items: flex-start;
 	flex-wrap: wrap;
 }
-.goal-list {
+.preview-list {
 	flex: 1 1 320px;
 }
-.goal-preview {
+.preview-panel {
 	flex: 0 0 180px;
 	background: rgba(255, 255, 255, 0.05);
 	border: 0.1rem solid rgba(255, 255, 255, 0.12);
 	padding: 0.75rem;
 }
-.goal-preview-stage {
+.preview-stage {
 	position: relative;
 	width: 100%;
 	aspect-ratio: 1 / 1;
@@ -95,15 +99,17 @@
 	);
 	overflow: hidden;
 }
-.goal-preview-stage canvas {
+.preview-stage canvas {
 	display: block;
 	width: 100%;
 	height: 100%;
 }
-.goal-preview-label {
+.preview-label {
 	margin-top: 0.55rem;
 	font-size: 0.9rem;
 	color: rgba(255, 255, 255, 0.85);
+	white-space: pre-line;
+	word-break: break-word;
 }
 .match-history-list {
 	display: flex;

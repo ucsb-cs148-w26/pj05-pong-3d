@@ -38,7 +38,7 @@ export class PaddleCommon extends GameObjectBase {
 		let speedFactor = this.ball
 			? this.ball.speed / Constants.BALL_INITIAL_SPEED
 			: 1;
-		speedFactor = Math.max(speedFactor, 0.1);
+		speedFactor = Math.max(speedFactor, 1);
 
 		const force = this.accel * this.body.m;
 		const damping = force / (speedFactor * Constants.PADDLE_INITIAL_SPEED);

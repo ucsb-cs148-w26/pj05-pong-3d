@@ -22,6 +22,10 @@ export class AnimatedScene extends Scene {
 		this.host = null;
 		this.username = null;
 		this.gameOver = null;
+		this.respawnEndsAt = null;
+		this.respawnScorer = null;
+		this.matchStarted = false;
+		this.serverTimeOffsetMs = 0;
 		this.unlockedItem = null;
 		this.renderer = new THREE.WebGLRenderer();
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
@@ -190,6 +194,13 @@ export class AnimatedScene extends Scene {
 		this.state.physics.importState(msg.physics);
 
 		this.#ball.enabled = msg.active;
+		this.gameOver = msg.gameOver ?? null;
+		this.respawnEndsAt =
+			typeof msg.respawnEndsAt === 'number' ? msg.respawnEndsAt : null;
+		this.respawnScorer =
+			typeof msg.respawnScorer === 'string' ? msg.respawnScorer : null;
+		this.matchStarted = msg.matchStarted === true;
+		this.#updateServerTimeOffset(msg.serverTs);
 
 		for (const [username, gameInfo] of Object.entries(msg.gameInfo)) {
 			const player = this.state.players.get(username);
@@ -236,6 +247,10 @@ export class AnimatedScene extends Scene {
 		return this.#ball.enabled;
 	}
 
+	get serverNowMs() {
+		return Date.now() + this.serverTimeOffsetMs;
+	}
+
 	#playerSync(msg) {
 		this.username = msg.username;
 		this.host = msg.host;
@@ -247,6 +262,9 @@ export class AnimatedScene extends Scene {
 
 		for (const player of msg.players) {
 			const paddle = this.getGameObject(player.key);
+			paddle.controller?.destroy?.();
+			paddle.controller = null;
+
 			this.state.players.set(
 				player.username,
 				new Player(player.username, paddle, player.elo)
@@ -259,18 +277,38 @@ export class AnimatedScene extends Scene {
 				cameraController.followTarget = paddle;
 				if (player.pos[0] < 0) {
 					cameraController.offset = new THREE.Vector3(-4, 3, 0);
-					paddle.controller = new KeyboardController(socket);
+					paddle.controller = new KeyboardController(socket, undefined, 'zy', {
+						touchHost: this.renderer.domElement,
+						touchHorizontalSign: 1
+					});
 				} else {
 					cameraController.offset = new THREE.Vector3(4, 3, 0);
-					paddle.controller = new KeyboardController(socket, {
-						left: ['KeyD', 'ArrowRight'],
-						right: ['KeyA', 'ArrowLeft'],
-						up: ['KeyW', 'ArrowUp'],
-						down: ['KeyS', 'ArrowDown']
-					});
+					paddle.controller = new KeyboardController(
+						socket,
+						{
+							left: ['KeyD', 'ArrowRight'],
+							right: ['KeyA', 'ArrowLeft'],
+							up: ['KeyW', 'ArrowUp'],
+							down: ['KeyS', 'ArrowDown']
+						},
+						'zy',
+						{
+							touchHost: this.renderer.domElement,
+							touchHorizontalSign: -1
+						}
+					);
 				}
 			}
 		}
+	}
+
+	#updateServerTimeOffset(serverTs) {
+		if (typeof serverTs !== 'number') return;
+
+		const socket = this.getGameObject('socket')?.config?.socket;
+		const oneWayLatencyMs =
+			typeof socket?.lastLatencyMs === 'number' ? socket.lastLatencyMs / 2 : 0;
+		this.serverTimeOffsetMs = serverTs + oneWayLatencyMs - Date.now();
 	}
 
 	#itemUnlocked(msg) {

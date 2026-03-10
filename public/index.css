@@ -71,7 +71,8 @@ button:active,
 	transform: translateY(0.02rem);
 }
 
-h1 {
+h1,
+.h2-but-h1 {
 	font-size: 3rem;
 	margin-bottom: 1.2rem;
 }
