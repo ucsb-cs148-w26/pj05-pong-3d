@@ -144,6 +144,14 @@ export default class PongSocketServer extends EventEmitter {
 		return this.#userIdByUsername.get(username);
 	}
 
+	getUsernameFromId(userId) {
+		for (const [user, id] of this.#userIdByUsername) {
+			if (id === userId) return user;
+		}
+
+		return undefined;
+	}
+
 	disconnectUser(username, code = 4000, reason = 'Disconnected by server') {
 		const ws = this.#wsByUsername.get(username);
 		if (!ws) return false;
