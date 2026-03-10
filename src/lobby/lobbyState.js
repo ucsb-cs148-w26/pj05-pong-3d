@@ -47,6 +47,8 @@ export default class LobbyState {
 		this.lobbies.set(lobbyId, lobby);
 		this.codeToLobby.set(lobby.code, lobby);
 
+		let destroyed = false;
+
 		const socket = new PongSocketServer(
 			this.#server,
 			`/lobby/${lobby.code}`,
@@ -68,13 +70,16 @@ export default class LobbyState {
 				type: 'chat',
 				content: `[System] ${clientId} left`
 			});
-			this.leaveLobby(lobbyId, clientId);
+			if (!destroyed) this.leaveLobby(lobbyId, clientId);
 		});
 
 		socket.addHandler('chat', chatHandler);
 		this.sockets.set(lobbyId, socket);
 
-		const scene = new ServerScene(socket, lives);
+		const scene = new ServerScene(socket, lives, () => {
+			destroyed = true;
+			this.deleteLobby(lobbyId);
+		});
 		scene.start();
 		this.scenes.set(lobbyId, scene);
 

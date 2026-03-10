@@ -16,11 +16,14 @@ export default class ServerScene extends Scene {
 	#ball = null;
 	#gameOver = null;
 	#numLives = 7;
+	#inProgress = false;
+	#onGameEnd = null;
 
-	constructor(socket, lives) {
+	constructor(socket, lives, onGameEnd) {
 		super(new GameState());
 
 		this.#socket = socket;
+		this.#onGameEnd = onGameEnd;
 		this.hostUser = null;
 
 		// Order matters: Sync with public/main.js
@@ -70,33 +73,37 @@ export default class ServerScene extends Scene {
 			this.step(delta);
 
 			if (ct % SYNC_INTERVAL === 0) {
-				const physicsState = this.state.physics.exportState();
-				const gatherData = {};
-				for (const [username, player] of this.state.players)
-					gatherData[username] = {
-						lives: player.lives,
-						elo: player.elo
-					};
-
-				this.#socket.forEachClient((username, ws) => {
-					const paddleController =
-						this.state.players.get(username).paddle.controller;
-					const ack = paddleController.ack;
-
-					this.#socket.safeSend(ws, {
-						type: 'sync',
-						ack,
-						active: this.#ball.enabled,
-						physics: physicsState,
-						gameInfo: gatherData,
-						gameOver: this.#gameOver
-					});
-				});
+				this.#sendSync();
 			}
 
 			lastTime = now;
 			ct++;
 		}, 1000 / Constants.SIMULATION_RATE);
+	}
+
+	#sendSync() {
+		const physicsState = this.state.physics.exportState();
+		const gatherData = {};
+		for (const [username, player] of this.state.players)
+			gatherData[username] = {
+				lives: player.lives,
+				elo: player.elo
+			};
+
+		this.#socket.forEachClient((username, ws) => {
+			const paddleController =
+				this.state.players.get(username).paddle.controller;
+			const ack = paddleController.ack;
+
+			this.#socket.safeSend(ws, {
+				type: 'sync',
+				ack,
+				active: this.#ball.enabled,
+				physics: physicsState,
+				gameInfo: gatherData,
+				gameOver: this.#gameOver
+			});
+		});
 	}
 
 	stop() {
@@ -105,7 +112,7 @@ export default class ServerScene extends Scene {
 	}
 
 	get inProgress() {
-		return this.#ball.enabled;
+		return this.#inProgress;
 	}
 
 	#onConnect(username) {
@@ -131,6 +138,7 @@ export default class ServerScene extends Scene {
 	#onDisconnect(username) {
 		const leavingPlayer = this.state.players.get(username);
 		if (!leavingPlayer) return;
+		if (!this.inProgress) return;
 
 		this.#endGame(username);
 	}
@@ -200,6 +208,7 @@ export default class ServerScene extends Scene {
 
 		this.#gameOver = null;
 		this.#ball.enabled = true;
+		this.#inProgress = true;
 	}
 
 	#recvMove(socket, username, ws, msg) {
@@ -213,7 +222,10 @@ export default class ServerScene extends Scene {
 
 		this.#gameOver = { loser, winner, ratings: null };
 		this.#ball.enabled = false;
-		this.#saveGameResult();
+		this.#saveGameResult().then(() => {
+			this.#sendSync();
+			this.#onGameEnd?.();
+		});
 	}
 
 	async #saveGameResult() {
