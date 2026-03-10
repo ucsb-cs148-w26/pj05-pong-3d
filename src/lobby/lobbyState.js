@@ -3,6 +3,7 @@ import chatHandler from './chat.js';
 import ServerScene from '../game/ServerScene.js';
 
 let nextLobbyId = 1;
+const EMPTY_LOBBY_DELETE_TIME = 60_000;
 
 function generateCode() {
 	const length = 5;
@@ -39,6 +40,7 @@ export default class LobbyState {
 			isPublic,
 			lives,
 			members: new Map(),
+			emptySince: Date.now(),
 			code: generateCode()
 		};
 
@@ -117,6 +119,8 @@ export default class LobbyState {
 		lobby.members.set(clientId, {
 			clientId
 		});
+
+		lobby.emptySince = null;
 	}
 
 	deleteLobby(lobbyId) {
@@ -149,6 +153,20 @@ export default class LobbyState {
 
 		if (lobby.members.size === 0) {
 			this.deleteLobby(lobbyId);
+		}
+	}
+
+	cleanup() {
+		const now = Date.now();
+
+		for (const [lobbyId, lobby] of this.lobbies.entries()) {
+			if (
+				lobby.members.size === 0 &&
+				lobby.emptySince !== null &&
+				now - lobby.emptySince >= EMPTY_LOBBY_DELETE_TIME
+			) {
+				this.deleteLobby(lobbyId);
+			}
 		}
 	}
 }
