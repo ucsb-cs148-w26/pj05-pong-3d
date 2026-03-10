@@ -95,12 +95,16 @@ export default class LobbyState {
 	}
 
 	isLobbyJoinable(lobby) {
-		return !this.isLobbyFull(lobby) && !this.isLobbyInProgress(lobby);
+		return (
+			lobby.isPublic &&
+			!this.isLobbyFull(lobby) &&
+			!this.isLobbyInProgress(lobby)
+		);
 	}
 
-	listLobbies({ includePrivate = false } = {}) {
+	listLobbies() {
 		return Array.from(this.lobbies.values())
-			.filter((lobby) => includePrivate || lobby.isPublic)
+			.filter((lobby) => this.isLobbyJoinable(lobby))
 			.map((lobby) => ({
 				lobbyId: lobby.lobbyId,
 				name: lobby.name,
