@@ -37,8 +37,8 @@ export class AnimatedScene extends Scene {
 			0.1,
 			1000
 		);
-		
-		this.controls = new OrbitControls( this.camera, this.renderer.domElement );
+
+		this.controls = new OrbitControls(this.camera, this.renderer.domElement);
 		const cameraDistance = 14;
 		this.controls.minDistance = cameraDistance;
 		this.controls.maxDistance = cameraDistance;
@@ -48,12 +48,11 @@ export class AnimatedScene extends Scene {
 		this.whichPerson = 0;
 
 		this.filpPerson = ((e) => {
-			if ( !e.key === "ArrowRight" && !e.key === "ArrowLeft" ) return;
+			if (!e.key === 'ArrowRight' && !e.key === 'ArrowLeft') return;
 
-			this.whichPerson = ( this.whichPerson + 1 ) % 2;
-			
-			this.updateOrbitCamera();			
+			this.whichPerson = (this.whichPerson + 1) % 2;
 
+			this.updateOrbitCamera();
 		}).bind(this);
 
 		window.addEventListener('keydown', this.filpPerson);
@@ -105,19 +104,23 @@ export class AnimatedScene extends Scene {
 		);
 	}
 
-	updateOrbitCamera() {		
+	updateOrbitCamera() {
 		const degreeToRad = Math.PI / 180;
 
 		const verticalDegreesOfFreedom = 10;
 		const horizontalDegreesOfFreedom = 10;
 
-		this.controls.minPolarAngle = Math.PI / 2 - horizontalDegreesOfFreedom * degreeToRad;
-		this.controls.maxPolarAngle = Math.PI / 2 + horizontalDegreesOfFreedom * degreeToRad;
+		this.controls.minPolarAngle =
+			Math.PI / 2 - horizontalDegreesOfFreedom * degreeToRad;
+		this.controls.maxPolarAngle =
+			Math.PI / 2 + horizontalDegreesOfFreedom * degreeToRad;
 
-		const sign = ( this.whichPerson == 0 ) ? -1 : 1;
+		const sign = this.whichPerson == 0 ? -1 : 1;
 
-		this.controls.minAzimuthAngle = sign * Math.PI / 2 - verticalDegreesOfFreedom * degreeToRad;
-		this.controls.maxAzimuthAngle = sign * Math.PI / 2 + verticalDegreesOfFreedom * degreeToRad;
+		this.controls.minAzimuthAngle =
+			(sign * Math.PI) / 2 - verticalDegreesOfFreedom * degreeToRad;
+		this.controls.maxAzimuthAngle =
+			(sign * Math.PI) / 2 + verticalDegreesOfFreedom * degreeToRad;
 	}
 
 	get active() {
@@ -241,7 +244,7 @@ export class AnimatedScene extends Scene {
 		const player = this.state.players.get(this.username);
 
 		if (player === undefined) return;
-		
+
 		const controller = player.paddle.controller;
 
 		// prediction!
@@ -305,7 +308,7 @@ export class AnimatedScene extends Scene {
 
 			// TODO: this is silly
 			cameraController.followTarget = paddle;
-			if ( this.controls !== null ) {
+			if (this.controls !== null) {
 				this.controls.dispose();
 				this.controls = null;
 
@@ -324,13 +327,11 @@ export class AnimatedScene extends Scene {
 					down: ['KeyS', 'ArrowDown']
 				});
 			}
-
 		}
 
 		if (this.controls !== null) {
 			this.updateOrbitCamera();
 		}
-		
 	}
 
 	#itemUnlocked(msg) {

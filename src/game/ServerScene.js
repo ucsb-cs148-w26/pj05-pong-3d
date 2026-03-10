@@ -146,12 +146,11 @@ export default class ServerScene extends Scene {
 			return;
 		}
 
-		this.#endGame(username);
+		if (this.state.players.has(username)) this.#endGame(username);
 	}
 
 	#updatePaddles() {
 		this.#socket.forEachClient((thisUsername, ws) => {
-
 			const players = this.state.players.entries().map(([username, player]) => {
 				const paddle = player.paddle;
 				return {
