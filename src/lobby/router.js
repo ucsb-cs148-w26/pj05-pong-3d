@@ -13,8 +13,9 @@ export default function createLobbyRouter(server, parseSession) {
 		if (!req.user) return res.sendStatus(401);
 
 		const name = req.body?.name ?? `${req.user.display_name}’s lobby`;
+		const lives = req.body?.lives ?? 7;
 		const isPublic = req.body?.isPublic;
-		const lobby = lobbyState.createLobby(name, isPublic);
+		const lobby = lobbyState.createLobby(name, isPublic, lives);
 
 		res.json({ lobby });
 	});

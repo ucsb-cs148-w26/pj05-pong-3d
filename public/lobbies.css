@@ -10,11 +10,11 @@
 	border-bottom: 1px solid rgba(255, 255, 255, 0.18);
 }
 
-.visibility-picker {
+.lobby-option {
 	display: flex;
 	align-items: center;
 	justify-content: space-between;
-	color: rgba(255, 255, 255, 0.92);
+	color: var(--fg-1);
 	margin-bottom: 1rem;
 }
 

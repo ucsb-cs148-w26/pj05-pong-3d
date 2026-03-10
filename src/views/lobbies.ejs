@@ -9,16 +9,20 @@
 	<body>
 		<div>
 			<% if (user) { %>
-				<div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;">
+				<div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
 					<a href="/user" class="link-button">
 						Logged in as <%= user.display_name %> (<%= user.elo %>) — My Profile
 					</a>
+					<a href="/leaderboard" class="link-button">Leaderboard</a>
 					<button onclick="logout()" style="width: auto; padding: 0.5rem 1rem;">
 						Log out
 					</button>
 				</div>
 			<% } else { %>
-				<a class="link-button" href="/auth/google" style="display: block; width: 100%">Log in with Google</a>
+				<div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
+					<a class="link-button" href="/auth/google">Log in with Google</a>
+					<a class="link-button" href="/leaderboard">Leaderboard</a>
+				</div>
 			<% } %>
 		</div>
 
@@ -28,12 +32,16 @@
 			<div class="card" style="display: flex; flex-direction: column; gap: 1.5rem;">
 				<div>
 					<input id="name-field" placeholder="Lobby name" style="display: block; width: 100%; margin-bottom: 1rem" />
-					<div class="visibility-picker">
+					<div class="lobby-option">
 						<span>Lobby visibility</span>
 						<div class="visibility-buttons">
 							<button id="create-public-button" class="visibility-button active">Public</button>
 							<button id="create-private-button" class="visibility-button">Private</button>
 						</div>
+					</div>
+					<div class="lobby-option">
+						<span>Number of lives</span>
+						<input id="create-lives" type="number" value="7" min="1" />
 					</div>
 					<button id="create-button" style="display: block; width: 100%">Create Lobby</button>
 				</div>
@@ -71,6 +79,7 @@
 			const nameField = document.getElementById('name-field');
 			const createPublicButton = document.getElementById('create-public-button');
 			const createPrivateButton = document.getElementById('create-private-button');
+			const createLives = document.getElementById('create-lives');
 			let lobbyIsPublic = true;
 			const setLobbyVisibility = (isPublic) => {
 				lobbyIsPublic = isPublic;
@@ -93,6 +102,7 @@
 						body: JSON.stringify({
 							name: nameField.value.length ? nameField.value : undefined,
 							isPublic: lobbyIsPublic,
+							lives: parseInt(createLives.value),
 							cosmetics: getSelectedCosmetics()
 						}),
 						headers: {

@@ -192,6 +192,7 @@ export class AnimatedScene extends Scene {
 			const player = this.state.players.get(username);
 			if (!player) continue;
 			player.lives = gameInfo.lives;
+			player.elo = gameInfo.elo;
 		}
 
 		const controller = this.state.players.get(this.username).paddle.controller;
@@ -241,7 +242,7 @@ export class AnimatedScene extends Scene {
 			const paddle = this.getGameObject(player.key);
 			this.state.players.set(
 				player.username,
-				new Player(player.username, paddle)
+				new Player(player.username, paddle, player.elo)
 			);
 
 			const socket = this.getGameObject('socket').config.socket;

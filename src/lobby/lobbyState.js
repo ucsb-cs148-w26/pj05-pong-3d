@@ -30,13 +30,14 @@ export default class LobbyState {
 		this.sockets = new Map();
 	}
 
-	createLobby(name, isPublic) {
+	createLobby(name, isPublic, lives) {
 		const lobbyId = String(nextLobbyId++);
 
 		const lobby = {
 			lobbyId,
 			name,
 			isPublic,
+			lives,
 			members: new Map(),
 			code: generateCode()
 		};
@@ -71,7 +72,7 @@ export default class LobbyState {
 		socket.addHandler('chat', chatHandler);
 		this.sockets.set(lobbyId, socket);
 
-		const scene = new ServerScene(socket);
+		const scene = new ServerScene(socket, lives);
 		scene.start();
 		this.scenes.set(lobbyId, scene);
 
