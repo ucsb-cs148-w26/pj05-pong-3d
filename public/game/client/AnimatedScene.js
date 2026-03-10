@@ -59,7 +59,9 @@ export class AnimatedScene extends Scene {
 		this.isReplaying = false;
 
 		socket.addHandler('sync', this.#sync.bind(this));
+		socket.addHandler('gameOver', this.#gameOver.bind(this));
 		socket.addHandler('playerSync', this.#playerSync.bind(this));
+		socket.addHandler('gameCancelled', this.#gameCancelled.bind(this));
 
 		// Order matters: Sync with ServerScene.js
 		this.registerGameObject(new Arena('gameArena'));
@@ -187,9 +189,6 @@ export class AnimatedScene extends Scene {
 		this.state.physics.importState(msg.physics);
 
 		this.#ball.enabled = msg.active;
-		const newGameOver = msg.gameOver ?? null;
-		if (this.gameOver !== null && newGameOver === null) this.unlockedItem = null;
-		this.gameOver = newGameOver;
 
 		for (const [username, gameInfo] of Object.entries(msg.gameInfo)) {
 			const player = this.state.players.get(username);
@@ -223,6 +222,11 @@ export class AnimatedScene extends Scene {
 		controller.useInputBuffer = false;
 	}
 
+	#gameOver(msg) {
+		this.gameOver = msg;
+		this.#ball.enabled = false;
+	}
+
 	get isHost() {
 		return this.host === this.username;
 	}
@@ -244,7 +248,7 @@ export class AnimatedScene extends Scene {
 			const paddle = this.getGameObject(player.key);
 			this.state.players.set(
 				player.username,
-				new Player(player.username, paddle)
+				new Player(player.username, paddle, player.elo)
 			);
 
 			const socket = this.getGameObject('socket').config.socket;
@@ -257,14 +261,18 @@ export class AnimatedScene extends Scene {
 					paddle.controller = new KeyboardController(socket);
 				} else {
 					cameraController.offset = new THREE.Vector3(4, 3, 0);
-					paddle.controller = new KeyboardController(socket, [
-						'KeyD',
-						'KeyA',
-						'KeyW',
-						'KeyS'
-					]);
+					paddle.controller = new KeyboardController(socket, {
+						left: ['KeyD', 'ArrowRight'],
+						right: ['KeyA', 'ArrowLeft'],
+						up: ['KeyW', 'ArrowUp'],
+						down: ['KeyS', 'ArrowDown']
+					});
 				}
 			}
 		}
+	}
+
+	#gameCancelled(msg) {
+		this.gameCancelled = true;
 	}
 }

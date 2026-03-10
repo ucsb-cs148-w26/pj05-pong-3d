@@ -9,24 +9,24 @@ export default function createUserRouter() {
 		res.status(401).json({ error: 'Unauthorized' });
 	}
 
+	const dbAll = (sql, params = []) =>
+		new Promise((resolve, reject) => {
+			db.all(sql, params, (err, rows) => {
+				if (err) reject(err);
+				else resolve(rows);
+			});
+		});
+
+	const dbGet = (sql, params = []) =>
+		new Promise((resolve, reject) => {
+			db.get(sql, params, (err, row) => {
+				if (err) reject(err);
+				else resolve(row);
+			});
+		});
+
 	router.get('/', ensureAuth, async (req, res) => {
 		const userId = req.user.id;
-
-		const dbAll = (sql, params = []) =>
-			new Promise((resolve, reject) => {
-				db.all(sql, params, (err, rows) => {
-					if (err) reject(err);
-					else resolve(rows);
-				});
-			});
-
-		const dbGet = (sql, params = []) =>
-			new Promise((resolve, reject) => {
-				db.get(sql, params, (err, row) => {
-					if (err) reject(err);
-					else resolve(row);
-				});
-			});
 
 		try {
 			const paddleSkins = await dbAll(
@@ -179,6 +179,124 @@ export default function createUserRouter() {
 		});
 	});
 
+	router.get('/stats', ensureAuth, async (req, res) => {
+		const userId = req.user.id;
+
+		try {
+			const player = await dbGet(
+				`SELECT id, display_name, elo
+				FROM users
+				WHERE id = ?`,
+				[userId]
+			);
+
+			if (!player) {
+				return res.status(404).json({ ok: false, error: 'Player not found' });
+			}
+
+			const totals = await dbGet(
+				`SELECT
+					COUNT(*) AS total_games,
+					SUM(CASE WHEN winner_user_id = ? THEN 1 ELSE 0 END) AS wins
+				FROM match_history
+				WHERE winner_user_id = ? OR loser_user_id = ?`,
+				[userId, userId, userId]
+			);
+
+			const recentMatchesRaw = await dbAll(
+				`SELECT
+					m.id,
+					m.ended_at,
+					m.winner_user_id,
+					m.loser_user_id,
+					m.winner_lives_remaining,
+					m.winner_elo_before,
+					m.winner_elo_after,
+					m.loser_elo_before,
+					m.loser_elo_after,
+					w.display_name AS winner_display_name,
+					l.display_name AS loser_display_name
+				FROM match_history m
+				LEFT JOIN users w ON w.id = m.winner_user_id
+				LEFT JOIN users l ON l.id = m.loser_user_id
+				WHERE m.winner_user_id = ? OR m.loser_user_id = ?
+				ORDER BY datetime(m.ended_at) DESC
+				LIMIT 10`,
+				[userId, userId]
+			);
+
+			const rankRow = await dbGet(
+				`SELECT COUNT(*) + 1 AS rank
+				FROM users
+				WHERE elo > ?`,
+				[player.elo]
+			);
+
+			const previous10Games = recentMatchesRaw.map((match) => {
+				const myWin = match.winner_user_id === userId;
+
+				const myEloBefore = myWin
+					? match.winner_elo_before
+					: match.loser_elo_before;
+				const myEloAfter = myWin
+					? match.winner_elo_after
+					: match.loser_elo_after;
+
+				const opponentEloBefore = myWin
+					? match.loser_elo_before
+					: match.winner_elo_before;
+				const opponentEloAfter = myWin
+					? match.loser_elo_after
+					: match.winner_elo_after;
+
+				return {
+					id: match.id,
+					ended_at: match.ended_at,
+					my_display_name: player.display_name,
+					opponent_display_name: myWin
+						? match.loser_display_name
+						: match.winner_display_name,
+					winner_lives_remaining: match.winner_lives_remaining,
+					result: myWin ? 'win' : 'loss',
+					my_elo_before: myEloBefore,
+					my_elo_after: myEloAfter,
+					my_elo_change: myEloAfter - myEloBefore,
+					opponent_elo_before: opponentEloBefore,
+					opponent_elo_after: opponentEloAfter,
+					opponent_elo_change: opponentEloAfter - opponentEloBefore
+				};
+			});
+
+			const chronologicalMatches = [...recentMatchesRaw].reverse();
+
+			const eloHistory =
+				chronologicalMatches.length === 0
+					? [player.elo]
+					: [
+							chronologicalMatches[0].winner_user_id === userId
+								? chronologicalMatches[0].winner_elo_before
+								: chronologicalMatches[0].loser_elo_before,
+							...chronologicalMatches.map((match) =>
+								match.winner_user_id === userId
+									? match.winner_elo_after
+									: match.loser_elo_after
+							)
+						];
+
+			res.json({
+				ok: true,
+				wins: totals?.wins ?? 0,
+				totalGames: totals?.total_games ?? 0,
+				previous10Games,
+				eloHistory,
+				rank: rankRow?.rank ?? null
+			});
+		} catch (err) {
+			console.error('Failed to fetch user stats:', err);
+			res.status(500).json({ ok: false, error: 'Database error' });
+		}
+	});
+
 	router.post('/debug/unlockRandomGoalExplosion', ensureAuth, (req, res) => {
 		const userId = req.user.id;
 
@@ -202,6 +320,37 @@ export default function createUserRouter() {
 						if (err2) return res.status(500).json({ error: 'Database error' });
 						res.json({
 							message: 'Unlocked a new goal explosion!',
+							itemId: row.id
+						});
+					}
+				);
+			}
+		);
+	});
+
+	router.post('/debug/unlockRandomPaddleSkin', ensureAuth, (req, res) => {
+		const userId = req.user.id;
+
+		db.get(
+			`SELECT i.id FROM items i
+            WHERE i.kind = 'paddle_skin'
+            AND i.id NOT IN (
+                SELECT item_id FROM user_unlocks WHERE user_id = ?
+            )
+            ORDER BY RANDOM() LIMIT 1`,
+			[userId],
+			(err, row) => {
+				if (err) return res.status(500).json({ error: 'Database error' });
+				if (!row)
+					return res.json({ message: 'All paddle skins already unlocked!' });
+
+				db.run(
+					`INSERT INTO user_unlocks (user_id, item_id, unlocked_at) VALUES (?, ?, CURRENT_TIMESTAMP)`,
+					[userId, row.id],
+					(err2) => {
+						if (err2) return res.status(500).json({ error: 'Database error' });
+						res.json({
+							message: 'Unlocked a new paddle skin!',
 							itemId: row.id
 						});
 					}

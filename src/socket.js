@@ -115,6 +115,10 @@ export default class PongSocketServer extends EventEmitter {
 		}
 	}
 
+	listConnectedUsernames() {
+		return Array.from(this.#wsByUsername.keys());
+	}
+
 	addHandler(type, func) {
 		this.#handlers.set(type, func);
 	}
@@ -135,6 +139,13 @@ export default class PongSocketServer extends EventEmitter {
 
 	getUserId(username) {
 		return this.#userIdByUsername.get(username);
+	}
+
+	disconnectUser(username, code = 4000, reason = 'Disconnected by server') {
+		const ws = this.#wsByUsername.get(username);
+		if (!ws) return false;
+		ws.close(code, reason);
+		return true;
 	}
 
 	#ping(socket, username, ws, msg) {

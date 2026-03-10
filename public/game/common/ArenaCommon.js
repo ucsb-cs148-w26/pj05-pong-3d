@@ -36,27 +36,27 @@ export class ArenaCommon extends GameObjectBase {
 			this.bodies[1].transform
 		);
 		this.#bodies[2].col = new BoxCollider(
-			Constants.ARENA_DEPTH,
-			Constants.ARENA_SIZE,
+			Constants.ARENA_DEPTH + 2 * Constants.WALL_THICKNESS, // should cover the sidewall-paddlewall corners
+			Constants.ARENA_SIZE + 2 * Constants.WALL_THICKNESS, // should cover the sidewall-upperwall corners
 			Constants.WALL_THICKNESS,
 			this.#bodies[2].transform
 		);
 		this.#bodies[3].col = new BoxCollider(
-			Constants.ARENA_DEPTH,
-			Constants.ARENA_SIZE,
+			Constants.ARENA_DEPTH + 2 * Constants.WALL_THICKNESS,
+			Constants.ARENA_SIZE + 2 * Constants.WALL_THICKNESS,
 			Constants.WALL_THICKNESS,
 			this.#bodies[3].transform
 		);
 
 		this.#bodies[4].col = new BoxCollider(
 			Constants.WALL_THICKNESS,
-			Constants.ARENA_SIZE,
+			Constants.ARENA_SIZE + 2 * Constants.WALL_THICKNESS,
 			Constants.ARENA_SIZE,
 			this.#bodies[4].transform
 		);
 		this.#bodies[5].col = new BoxCollider(
 			Constants.WALL_THICKNESS,
-			Constants.ARENA_SIZE,
+			Constants.ARENA_SIZE + 2 * Constants.WALL_THICKNESS,
 			Constants.ARENA_SIZE,
 			this.#bodies[5].transform
 		);
@@ -70,6 +70,10 @@ export class ArenaCommon extends GameObjectBase {
 		this.#bodies[5].x.addVec(new Vec3(Constants.ARENA_END_OFFSET));
 
 		// Assign ball identifiers for collision detection
+		this.#bodies[0].ballIdentifier = 'topWall';
+		this.#bodies[1].ballIdentifier = 'bottomWall';
+		this.#bodies[2].ballIdentifier = 'positiveZWall';
+		this.#bodies[3].ballIdentifier = 'negativeZWall';
 		this.#bodies[4].ballIdentifier = 'greenWall';
 		this.#bodies[5].ballIdentifier = 'redWall';
 	}

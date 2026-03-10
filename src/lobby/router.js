@@ -4,6 +4,9 @@ import LobbyState from './lobbyState.js';
 export default function createLobbyRouter(server, parseSession) {
 	const router = Router();
 	const lobbyState = new LobbyState(server, parseSession);
+	setInterval(() => {
+		lobbyState.cleanup();
+	}, 5000);
 
 	router.get('/api/lobbies', (_req, res) => {
 		res.json({ lobbies: lobbyState.listLobbies() });
@@ -13,7 +16,10 @@ export default function createLobbyRouter(server, parseSession) {
 		if (!req.user) return res.sendStatus(401);
 
 		const name = req.body?.name ?? `${req.user.display_name}’s lobby`;
-		const lobby = lobbyState.createLobby(name);
+		const lives = req.body?.lives ?? 7;
+		const isPublic = req.body?.isPublic;
+		const lobby = lobbyState.createLobby(name, isPublic, lives);
+
 		res.json({ lobby });
 	});
 
@@ -31,6 +37,8 @@ export default function createLobbyRouter(server, parseSession) {
 			lobby: {
 				lobbyId: lobby.lobbyId,
 				name: lobby.name,
+				hostUser: lobby.hostUser,
+				isPublic: lobby.isPublic,
 				memberCount: lobby.members.size,
 				members: Array.from(lobby.members.values())
 			}
@@ -71,7 +79,6 @@ export default function createLobbyRouter(server, parseSession) {
 
 	router.get('/', (req, res) => {
 		res.render('lobbies', {
-			lobbies: lobbyState.listLobbies(),
 			user: req.user
 		});
 	});

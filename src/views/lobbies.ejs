@@ -9,25 +9,40 @@
 	<body>
 		<div>
 			<% if (user) { %>
-				<div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem;">
+				<div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
 					<a href="/user" class="link-button">
 						Logged in as <%= user.display_name %> (<%= user.elo %>) — My Profile
 					</a>
+					<a href="/leaderboard" class="link-button">Leaderboard</a>
 					<button onclick="logout()" style="width: auto; padding: 0.5rem 1rem;">
 						Log out
 					</button>
 				</div>
 			<% } else { %>
-				<a class="link-button" href="/auth/google" style="display: block; width: 100%">Log in with Google</a>
+				<div style="display: flex; gap: 0.5rem; align-items: center; margin-bottom: 1rem; flex-wrap: wrap;">
+					<a class="link-button" href="/auth/google">Log in with Google</a>
+					<a class="link-button" href="/leaderboard">Leaderboard</a>
+				</div>
 			<% } %>
 		</div>
 
 		<% if (user) { %>
 			<h1>Lobbies</h1>
 
-			<div class="card">
-				<div style="margin-bottom: 1.5rem">
+			<div class="card" style="display: flex; flex-direction: column; gap: 1.5rem;">
+				<div>
 					<input id="name-field" placeholder="Lobby name" style="display: block; width: 100%; margin-bottom: 1rem" />
+					<div class="lobby-option">
+						<span>Lobby visibility</span>
+						<div class="visibility-buttons">
+							<button id="create-public-button" class="visibility-button active">Public</button>
+							<button id="create-private-button" class="visibility-button">Private</button>
+						</div>
+					</div>
+					<div class="lobby-option">
+						<span>Number of lives</span>
+						<input id="create-lives" type="number" value="7" min="1" />
+					</div>
 					<button id="create-button" style="display: block; width: 100%">Create Lobby</button>
 				</div>
 
@@ -39,22 +54,9 @@
 
 			<div class="card">
 				<h2>Open Lobbies</h2>
-				<ul class="lobbies">
-					<% if (lobbies && lobbies.length > 0) { %>
-						<% for (let i = 0; i < lobbies.length; i++) { %>
-						<li class="lobby">
-							<div>
-								<div><strong><%= lobbies[i].name %> (<%= lobbies[i].code %>)</strong></div>
-								<div>Players: <%= lobbies[i].memberCount %></div>
-							</div>
-
-							<button onclick="join('<%= lobbies[i].code %>')">Join</button>
-						</li>
-						<% } %>
-					<% } else { %>
-						<p>No open lobbies currently.</p>
-					<% } %>
-				</ul>
+				<div id="lobbies-container">
+					<p>Refreshing...</p>
+				</div>
 			</div>
 		<% } %>
 
@@ -75,6 +77,23 @@
 			}
 
 			const nameField = document.getElementById('name-field');
+			const createPublicButton = document.getElementById('create-public-button');
+			const createPrivateButton = document.getElementById('create-private-button');
+			const createLives = document.getElementById('create-lives');
+			let lobbyIsPublic = true;
+			const setLobbyVisibility = (isPublic) => {
+				lobbyIsPublic = isPublic;
+				createPublicButton.classList.toggle('active', isPublic);
+				createPrivateButton.classList.toggle('active', !isPublic);
+			};
+			createPublicButton.addEventListener('click', (e) => {
+				e.preventDefault();
+				setLobbyVisibility(true);
+			});
+			createPrivateButton.addEventListener('click', (e) => {
+				e.preventDefault();
+				setLobbyVisibility(false);
+			});
 			document
 				.getElementById('create-button')
 				.addEventListener('click', (e) => {
@@ -82,6 +101,8 @@
 						method: 'POST',
 						body: JSON.stringify({
 							name: nameField.value.length ? nameField.value : undefined,
+							isPublic: lobbyIsPublic,
+							lives: parseInt(createLives.value),
 							cosmetics: getSelectedCosmetics()
 						}),
 						headers: {
@@ -105,6 +126,34 @@
 			function join(code) {
 				window.location = `/game?code=${code}`;
 			}
+
+			const lobbiesContainer = document.getElementById('lobbies-container');
+			function refreshLobbies() {
+				fetch('/api/lobbies', { cache: 'no-store' })
+					.then((res) => res.json())
+					.then((res) => res.lobbies)
+					.then((lobbies) => {
+						if (lobbies.length) {
+							lobbiesContainer.innerHTML = `<ul class="lobbies">${
+								lobbies.map((lobby) => `
+									<li class="lobby">
+										<div>
+											<div><strong>${lobby.name} (${lobby.code})</strong></div>
+											<div>Players: ${lobby.memberCount}</div>
+										</div>
+
+										<button onclick="join('${lobby.code}')">Join</button>
+									</li>
+								`).join('\n')
+							}</ul>`;
+						} else {
+							lobbiesContainer.innerHTML = '<p>No lobbies open currently.</p>';
+						}
+					});
+			}
+
+			refreshLobbies();
+			setInterval(refreshLobbies, 1000);
 		</script>
 	</body>
 </html>
