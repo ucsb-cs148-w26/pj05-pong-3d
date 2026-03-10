@@ -73,37 +73,31 @@ export default class ServerScene extends Scene {
 			this.step(delta);
 
 			if (ct % SYNC_INTERVAL === 0) {
-				this.#sendSync();
+				const physicsState = this.state.physics.exportState();
+				const gatherData = {};
+				for (const [username, player] of this.state.players)
+					gatherData[username] = {
+						lives: player.lives
+					};
+
+				this.#socket.forEachClient((username, ws) => {
+					const paddleController =
+						this.state.players.get(username).paddle.controller;
+					const ack = paddleController.ack;
+
+					this.#socket.safeSend(ws, {
+						type: 'sync',
+						ack,
+						active: this.#ball.enabled,
+						physics: physicsState,
+						gameInfo: gatherData
+					});
+				});
 			}
 
 			lastTime = now;
 			ct++;
 		}, 1000 / Constants.SIMULATION_RATE);
-	}
-
-	#sendSync() {
-		const physicsState = this.state.physics.exportState();
-		const gatherData = {};
-		for (const [username, player] of this.state.players)
-			gatherData[username] = {
-				lives: player.lives,
-				elo: player.elo
-			};
-
-		this.#socket.forEachClient((username, ws) => {
-			const paddleController =
-				this.state.players.get(username).paddle.controller;
-			const ack = paddleController.ack;
-
-			this.#socket.safeSend(ws, {
-				type: 'sync',
-				ack,
-				active: this.#ball.enabled,
-				physics: physicsState,
-				gameInfo: gatherData,
-				gameOver: this.#gameOver
-			});
-		});
 	}
 
 	stop() {
@@ -223,7 +217,10 @@ export default class ServerScene extends Scene {
 		this.#gameOver = { loser, winner, ratings: null };
 		this.#ball.enabled = false;
 		this.#saveGameResult().then(() => {
-			this.#sendSync();
+			this.#socket.broadcast({
+				type: 'gameOver',
+				...this.#gameOver
+			});
 			this.#onGameEnd?.();
 		});
 	}
