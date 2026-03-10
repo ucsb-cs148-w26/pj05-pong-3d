@@ -1,9 +1,22 @@
+html,
 body {
-	position: relative;
 	margin: 0;
 	padding: 0;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+	overscroll-behavior: none;
+}
+
+body {
+	position: relative;
 	width: 100vw;
 	height: 100vh;
+}
+
+body > canvas {
+	display: block;
+	touch-action: none;
 }
 
 #chat {
@@ -20,7 +33,8 @@ body {
 	color: white;
 	font-size: 0.9rem;
 	height: 8rem;
-	width: 60ch;
+	width: 33vw;
+	height: 20vh;
 	overflow-y: auto;
 	white-space: pre-wrap;
 }
@@ -39,6 +53,7 @@ body {
 	display: flex;
 	align-items: center;
 	justify-content: center;
+	z-index: 1400;
 	background: radial-gradient(
 		circle at center,
 		rgba(0, 0, 0, 0.6),
@@ -176,4 +191,19 @@ body {
 
 .game-button--danger:hover:not(:disabled) {
 	background: rgba(235, 87, 87, 0.5);
+}
+
+.touch-joystick-zone {
+	position: fixed;
+	inset: 0;
+	user-select: none;
+	-webkit-user-select: none;
+	touch-action: none;
+	z-index: 1100;
+}
+
+.touch-joystick-zone .nipple,
+.touch-joystick-zone .front,
+.touch-joystick-zone .back {
+	will-change: transform, opacity;
 }

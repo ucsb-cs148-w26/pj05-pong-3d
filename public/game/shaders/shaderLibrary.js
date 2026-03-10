@@ -1410,3 +1410,19 @@ export const ShaderRepository = {
 		};
 	}
 };
+
+export const skinColors = [
+	{ label: 'White', colorHex: '#FFFFFF' },
+	{ label: 'Black', colorHex: '#000000' },
+	{ label: 'Grey', colorHex: '#808080' },
+	{ label: 'Crimson', colorHex: '#DC143C' },
+	{ label: 'Sky Blue', colorHex: '#87CEEB' },
+	{ label: 'Purple', colorHex: '#800080' },
+	{ label: 'Lime', colorHex: '#00FF00' },
+	{ label: 'Forest Green', colorHex: '#228B22' },
+	{ label: 'Orange', colorHex: '#FFA500' },
+	{ label: 'Cobalt', colorHex: '#0047AB' },
+	{ label: 'Brown', colorHex: '#8A3324' },
+	{ label: 'Saffron', colorHex: '#F4C430' },
+	{ label: 'Pink', colorHex: '#FFC0CB' }
+];

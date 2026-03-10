@@ -247,6 +247,9 @@ export class AnimatedScene extends Scene {
 
 		for (const player of msg.players) {
 			const paddle = this.getGameObject(player.key);
+			paddle.controller?.destroy?.();
+			paddle.controller = null;
+
 			this.state.players.set(
 				player.username,
 				new Player(player.username, paddle, player.elo)
@@ -259,15 +262,26 @@ export class AnimatedScene extends Scene {
 				cameraController.followTarget = paddle;
 				if (player.pos[0] < 0) {
 					cameraController.offset = new THREE.Vector3(-4, 3, 0);
-					paddle.controller = new KeyboardController(socket);
+					paddle.controller = new KeyboardController(socket, undefined, 'zy', {
+						touchHost: this.renderer.domElement,
+						touchHorizontalSign: 1
+					});
 				} else {
 					cameraController.offset = new THREE.Vector3(4, 3, 0);
-					paddle.controller = new KeyboardController(socket, {
-						left: ['KeyD', 'ArrowRight'],
-						right: ['KeyA', 'ArrowLeft'],
-						up: ['KeyW', 'ArrowUp'],
-						down: ['KeyS', 'ArrowDown']
-					});
+					paddle.controller = new KeyboardController(
+						socket,
+						{
+							left: ['KeyD', 'ArrowRight'],
+							right: ['KeyA', 'ArrowLeft'],
+							up: ['KeyW', 'ArrowUp'],
+							down: ['KeyS', 'ArrowDown']
+						},
+						'zy',
+						{
+							touchHost: this.renderer.domElement,
+							touchHorizontalSign: -1
+						}
+					);
 				}
 			}
 		}
