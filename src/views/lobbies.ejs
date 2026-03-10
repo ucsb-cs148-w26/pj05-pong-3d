@@ -66,14 +66,6 @@
 		<% } %>
 
 		<script>
-			const equippedBallSkin = '<%= user && user.equipped_ball_skin_key ? user.equipped_ball_skin_key : "classic" %>';
-
-			function getSelectedCosmetics() {
-				return {
-					ball: { skinId: equippedBallSkin }
-				};
-			};
-
 			function logout() {
 				fetch('/auth/logout', { method: 'POST', credentials: 'same-origin' })
 					.then(() => {
@@ -101,15 +93,14 @@
 				e.preventDefault();
 				setLobbyVisibility(false);
 			});
-			
+
 			async function createLobbyAndRedirect(isPublic = lobbyIsPublic) {
 				const res = await fetch('/api/lobbies', {
 					method: 'POST',
 					body: JSON.stringify({
 						name: nameField.value.length ? nameField.value : undefined,
 						isPublic,
-						lives: parseInt(createLives.value),
-						cosmetics: getSelectedCosmetics()
+						lives: parseInt(createLives.value)
 					}),
 					headers: {
 						'Content-Type': 'application/json'
