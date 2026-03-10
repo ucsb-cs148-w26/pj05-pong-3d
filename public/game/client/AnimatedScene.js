@@ -254,6 +254,9 @@ export class AnimatedScene extends Scene {
 
 			const socket = this.getGameObject('socket').config.socket;
 
+			console.log(player.selection);
+			paddle.setSkinStyle(parseInt(player.selection.paddle_skin_key));
+
 			if (!player.remote) {
 				// TODO: this is silly
 				cameraController.followTarget = paddle;

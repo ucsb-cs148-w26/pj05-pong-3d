@@ -147,8 +147,39 @@ export default class ServerScene extends Scene {
 		this.#endGame(username);
 	}
 
-	#updatePaddles() {
+	async #updatePaddles() {
 		// TODO: n-player support
+
+		const playerIds = [];
+
+		for (const user of this.state.players.keys())
+			playerIds.push(this.#socket.getUserId(user));
+
+		const sql = `SELECT
+						u.user_id,
+						p.id AS paddle_skin_id, p.item_key AS paddle_skin_key, p.display_name AS paddle_skin_name,
+						b.id AS ball_skin_id, b.item_key AS ball_skin_key, b.display_name AS ball_skin_name,
+						g.id AS goal_explosion_id, g.item_key AS goal_explosion_key, g.display_name AS goal_explosion_name,
+						u.updated_at
+					FROM user_equipped u
+					LEFT JOIN items p ON u.paddle_skin_item_id = p.id
+					LEFT JOIN items b ON u.ball_skin_item_id = b.id
+					LEFT JOIN items g ON u.goal_explosion_item_id = g.id
+					WHERE u.user_id IN (${playerIds.join(', ')})`;
+
+		const selections = await new Promise((res, rej) => {
+			db.all(sql, [], (err, rows) => {
+				if (err) {
+					rej(err);
+				}
+				res(rows);
+			});
+		});
+
+		const pselect = {};
+		for (const selection of selections) {
+			pselect[this.#socket.getUsernameFromId(selection.user_id)] = selection;
+		}
 
 		this.#socket.forEachClient((thisUsername, ws) => {
 			const players = this.state.players.entries().map(([username, player]) => {
@@ -158,7 +189,8 @@ export default class ServerScene extends Scene {
 					username: username,
 					elo: player.elo,
 					remote: thisUsername !== username,
-					pos: [...paddle.body.x.data]
+					pos: [...paddle.body.x.data],
+					selection: pselect[username]
 				};
 			});
 
