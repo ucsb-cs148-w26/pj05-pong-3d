@@ -144,7 +144,7 @@
 											<div>Players: ${lobby.memberCount}</div>
 										</div>
 
-										<button onclick="join('${lobby.code}')">Join</button>
+										<button onclick="join('${lobby.code}')">${(lobby.memberCount >= 2) ? "Spectate" : "Join" }</button>
 									</li>
 								`).join('\n')
 							}</ul>`;
