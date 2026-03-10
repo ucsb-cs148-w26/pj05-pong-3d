@@ -33,7 +33,8 @@ body > canvas {
 	color: white;
 	font-size: 0.9rem;
 	height: 8rem;
-	width: 60ch;
+	width: 33vw;
+	height: 20vh;
 	overflow-y: auto;
 	white-space: pre-wrap;
 }
