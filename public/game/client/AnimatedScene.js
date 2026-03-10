@@ -23,6 +23,7 @@ export class AnimatedScene extends Scene {
 		this.host = null;
 		this.username = null;
 		this.gameOver = null;
+		this.unlockedItem = null;
 		this.renderer = new THREE.WebGLRenderer();
 		this.renderer.setSize(window.innerWidth, window.innerHeight);
 		this.renderer.shadowMap.enabled = true;
@@ -79,7 +80,10 @@ export class AnimatedScene extends Scene {
 		this.isReplaying = false;
 
 		socket.addHandler('sync', this.#sync.bind(this));
+		socket.addHandler('gameOver', this.#gameOver.bind(this));
 		socket.addHandler('playerSync', this.#playerSync.bind(this));
+		socket.addHandler('itemUnlocked', this.#itemUnlocked.bind(this));
+		socket.addHandler('gameCancelled', this.#gameCancelled.bind(this));
 
 		// Order matters: Sync with ServerScene.js
 		this.registerGameObject(new Arena('gameArena'));
@@ -227,7 +231,6 @@ export class AnimatedScene extends Scene {
 		this.state.physics.importState(msg.physics);
 
 		this.#ball.enabled = msg.active;
-		this.gameOver = msg.gameOver ?? null;
 
 		for (const [username, gameInfo] of Object.entries(msg.gameInfo)) {
 			const player = this.state.players.get(username);
@@ -265,6 +268,11 @@ export class AnimatedScene extends Scene {
 		controller.useInputBuffer = false;
 	}
 
+	#gameOver(msg) {
+		this.gameOver = msg;
+		this.#ball.enabled = false;
+	}
+
 	get isHost() {
 		return this.host === this.username;
 	}
@@ -286,7 +294,7 @@ export class AnimatedScene extends Scene {
 			const paddle = this.getGameObject(player.key);
 			this.state.players.set(
 				player.username,
-				new Player(player.username, paddle)
+				new Player(player.username, paddle, player.elo)
 			);
 
 			const socket = this.getGameObject('socket').config.socket;
@@ -323,5 +331,13 @@ export class AnimatedScene extends Scene {
 			this.updateOrbitCamera();
 		}
 		
+	}
+
+	#itemUnlocked(msg) {
+		this.unlockedItem = msg;
+	}
+
+	#gameCancelled(msg) {
+		this.gameCancelled = true;
 	}
 }

@@ -1,0 +1,91 @@
+.leaderboard-card {
+	padding: 1rem;
+}
+
+.leaderboard-table th:nth-child(1),
+.leaderboard-table td:nth-child(1) {
+	width: 10%;
+}
+
+.leaderboard-table th:nth-child(2),
+.leaderboard-table td:nth-child(2) {
+	width: 42%;
+}
+
+.leaderboard-table th:nth-child(3),
+.leaderboard-table td:nth-child(3) {
+	width: 14%;
+}
+
+.leaderboard-table th:nth-child(4),
+.leaderboard-table td:nth-child(4) {
+	width: 16%;
+}
+
+.leaderboard-table th:nth-child(5),
+.leaderboard-table td:nth-child(5) {
+	width: 18%;
+}
+
+.leaderboard-table tbody tr:hover {
+	background: rgba(255, 255, 255, 0.04);
+}
+
+.leaderboard-table tbody tr.current-player {
+	background: rgba(0, 229, 255, 0.1);
+}
+
+.rank-badge {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-width: 2rem;
+	padding: 0.15rem 0.35rem;
+	border: 0.1rem solid rgba(255, 255, 255, 0.16);
+	background: rgba(255, 255, 255, 0.06);
+}
+
+.player-cell {
+	display: flex;
+	align-items: center;
+	gap: 0.5rem;
+	min-width: 0;
+}
+
+.player-avatar,
+.player-fallback {
+	width: 1.9rem;
+	height: 1.9rem;
+	border-radius: 999px;
+	flex: 0 0 auto;
+}
+
+.player-avatar {
+	object-fit: cover;
+	border: 0.1rem solid rgba(255, 255, 255, 0.16);
+}
+
+.player-fallback {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	background: rgba(255, 255, 255, 0.08);
+	border: 0.1rem solid rgba(255, 255, 255, 0.16);
+}
+
+.player-meta {
+	display: flex;
+	flex-direction: column;
+	gap: 0.05rem;
+	min-width: 0;
+}
+
+.player-meta strong {
+	line-height: 1;
+}
+
+.player-note {
+	color: rgba(255, 255, 255, 0.58);
+	font-size: 0.8rem;
+	line-height: 1;
+}
