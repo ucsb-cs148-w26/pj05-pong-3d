@@ -395,14 +395,6 @@
 				panel.hidden = !isActive;
 				panel.style.display = isActive ? '' : 'none';
 			});
-
-			if (targetId === 'profile-panel-history' && latestEloHistory.length) {
-				window.requestAnimationFrame(() => drawEloChart(latestEloHistory));
-			}
-
-			if (targetId === 'profile-panel-library') {
-				window.requestAnimationFrame(() => window.refreshGoalPreviewLayout?.());
-			}
 		}
 
 		profileTabs.forEach((tab, index) => {
@@ -692,7 +684,6 @@
 				burstPos.set(0, styleIndex === 3 ? -1.9 : 0, 0);
 				previewSpawner.triggerGoalAnimation(styleIndex, null, burstPos);
 			};
-			window.refreshGoalPreviewLayout = resizePreview;
 
 			resizePreview();
 			animatePreview();
