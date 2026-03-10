@@ -326,8 +326,6 @@ export class AnimatedScene extends Scene {
 				continue;
 			}
 
-			paddle.setSkinStyle(parseInt(player.selection.paddle_skin_key));
-
 			// TODO: this is silly
 			cameraController.followTarget = paddle;
 			if (this.controls !== null) {
