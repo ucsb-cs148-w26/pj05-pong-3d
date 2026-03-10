@@ -237,8 +237,8 @@ export default class ServerScene extends Scene {
 
 		const winnerName = this.#gameOver.winner;
 		const loserName = this.#gameOver.loser;
-		const winnerId = socket.getUserId(winnerName);
-		const loserId = socket.getUserId(loserName);
+		const winnerId = this.#socket.getUserId(winnerName);
+		const loserId = this.#socket.getUserId(loserName);
 
 		try {
 			const winner = await new Promise((resolve, reject) => {
@@ -366,7 +366,7 @@ export default class ServerScene extends Scene {
 								(err2) => {
 									if (err2) return reject(err2);
 									// Tell only the winner what they unlocked.
-									socket.safeSendToUser(winnerName, {
+									this.#socket.safeSendToUser(winnerName, {
 										type: 'itemUnlocked',
 										itemId: item.id,
 										displayName: item.display_name,
@@ -377,7 +377,7 @@ export default class ServerScene extends Scene {
 							);
 						}
 					);
-				}):
+				});
 				await new Promise((resolve, reject) => {
 					db.run('COMMIT', (err) => {
 						if (err) reject(err);

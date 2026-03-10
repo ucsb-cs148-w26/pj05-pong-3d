@@ -17,10 +17,6 @@ socket.connect();
 const animatedScene = new AnimatedScene(socket);
 window.animatedScene = animatedScene;
 
-socket.addHandler('itemUnlocked', (msg) => {
-	animatedScene.unlockedItem = msg;
-});
-
 animatedScene.registerGameObject(new GameObjectCustom('socket', { socket }));
 
 animatedScene.registerGameObject(
