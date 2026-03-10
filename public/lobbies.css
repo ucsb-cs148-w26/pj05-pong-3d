@@ -1,3 +1,11 @@
+.game-title {
+	margin: 0 0 1.5rem;
+	font-size: clamp(3.5rem, 11vw, 6rem);
+	line-height: 1;
+	text-align: center;
+	text-transform: uppercase;
+}
+
 .lobbies {
 	padding: 0;
 	list-style-type: none;
