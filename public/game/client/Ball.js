@@ -10,12 +10,12 @@ export class Ball extends BallCommon {
 	#visual = null;
 	#skin = null;
 	#goalSpawner = null;
-	#explosionId = null;
 	scene = null;
 
 	constructor(key, spawner) {
 		super(key);
 
+		this.cosmetics = null;
 		this.#skin = new BallSkin();
 		this.#visual = this.#skin.visual;
 		this.#goalSpawner = spawner;
@@ -29,46 +29,25 @@ export class Ball extends BallCommon {
 				return;
 
 			const pos = me.x;
-			if (this.#explosionId !== null) {
-				this.#goalSpawner.triggerGoalAnimation(
-					this.#explosionId,
-					null,
-					new THREE.Vector3(pos.x, pos.y, pos.z)
-				);
-			}
+			this.#goalSpawner.triggerGoalAnimation(
+				parseInt(
+					this.cosmetics[identifier === 'greenWall' ? 'redWall' : 'greenWall']
+						.goal_explosion_key
+				),
+				null,
+				new THREE.Vector3(pos.x, pos.y, pos.z)
+			);
+
+			this.setSkinStyle(parseInt(this.cosmetics[identifier].ball_skin_key));
 
 			if (!this.scene?.isReplaying) {
 				this.scene.getGameObject('cameraController')?.addShake(0.5, 1000);
 			}
 		}).bind(this);
-
-		this.#loadEquipped();
 	}
 
 	init(scene) {
 		this.scene = scene;
-	}
-
-	async #loadEquipped() {
-		try {
-			const response = await fetch('/user/items/equipped', {
-				method: 'GET',
-				credentials: 'same-origin'
-			});
-
-			if (!response.ok) throw new Error();
-
-			const data = await response.json();
-			const styleIndex = Number.parseInt(data.ball_skin_key, 10);
-			this.setSkinStyle(styleIndex);
-
-			if (data.goal_explosion_key) {
-				this.#explosionId = parseInt(data.goal_explosion_key, 10);
-			}
-		} catch (err) {
-			console.error('Failed to load: ', err);
-			this.setSkinStyle(BALL_SKIN_CONFIGS[0].styleIndex);
-		}
 	}
 
 	update(dt) {

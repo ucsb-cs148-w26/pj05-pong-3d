@@ -308,6 +308,8 @@ export class AnimatedScene extends Scene {
 
 		this.state.players.clear();
 
+		const cosmetics = {};
+
 		for (const player of msg.players) {
 			const paddle = this.getGameObject(player.key);
 			paddle.controller?.destroy?.();
@@ -321,6 +323,9 @@ export class AnimatedScene extends Scene {
 			const socket = this.getGameObject('socket').config.socket;
 
 			paddle.setSkinStyle(parseInt(player.selection.paddle_skin_key));
+
+			if (player.pos[0] < 0) cosmetics['greenWall'] = player.selection;
+			else cosmetics['redWall'] = player.selection;
 
 			if (player.remote) {
 				continue;
@@ -363,6 +368,8 @@ export class AnimatedScene extends Scene {
 		if (this.controls !== null) {
 			this.updateOrbitCamera();
 		}
+
+		this.#ball.cosmetics = cosmetics;
 	}
 
 	#updateServerTimeOffset(serverTs) {
