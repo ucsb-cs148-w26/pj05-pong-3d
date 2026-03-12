@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import * as Constants from '/game/constants.js';
 import { BallSkin } from '/game/shaders/ballSkin.js';
 import { GoalAnimationSpawner } from '/game/shaders/goalAnimationSpawner.js';
+import { resolveCosmeticItemSelection } from '/game/cosmetics.js';
 import { PaddleSkin } from '/game/shaders/paddleSkin.js';
 
 const previewManagers = [];
@@ -186,10 +187,14 @@ function initializePaddlePreview() {
 	const hiddenBallPosition = new THREE.Vector3(0, 0, -6);
 
 	window.triggerPaddlePreview = (name, styleIndexRaw) => {
-		const styleIndex = Number(styleIndexRaw);
-		if (!Number.isFinite(styleIndex)) return;
+		const selection = resolveCosmeticItemSelection(styleIndexRaw);
+		if (!Number.isFinite(selection.styleIndex)) return;
 		setPreviewLabel(label, name);
-		paddleSkin.setStyle(styleIndex);
+		paddleSkin.setStyle(selection.styleIndex);
+
+		if (selection.paintColor !== null) {
+			paddleSkin.setColor(selection.paintColor);
+		}
 	};
 
 	registerPreviewManager({
@@ -221,11 +226,15 @@ function initializeGoalPreview() {
 	const burstPosition = new THREE.Vector3(0, 0, 0);
 
 	window.triggerGoalPreview = (name, styleIndexRaw) => {
-		const styleIndex = Number(styleIndexRaw);
-		if (!Number.isFinite(styleIndex)) return;
+		const selection = resolveCosmeticItemSelection(styleIndexRaw);
+		if (!Number.isFinite(selection.styleIndex)) return;
 		setPreviewLabel(label, name);
-		burstPosition.set(0, styleIndex === 3 ? -1.9 : 0, 0);
-		previewSpawner.triggerGoalAnimation(styleIndex, null, burstPosition);
+		burstPosition.set(0, selection.styleIndex === 3 ? -1.9 : 0, 0);
+		previewSpawner.triggerGoalAnimation(
+			selection.styleIndex,
+			selection.paintColor,
+			burstPosition
+		);
 	};
 
 	registerPreviewManager({

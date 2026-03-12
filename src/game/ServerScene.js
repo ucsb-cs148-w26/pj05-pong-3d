@@ -5,11 +5,51 @@ import { PaddleCommon } from '../../public/game/common/PaddleCommon.js';
 import { PaddleController } from './PaddleController.js';
 import { GameState, Player } from '../../public/game/common/GameState.js';
 import { BallServer } from './BallServer.js';
-import db from '../db/db.js';
+import { PAINT_VARIANTS } from '../../public/game/cosmetics.js';
+import {
+	createEquippedItemsSql,
+	dbAll,
+	dbGet,
+	dbRun,
+	PAINTED_ITEM_KEY_SQL_PATTERN,
+	withTransaction
+} from '../db/helpers.js';
 
 const SYNC_INTERVAL = 5;
 const RESPAWN_COUNTDOWN_MS = 3000;
 const DEFAULT_ELO = 1000;
+const PAINTED_VARIANT_ROLL_CHANCE = 0.25;
+const PAINTABLE_ITEM_KINDS = Object.freeze(['paddle_skin', 'goal_explosion']);
+
+function getRandomUnlockableItem(userId, painted) {
+	const sql = painted
+		? `SELECT i.id, i.display_name, i.kind
+			FROM items i
+			WHERE i.is_default = 0
+			AND i.kind IN (${PAINTABLE_ITEM_KINDS.map(() => '?').join(', ')})
+			AND i.item_key LIKE ?
+			AND i.id NOT IN (SELECT item_id FROM user_unlocks WHERE user_id = ?)
+			ORDER BY RANDOM() LIMIT 1`
+		: `SELECT i.id, i.display_name, i.kind
+			FROM items i
+			WHERE i.is_default = 0
+			AND i.item_key NOT LIKE ?
+			AND i.id NOT IN (SELECT item_id FROM user_unlocks WHERE user_id = ?)
+			ORDER BY RANDOM() LIMIT 1`;
+
+	const params = painted
+		? [...PAINTABLE_ITEM_KINDS, PAINTED_ITEM_KEY_SQL_PATTERN, userId]
+		: [PAINTED_ITEM_KEY_SQL_PATTERN, userId];
+
+	return dbGet(sql, params);
+}
+
+function unlockItemForUser(userId, itemId) {
+	return dbRun(
+		`INSERT INTO user_unlocks (user_id, item_id, unlocked_at) VALUES (?, ?, CURRENT_TIMESTAMP)`,
+		[userId, itemId]
+	);
+}
 
 export default class ServerScene extends Scene {
 	#interval = null;
@@ -166,49 +206,40 @@ export default class ServerScene extends Scene {
 	async #updatePaddles() {
 		// TODO: n-player support
 
-		const playerIds = [];
-
-		for (const user of this.state.players.keys())
-			playerIds.push(this.#socket.getUserId(user));
-
-		const sql = `SELECT
-						u.user_id,
-						p.id AS paddle_skin_id, p.item_key AS paddle_skin_key, p.display_name AS paddle_skin_name,
-						b.id AS ball_skin_id, b.item_key AS ball_skin_key, b.display_name AS ball_skin_name,
-						g.id AS goal_explosion_id, g.item_key AS goal_explosion_key, g.display_name AS goal_explosion_name,
-						u.updated_at
-					FROM user_equipped u
-					LEFT JOIN items p ON u.paddle_skin_item_id = p.id
-					LEFT JOIN items b ON u.ball_skin_item_id = b.id
-					LEFT JOIN items g ON u.goal_explosion_item_id = g.id
-					WHERE u.user_id IN (${playerIds.join(', ')})`;
-
-		const selections = await new Promise((res, rej) => {
-			db.all(sql, [], (err, rows) => {
-				if (err) {
-					rej(err);
-				}
-				res(rows);
-			});
-		});
-
-		const pselect = {};
-		for (const selection of selections) {
-			pselect[this.#socket.getUsernameFromId(selection.user_id)] = selection;
-		}
+		const playerIds = Array.from(this.state.players.keys(), (username) =>
+			this.#socket.getUserId(username)
+		);
+		const selections =
+			playerIds.length === 0
+				? []
+				: await dbAll(
+						createEquippedItemsSql(
+							`u.user_id IN (${playerIds.map(() => '?').join(', ')})`
+						),
+						playerIds
+					);
+		const selectionsByUsername = Object.fromEntries(
+			selections.map((selection) => [
+				this.#socket.getUsernameFromId(selection.user_id),
+				selection
+			])
+		);
 
 		this.#socket.forEachClient((thisUsername, ws) => {
-			const players = this.state.players.entries().map(([username, player]) => {
-				const paddle = player.paddle;
-				return {
-					key: paddle.key,
-					username: username,
-					elo: player.elo,
-					remote: thisUsername !== username,
-					pos: [...paddle.body.x.data],
-					selection: pselect[username]
-				};
-			});
+			const players = Array.from(
+				this.state.players.entries(),
+				([username, player]) => {
+					const paddle = player.paddle;
+					return {
+						key: paddle.key,
+						username,
+						elo: player.elo,
+						remote: thisUsername !== username,
+						pos: [...paddle.body.x.data],
+						selection: selectionsByUsername[username] ?? null
+					};
+				}
+			);
 
 			const packet = {
 				type: 'playerSync',
@@ -224,16 +255,10 @@ export default class ServerScene extends Scene {
 
 	async #loadPlayerElo(player) {
 		try {
-			const row = await new Promise((resolve, reject) => {
-				db.get(
-					'SELECT elo FROM users WHERE display_name = ? LIMIT 1',
-					[player.username],
-					(err, result) => {
-						if (err) reject(err);
-						else resolve(result);
-					}
-				);
-			});
+			const row = await dbGet(
+				'SELECT elo FROM users WHERE display_name = ? LIMIT 1',
+				[player.username]
+			);
 			const elo = Number(row?.elo);
 			if (!Number.isFinite(elo)) return;
 
@@ -314,18 +339,10 @@ export default class ServerScene extends Scene {
 		const loserId = this.#socket.getUserId(loserName);
 
 		try {
-			const winner = await new Promise((resolve, reject) => {
-				db.get('SELECT elo FROM users WHERE id = ?', [winnerId], (err, row) => {
-					if (err) reject(err);
-					else resolve(row);
-				});
-			});
-			const loser = await new Promise((resolve, reject) => {
-				db.get('SELECT elo FROM users WHERE id = ?', [loserId], (err, row) => {
-					if (err) reject(err);
-					else resolve(row);
-				});
-			});
+			const [winner, loser] = await Promise.all([
+				dbGet('SELECT elo FROM users WHERE id = ?', [winnerId]),
+				dbGet('SELECT elo FROM users WHERE id = ?', [loserId])
+			]);
 			if (!winner || !loser) {
 				console.warn('skipping elo/match_history update: user lookup failed');
 				return;
@@ -361,37 +378,17 @@ export default class ServerScene extends Scene {
 				}
 			};
 
-			await new Promise((resolve, reject) => {
-				db.run('BEGIN TRANSACTION', (err) => {
-					if (err) reject(err);
-					else resolve();
-				});
-			});
-
-			try {
-				await new Promise((resolve, reject) => {
-					db.run(
-						'UPDATE users SET elo = ? WHERE id = ?',
-						[winnerEloAfter, winnerId],
-						(err) => {
-							if (err) reject(err);
-							else resolve();
-						}
-					);
-				});
-				await new Promise((resolve, reject) => {
-					db.run(
-						'UPDATE users SET elo = ? WHERE id = ?',
-						[loserEloAfter, loserId],
-						(err) => {
-							if (err) reject(err);
-							else resolve();
-						}
-					);
-				});
-				await new Promise((resolve, reject) => {
-					db.run(
-						`INSERT INTO match_history (
+			const unlockedItem = await withTransaction(async () => {
+				await dbRun('UPDATE users SET elo = ? WHERE id = ?', [
+					winnerEloAfter,
+					winnerId
+				]);
+				await dbRun('UPDATE users SET elo = ? WHERE id = ?', [
+					loserEloAfter,
+					loserId
+				]);
+				await dbRun(
+					`INSERT INTO match_history (
 							winner_user_id,
 							loser_user_id,
 							winner_lives_remaining,
@@ -400,60 +397,39 @@ export default class ServerScene extends Scene {
 							loser_elo_before,
 							loser_elo_after
 						) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-						[
-							winnerId,
-							loserId,
-							winnerLives,
-							winner.elo,
-							winnerEloAfter,
-							loser.elo,
-							loserEloAfter
-						],
-						(err) => {
-							if (err) reject(err);
-							else resolve();
-						}
-					);
+					[
+						winnerId,
+						loserId,
+						winnerLives,
+						winner.elo,
+						winnerEloAfter,
+						loser.elo,
+						loserEloAfter
+					]
+				);
+
+				const paintedRoll =
+					PAINT_VARIANTS.length > 0 &&
+					Math.random() < PAINTED_VARIANT_ROLL_CHANCE;
+				const item =
+					(await getRandomUnlockableItem(winnerId, paintedRoll)) ??
+					(await getRandomUnlockableItem(winnerId, !paintedRoll));
+
+				if (item) {
+					await unlockItemForUser(winnerId, item.id);
+					return item;
+				}
+
+				return null;
+			});
+
+			if (unlockedItem) {
+				this.#socket.safeSendToUser(winnerName, {
+					type: 'itemUnlocked',
+					itemId: unlockedItem.id,
+					displayName: unlockedItem.display_name,
+					kind: unlockedItem.kind
 				});
-				await new Promise((resolve, reject) => {
-					db.get(
-						`SELECT i.id, i.display_name, i.kind FROM items i
-							WHERE i.is_default = 0
-							AND i.id NOT IN (SELECT item_id FROM user_unlocks WHERE user_id = ?)
-							ORDER BY RANDOM() LIMIT 1`,
-						[winnerId],
-						(err, item) => {
-							if (err) return reject(err);
-							if (!item) return resolve();
-							db.run(
-								`INSERT INTO user_unlocks (user_id, item_id, unlocked_at) VALUES (?, ?, CURRENT_TIMESTAMP)`,
-								[winnerId, item.id],
-								(err2) => {
-									if (err2) return reject(err2);
-									// Tell only the winner what they unlocked.
-									this.#socket.safeSendToUser(winnerName, {
-										type: 'itemUnlocked',
-										itemId: item.id,
-										displayName: item.display_name,
-										kind: item.kind
-									});
-									resolve();
-								}
-							);
-						}
-					);
-				});
-				await new Promise((resolve, reject) => {
-					db.run('COMMIT', (err) => {
-						if (err) reject(err);
-						else resolve();
-					});
-				});
-			} catch (txErr) {
-				await new Promise((resolve) => {
-					db.run('ROLLBACK', () => resolve());
-				});
-				throw txErr;
 			}
 		} catch (err) {
 			console.error('Failed to save game:', err);

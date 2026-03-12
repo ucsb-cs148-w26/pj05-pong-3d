@@ -1,5 +1,11 @@
 import express from 'express';
-import db from '../db/db.js';
+import {
+	createEquippedItemsSql,
+	dbAll,
+	dbGet,
+	dbRun,
+	PAINTED_ITEM_KEY_SQL_PATTERN
+} from '../db/helpers.js';
 
 export default function createUserRouter() {
 	const router = express.Router();
@@ -9,75 +15,49 @@ export default function createUserRouter() {
 		res.status(401).json({ error: 'Unauthorized' });
 	}
 
-	const dbAll = (sql, params = []) =>
-		new Promise((resolve, reject) => {
-			db.all(sql, params, (err, rows) => {
-				if (err) reject(err);
-				else resolve(rows);
-			});
-		});
+	const cosmeticCollectionSql = `
+		SELECT i.id, i.item_key, i.kind, i.display_name, u.unlocked_at
+		FROM items i
+		LEFT JOIN user_unlocks u
+		ON i.id = u.item_id AND u.user_id = ?
+		WHERE i.kind = ?
+		AND (i.item_key NOT LIKE ? OR u.unlocked_at IS NOT NULL)
+	`;
 
-	const dbGet = (sql, params = []) =>
-		new Promise((resolve, reject) => {
-			db.get(sql, params, (err, row) => {
-				if (err) reject(err);
-				else resolve(row);
-			});
-		});
+	const unlocksSql = `SELECT i.id, i.item_key, i.kind, i.display_name, i.is_default, u.unlocked_at
+		FROM items i
+		INNER JOIN user_unlocks u ON i.id = u.item_id
+		WHERE u.user_id = ? AND i.kind != 'goal_explosion'`;
+
+	const allUnlocksSql = `SELECT i.id, i.item_key, i.kind, i.display_name, i.is_default, u.unlocked_at
+		FROM items i
+		INNER JOIN user_unlocks u ON i.id = u.item_id
+		WHERE u.user_id = ?`;
 
 	router.get('/', ensureAuth, async (req, res) => {
 		const userId = req.user.id;
 
 		try {
-			const paddleSkins = await dbAll(
-				`SELECT i.id, i.item_key, i.kind, i.display_name, u.unlocked_at
-				FROM items i
-				LEFT JOIN user_unlocks u
-				ON i.id = u.item_id AND u.user_id = ?
-				WHERE i.kind = 'paddle_skin'`,
-				[userId]
-			);
-
-			const goalExplosions = await dbAll(
-				`SELECT i.id, i.item_key, i.kind, i.display_name, u.unlocked_at
-				FROM items i
-				LEFT JOIN user_unlocks u
-				ON i.id = u.item_id AND u.user_id = ?
-				WHERE i.kind = 'goal_explosion'`,
-				[userId]
-			);
-
-			const ballSkins = await dbAll(
-				`SELECT i.id, i.item_key, i.kind, i.display_name, u.unlocked_at
-				FROM items i
-				LEFT JOIN user_unlocks u
-				ON i.id = u.item_id AND u.user_id = ?
-				WHERE i.kind = 'ball_skin'`,
-				[userId]
-			);
-
-			const unlocks = await dbAll(
-				`SELECT i.id, i.item_key, i.kind, i.display_name, i.is_default, u.unlocked_at
-				FROM items i
-				INNER JOIN user_unlocks u ON i.id = u.item_id
-				WHERE u.user_id = ? AND i.kind != 'goal_explosion'`,
-				[userId]
-			);
-
-			const equipped = await dbGet(
-				`SELECT
-					u.user_id,
-					p.id AS paddle_skin_id, p.item_key AS paddle_skin_key, p.display_name AS paddle_skin_name,
-					b.id AS ball_skin_id, b.item_key AS ball_skin_key, b.display_name AS ball_skin_name,
-					g.id AS goal_explosion_id, g.item_key AS goal_explosion_key, g.display_name AS goal_explosion_name,
-					u.updated_at
-				FROM user_equipped u
-				LEFT JOIN items p ON u.paddle_skin_item_id = p.id
-				LEFT JOIN items b ON u.ball_skin_item_id = b.id
-				LEFT JOIN items g ON u.goal_explosion_item_id = g.id
-				WHERE u.user_id = ?`,
-				[userId]
-			);
+			const [paddleSkins, goalExplosions, ballSkins, unlocks, equipped] =
+				await Promise.all([
+					dbAll(cosmeticCollectionSql, [
+						userId,
+						'paddle_skin',
+						PAINTED_ITEM_KEY_SQL_PATTERN
+					]),
+					dbAll(cosmeticCollectionSql, [
+						userId,
+						'goal_explosion',
+						PAINTED_ITEM_KEY_SQL_PATTERN
+					]),
+					dbAll(cosmeticCollectionSql, [
+						userId,
+						'ball_skin',
+						PAINTED_ITEM_KEY_SQL_PATTERN
+					]),
+					dbAll(unlocksSql, [userId]),
+					dbGet(createEquippedItemsSql(), [userId])
+				]);
 
 			res.render('user', {
 				user: req.user,
@@ -93,7 +73,7 @@ export default function createUserRouter() {
 		}
 	});
 
-	router.post('/updateDisplayName', ensureAuth, (req, res) => {
+	router.post('/updateDisplayName', ensureAuth, async (req, res) => {
 		const userId = req.user.id;
 		const newName = req.body?.display_name?.trim();
 
@@ -103,52 +83,40 @@ export default function createUserRouter() {
 				.json({ ok: false, message: 'Display name cannot be empty' });
 		}
 
-		db.run(
-			`UPDATE users SET display_name = ? WHERE id = ?`,
-			[newName, userId],
-			function (err) {
-				if (err) {
-					console.error('Failed to update display name:', err.message);
-					return res.status(500).json({ ok: false, message: 'Database error' });
-				}
-				req.user.display_name = newName;
-				res.json({ ok: true, display_name: newName });
-			}
-		);
+		try {
+			await dbRun(`UPDATE users SET display_name = ? WHERE id = ?`, [
+				newName,
+				userId
+			]);
+			req.user.display_name = newName;
+			res.json({ ok: true, display_name: newName });
+		} catch (err) {
+			console.error('Failed to update display name:', err.message);
+			res.status(500).json({ ok: false, message: 'Database error' });
+		}
 	});
 
-	router.get('/items/unlocks', ensureAuth, (req, res) => {
+	router.get('/items/unlocks', ensureAuth, async (req, res) => {
 		const userId = req.user.id;
-		const sql = `SELECT i.id, i.item_key, i.kind, i.display_name, i.is_default, u.unlocked_at
-        FROM items i
-        INNER JOIN user_unlocks u ON i.id = u.item_id
-        WHERE u.user_id = ?`;
-		db.all(sql, [userId], (err, rows) => {
-			if (err) return res.status(500).json({ error: 'Database error' });
+		try {
+			const rows = await dbAll(allUnlocksSql, [userId]);
 			res.json(rows);
-		});
+		} catch {
+			res.status(500).json({ error: 'Database error' });
+		}
 	});
 
-	router.get('/items/equipped', ensureAuth, (req, res) => {
+	router.get('/items/equipped', ensureAuth, async (req, res) => {
 		const userId = req.user.id;
-		const sql = `SELECT
-			u.user_id,
-			p.id AS paddle_skin_id, p.item_key AS paddle_skin_key, p.display_name AS paddle_skin_name,
-			b.id AS ball_skin_id, b.item_key AS ball_skin_key, b.display_name AS ball_skin_name,
-			g.id AS goal_explosion_id, g.item_key AS goal_explosion_key, g.display_name AS goal_explosion_name,
-			u.updated_at
-		FROM user_equipped u
-		LEFT JOIN items p ON u.paddle_skin_item_id = p.id
-		LEFT JOIN items b ON u.ball_skin_item_id = b.id
-		LEFT JOIN items g ON u.goal_explosion_item_id = g.id
-		WHERE u.user_id = ?`;
-		db.get(sql, [userId], (err, row) => {
-			if (err) return res.status(500).json({ error: 'Database error' });
+		try {
+			const row = await dbGet(createEquippedItemsSql(), [userId]);
 			res.json(row || {});
-		});
+		} catch {
+			res.status(500).json({ error: 'Database error' });
+		}
 	});
 
-	router.post('/items/equipItem', ensureAuth, (req, res) => {
+	router.post('/items/equipItem', ensureAuth, async (req, res) => {
 		const userId = req.user.id;
 		const { itemId, slot } = req.body;
 
@@ -172,11 +140,12 @@ export default function createUserRouter() {
 				updated_at = datetime('now')
 		`;
 
-		db.run(sql, [userId, itemId], function (err) {
-			if (err)
-				return res.status(500).json({ ok: false, error: 'Database error' });
+		try {
+			await dbRun(sql, [userId, itemId]);
 			res.json({ ok: true });
-		});
+		} catch {
+			res.status(500).json({ ok: false, error: 'Database error' });
+		}
 	});
 
 	router.get('/stats', ensureAuth, async (req, res) => {

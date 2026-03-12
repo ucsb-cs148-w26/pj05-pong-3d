@@ -8,6 +8,7 @@ import { Ball } from './Ball.js';
 import { CameraController } from './CameraController.js';
 import { GameState, Player } from '../common/GameState.js';
 import { GoalAnimationSpawner } from '../shaders/goalAnimationSpawner.js';
+import { resolveCosmeticItemSelection } from '../cosmetics.js';
 import { GameObjectCustom } from '../common/GameObject.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
@@ -322,7 +323,7 @@ export class AnimatedScene extends Scene {
 
 			const socket = this.getGameObject('socket').config.socket;
 
-			paddle.setSkinStyle(parseInt(player.selection.paddle_skin_key));
+			this.#applyPaddleSelection(paddle, player.selection);
 
 			if (player.pos[0] < 0) cosmetics['greenWall'] = player.selection;
 			else cosmetics['redWall'] = player.selection;
@@ -387,5 +388,14 @@ export class AnimatedScene extends Scene {
 
 	#gameCancelled(msg) {
 		this.gameCancelled = true;
+	}
+
+	#applyPaddleSelection(paddle, selection) {
+		const paddleSkin = resolveCosmeticItemSelection(selection?.paddle_skin_key);
+		paddle.setSkinStyle(paddleSkin.styleIndex);
+
+		if (paddleSkin.paintColor !== null) {
+			paddle.setSkinColor(paddleSkin.paintColor);
+		}
 	}
 }
