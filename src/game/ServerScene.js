@@ -195,6 +195,17 @@ export default class ServerScene extends Scene {
 					type: 'gameCancelled'
 				});
 				this.#onGameEnd?.();
+				return;
+			}
+
+			const player = this.state.players.get(username);
+			if (player) {
+				const arena = this.getGameObject('gameArena');
+				if (player.paddle.body.x.x < 0) arena.bodies[4].player = undefined;
+				else arena.bodies[5].player = undefined;
+
+				this.state.players.delete(username);
+				this.#updatePaddles();
 			}
 
 			return;
