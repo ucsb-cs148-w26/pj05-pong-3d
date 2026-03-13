@@ -145,6 +145,14 @@ body > canvas {
 	font-weight: 700;
 }
 
+#hud-free-play {
+	position: absolute;
+	bottom: 1rem;
+	left: 50%;
+	transform: translateX(-50%);
+	font-size: 0.95rem;
+}
+
 #escape-menu {
 	position: fixed;
 	inset: 0;

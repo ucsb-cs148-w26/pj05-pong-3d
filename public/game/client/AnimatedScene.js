@@ -9,8 +9,8 @@ import { CameraController } from './CameraController.js';
 import { GameState, Player } from '../common/GameState.js';
 import { GoalAnimationSpawner } from '../shaders/goalAnimationSpawner.js';
 import { resolveCosmeticItemSelection } from '../cosmetics.js';
-import { GameObjectCustom } from '../common/GameObject.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { FreePlayManager } from './FreePlayManager.js';
 
 /**
  * Scene with rendering capabilities. Uses the `visual` on each game object.
@@ -94,6 +94,7 @@ export class AnimatedScene extends Scene {
 
 		this.#ball = new Ball('ball', goalSpawner);
 		this.registerGameObject(this.#ball);
+		this.freePlay = new FreePlayManager(this, this.#ball);
 
 		const p1 = new Paddle('paddle1', socket, 'paddle', -23.5 / 2.125, null);
 
@@ -156,6 +157,7 @@ export class AnimatedScene extends Scene {
 
 	simulate() {
 		const delta = this.physicsClock.getDelta();
+		this.freePlay.update();
 		this.step(Math.min(delta, 2 / Constants.SIMULATION_RATE));
 	}
 
@@ -236,9 +238,6 @@ export class AnimatedScene extends Scene {
 	}
 
 	#sync(msg) {
-		this.state.physics.importState(msg.physics);
-
-		this.#ball.enabled = msg.active;
 		this.gameOver = msg.gameOver ?? null;
 		this.respawnEndsAt =
 			typeof msg.respawnEndsAt === 'number' ? msg.respawnEndsAt : null;
@@ -253,24 +252,20 @@ export class AnimatedScene extends Scene {
 			player.lives = gameInfo.lives;
 		}
 
-		const player = this.state.players.get(this.username);
+		const controller = this.state.players.get(this.username)?.paddle
+			?.controller;
+		this.#ackInputBuffer(controller, msg.ack);
 
-		if (player === undefined) return;
+		if (this.freePlay.shouldIgnoreServerSync()) return;
 
-		const controller = player.paddle.controller;
+		this.state.physics.importState(msg.physics);
+		this.#ball.enabled = msg.active;
+
+		if (!controller?.inputBuffer) return;
 
 		// prediction!
-		let idx = -1;
-		for (let i = 0; i < controller.inputBuffer.length; i++) {
-			if (controller.inputBuffer[i].seq <= msg.ack) continue;
+		if (controller.inputBuffer.length === 0) return; // all inputs ack'd
 
-			idx = i;
-			break;
-		}
-
-		if (idx === -1) return; // all inputs ack'd
-
-		controller.inputBuffer = controller.inputBuffer.slice(idx); // drop ack'd inputs
 		controller.useInputBuffer = true;
 		this.isReplaying = true;
 
@@ -296,6 +291,16 @@ export class AnimatedScene extends Scene {
 		return this.#ball.enabled;
 	}
 
+	get freePlayActive() {
+		return this.freePlay.active;
+	}
+
+
+
+	get gameCancelled() {
+		return this.freePlay.gameCancelled;
+	}
+
 	get serverNowMs() {
 		return Date.now() + this.serverTimeOffsetMs;
 	}
@@ -305,6 +310,7 @@ export class AnimatedScene extends Scene {
 		this.host = msg.host;
 
 		const cameraController = this.getGameObject('cameraController');
+		const socket = this.getGameObject('socket').config.socket;
 		if (cameraController) cameraController.followTarget = null;
 
 		this.state.players.clear();
@@ -320,8 +326,6 @@ export class AnimatedScene extends Scene {
 				player.username,
 				new Player(player.username, paddle, player.elo)
 			);
-
-			const socket = this.getGameObject('socket').config.socket;
 
 			this.#applyPaddleSelection(paddle, player.selection);
 
@@ -370,7 +374,15 @@ export class AnimatedScene extends Scene {
 			this.updateOrbitCamera();
 		}
 
+		if (!cosmetics.greenWall && cosmetics.redWall) {
+			cosmetics.greenWall = cosmetics.redWall;
+		}
+		if (!cosmetics.redWall && cosmetics.greenWall) {
+			cosmetics.redWall = cosmetics.greenWall;
+		}
+
 		this.#ball.cosmetics = cosmetics;
+		this.freePlay.syncPlayers();
 	}
 
 	#updateServerTimeOffset(serverTs) {
@@ -386,8 +398,8 @@ export class AnimatedScene extends Scene {
 		this.unlockedItem = msg;
 	}
 
-	#gameCancelled(msg) {
-		this.gameCancelled = true;
+	#gameCancelled() {
+		this.freePlay.cancelGame();
 	}
 
 	#applyPaddleSelection(paddle, selection) {
@@ -397,5 +409,12 @@ export class AnimatedScene extends Scene {
 		if (paddleSkin.paintColor !== null) {
 			paddle.setSkinColor(paddleSkin.paintColor);
 		}
+	}
+
+	#ackInputBuffer(controller, ack) {
+		if (!controller?.inputBuffer) return;
+		controller.inputBuffer = controller.inputBuffer.filter(
+			(input) => input.seq > ack
+		);
 	}
 }

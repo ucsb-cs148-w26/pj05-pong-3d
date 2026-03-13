@@ -110,6 +110,23 @@ animatedScene.registerGameObject(
 			this.countdownText.textContent = `${countdown}`;
 		}
 	}),
+	new GameObjectCustom('hudFreePlay', {
+		self: document.createElement('div'),
+		init() {
+			this.self.id = 'hud-free-play';
+			this.self.classList.add('hud-overlay');
+			document.body.appendChild(this.self);
+		},
+		update() {
+			if (!animatedScene.freePlayActive) {
+				this.self.style.display = 'none';
+				return;
+			}
+
+			this.self.style.display = '';
+			this.self.textContent = 'Free play until another player joins';
+		}
+	}),
 	new GameObjectCustom('hudStats', {
 		self: document.createElement('div'),
 		socket,
@@ -169,7 +186,10 @@ animatedScene.registerGameObject(
 		},
 		update(dt) {
 			const isGameOver = animatedScene.gameOver !== null;
-			if (animatedScene.matchStarted && !isGameOver) {
+			if (
+				(animatedScene.matchStarted || animatedScene.freePlayActive) &&
+				!isGameOver
+			) {
 				this.component.style.display = 'none';
 				return;
 			}
