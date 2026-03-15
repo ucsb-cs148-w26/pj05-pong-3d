@@ -99,9 +99,33 @@ db.serialize(() => {
 		}
 	);
 
+	db.run(
+		`CREATE TABLE IF NOT EXISTS feedback (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			user_id INTEGER NOT NULL,
+			author_name TEXT NOT NULL,
+			author_email TEXT NOT NULL,
+			message TEXT NOT NULL,
+			status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open', 'done')),
+			resolved_by_user_id INTEGER,
+			resolved_by_email TEXT,
+			resolved_at TEXT,
+			created_at TEXT NOT NULL DEFAULT (datetime('now')),
+			updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+			FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+			FOREIGN KEY (resolved_by_user_id) REFERENCES users(id) ON DELETE SET NULL
+		)`,
+		(err) => {
+			if (err) console.error('Table creation failed:', err.message);
+		}
+	);
+
 	db.run('CREATE INDEX IF NOT EXISTS idx_items_kind ON items(kind);');
 	db.run(
 		'CREATE INDEX IF NOT EXISTS idx_user_unlocks_user_id ON user_unlocks(user_id);'
+	);
+	db.run(
+		'CREATE INDEX IF NOT EXISTS idx_feedback_created_at ON feedback(created_at DESC);'
 	);
 
 	db.run(
@@ -109,6 +133,15 @@ db.serialize(() => {
 			AFTER UPDATE ON users
 			BEGIN
 				UPDATE users SET updated_at = datetime('now') WHERE id = OLD.id;
+			END;
+		`
+	);
+
+	db.run(
+		`CREATE TRIGGER IF NOT EXISTS update_feedback_timestamp
+			AFTER UPDATE ON feedback
+			BEGIN
+				UPDATE feedback SET updated_at = datetime('now') WHERE id = OLD.id;
 			END;
 		`
 	);
