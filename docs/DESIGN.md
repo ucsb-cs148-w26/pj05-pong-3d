@@ -72,11 +72,13 @@ Graphics operate using the game object system.
 
 The base scene has three lights for improved depth perception.
 
-Customized ball and paddle skins use colors and textures.
+Ball, arena, and paddle skins, as well as goal explosions, are abstracted into
+JavaScript objects with custom fields and methods, like those for shaders,
+particles, and geometry. They are then instantiated and displayed by their
+corresponding visual components.
 
-Goal explosions are abstracted into JavaScript objects with custom fields and
-methods, like those for shaders, particles, and geometry. They are then
-instantiated and displayed by the `GoalAnimationSpawner`.
+All of the skin/explosion data and implementation are placed in central
+repositories for other components to use.
 
 ### Networking system
 

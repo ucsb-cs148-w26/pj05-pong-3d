@@ -4,7 +4,16 @@
 1. Extended Database to allow for item unlocks
 
 ## Wong
-1. Refactored game object system for code reuse across server & client
+
+1. Created initial project structure
+2. Created initial chat functionality
+3. Implemented system of creating and joining lobbies using lobby code
+4. Refactored game object system for code reuse between server and client
+5. Implemented initial two-player multiplayer functionality (without client-side
+   prediction)
+6. Refactored and improved stylesheets for the game UI
+7. Implemented automatically refreshing lobby list
+8. Implemented configurable number of lives
 
 ## Jehmiah
 1. Added goal explosions system & shaders
@@ -20,4 +29,3 @@
 
 ## Chenchang
 1. Stop user from joining full lobby
-
