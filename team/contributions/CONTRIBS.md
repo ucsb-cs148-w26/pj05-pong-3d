@@ -22,7 +22,14 @@
 1. Added physics engine and colliders
 
 ## Terry
-1. Destructors on animated scene
+1. Implemented websocket networking for communication between the client and server.
+2. Created the server state object to manage the physics engine, paddle positions, and overall game state.
+3. Implemented client-side latency measurement to track ping between the client and server.
+4. Added advanced lobby system features, including host controls and improved lobby management.
+5. Cleaned up the animated scene system by improving object deletion and lifecycle management.
+6. Integrated goal explosion effects into gameplay.
+7. Added camera shake effects to improve game feedback and visual impact.
+8. Implemented the item acquisition system to allow players to unlock items.
 
 ## Ayala
 1. Implemented the end-game condition logic to detect when a match has finished and transition the game into the appropriate end state. This prevents further gameplay actions once the win or completion criteria are met and allows the game to properly handle post-game behavior. Additionally, added functionality for players to leave lobbies by pressing the ESC key. This required handling keyboard input and integrating it with the lobby system to remove the player and return them to the appropriate screen.
