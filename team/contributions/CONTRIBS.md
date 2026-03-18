@@ -16,7 +16,13 @@
 8. Implemented configurable number of lives
 
 ## Jehmiah
-1. Added goal explosions system & shaders
+1. Added initial database design
+2. Added goal explosions system & shaders
+3. Added paddle skin system & shaders
+4. Added ball skin system & shaders
+5. Added arena visuals & shaders
+6. Added initial AI opponent (deprecated)
+7. Created mocks for initial gameplay pattern 
 
 ## Bobby
 1. Added physics engine and colliders
