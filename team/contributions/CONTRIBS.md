@@ -41,4 +41,9 @@
 1. Implemented the end-game condition logic to detect when a match has finished and transition the game into the appropriate end state. This prevents further gameplay actions once the win or completion criteria are met and allows the game to properly handle post-game behavior. Additionally, added functionality for players to leave lobbies by pressing the ESC key. This required handling keyboard input and integrating it with the lobby system to remove the player and return them to the appropriate screen.
 
 ## Chenchang
-1. Stop user from joining full lobby
+1. Improved the styling and overall usability of the lobby page.
+2. Fixed chat auto-scrolling to improve the messaging experience.
+3. Improved lobby cleanup so empty lobbies are removed immediately after all players leave.
+4. Redesigned the HUD by adding a centered scoreboard and an FPS/ping panel while removing unnecessary debug information.
+5. Updated the waiting screen to provide clearer feedback for non-host players.
+6. Strengthened the lobby system by preventing users from joining or viewing full and in-progress lobbies.
