@@ -1,7 +1,14 @@
 # Contributions
 
 ## Dennis
-1. Extended Database to allow for item unlocks
+1. Created initial lobby system structure
+2. Implemented user authentication system using Google OAuth
+3. Extended Database to allow for item unlocks
+4. Created user page where users can see their information and change their nickname
+5. Added previews for items in the user page
+6. Implemented ELO system and included the ELO visibility/updates in all relevant locations
+7. Created leaderboard page
+8. Implemented random matchmaking
 
 ## Wong
 
