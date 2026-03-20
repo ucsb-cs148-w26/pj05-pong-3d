@@ -50,8 +50,13 @@
 5. Implemented the item acquisition system to allow players to unlock items.
 
 ## Ayala
-1. Implemented the end-game condition logic to detect when a match has finished and transition the game into the appropriate end state. This prevents further gameplay actions once the win or completion criteria are met and allows the game to properly handle post-game behavior. Additionally, added functionality for players to leave lobbies by pressing the ESC key. This required handling keyboard input and integrating it with the lobby system to remove the player and return them to the appropriate screen.
-
+1. Implemented end-game condition logic to detect when a match has concluded and transition the game into the appropriate end state, preventing further gameplay actions after win conditions are met.
+2. Developed controller/input handling to manage player interactions, ensuring responsive and consistent gameplay controls.
+3. Implemented logic to properly end matches when a player leaves the game, maintaining game integrity and preventing stalled sessions.
+4. Polished the serving system to reset and resume gameplay smoothly after each score, improving overall game flow and user experience.
+5. Added an escape menu system, allowing players to pause and exit the game seamlessly.
+6. Integrated functionality for players to leave lobbies using the ESC key by connecting input handling with the lobby system, ensuring a smooth transition back to the appropriate screen.
+   
 ## Chenchang
 1. Improved the styling and overall usability of the lobby page.
 2. Fixed chat auto-scrolling to improve the messaging experience.
