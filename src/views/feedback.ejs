@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<title>Feedback • 3D Pong</title>
+		<link rel="stylesheet" href="/index.css" />
+		<link rel="stylesheet" href="/feedback.css" />
+	</head>
+	<body>
+		<div class="feedback-shell">
+			<div class="feedback-topbar">
+				<a class="link-button" href="/">Back to Lobby</a>
+				<div class="feedback-user">
+					<span><strong><%= user.display_name || user.email %></strong></span>
+					<span><%= user.email %></span>
+				</div>
+			</div>
+
+			<header class="feedback-header">
+				<h1>FEEDBACK</h1>
+				<p class="feedback-access <%= canResolveFeedback ? 'authorized' : '' %>">
+					<% if (canResolveFeedback) { %>
+						<%= user.email %> can remove feedback with Done.
+					<% } else { %>
+						<%= user.email %> can submit feedback only.
+					<% } %>
+				</p>
+			</header>
+
+			<main class="feedback-stack">
+				<section class="card feedback-panel">
+					<div class="feedback-panel__header">
+						<h2>New Feedback</h2>
+					</div>
+					<form id="feedback-form" class="feedback-form">
+						<label for="feedback-message">Feedback or bug report</label>
+						<textarea
+							id="feedback-message"
+							name="message"
+							maxlength="1000"
+							placeholder="Describe the issue, idea, or improvement you found."
+							required
+						></textarea>
+						<div class="feedback-form__footer">
+							<span id="feedback-count">0 / 1000</span>
+							<button type="submit">Submit</button>
+						</div>
+					</form>
+					<p id="feedback-form-status" class="feedback-status" aria-live="polite"></p>
+				</section>
+
+				<section class="card feedback-panel">
+					<div class="feedback-panel__header">
+						<h2>Live Feedback</h2>
+						<button id="refresh-feedback" type="button">Refresh</button>
+					</div>
+					<div id="feedback-list" class="feedback-list">
+						<p class="feedback-empty">Loading feedback…</p>
+					</div>
+				</section>
+			</main>
+		</div>
+
+		<script>
+			window.feedbackPageConfig = {
+				currentUserEmail: <%- JSON.stringify(user.email) %>,
+				canResolveFeedback: <%- JSON.stringify(canResolveFeedback) %>
+			};
+		</script>
+		<script type="module" src="/feedback.js"></script>
+	</body>
+</html>

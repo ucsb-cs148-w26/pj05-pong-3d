@@ -19,6 +19,7 @@ export default class PongSocketServer extends EventEmitter {
 	#wss = null;
 	#wsByUsername = new Map();
 	#userIdByUsername = new Map();
+	#userByUsername = new Map();
 	#upgradeHandler = null;
 
 	#handlers = new Map();
@@ -56,6 +57,7 @@ export default class PongSocketServer extends EventEmitter {
 
 			this.#wsByUsername.set(username, ws);
 			this.#userIdByUsername.set(username, userId);
+			this.#userByUsername.set(username, req.user);
 
 			ws.on('message', (raw) => {
 				const text = raw.toString();
@@ -95,6 +97,7 @@ export default class PongSocketServer extends EventEmitter {
 				this.emit('client:disconnect', username);
 				this.#wsByUsername.delete(username);
 				this.#userIdByUsername.delete(username);
+				this.#userByUsername.delete(username);
 			});
 		});
 	}
@@ -142,6 +145,14 @@ export default class PongSocketServer extends EventEmitter {
 
 	getUserId(username) {
 		return this.#userIdByUsername.get(username);
+	}
+
+	getUser(username) {
+		return this.#userByUsername.get(username);
+	}
+
+	getUserEmail(username) {
+		return this.#userByUsername.get(username)?.email;
 	}
 
 	disconnectUser(username, code = 4000, reason = 'Disconnected by server') {

@@ -1,0 +1,200 @@
+.feedback-shell {
+	width: min(900px, 100%);
+	margin: 0 auto;
+}
+
+.feedback-topbar {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1rem;
+	margin-bottom: 1.5rem;
+	flex-wrap: wrap;
+}
+
+.feedback-user {
+	display: flex;
+	flex-direction: column;
+	align-items: flex-end;
+	gap: 0.15rem;
+	color: rgba(255, 255, 255, 0.8);
+}
+
+.feedback-header {
+	margin-bottom: 1.5rem;
+	text-align: center;
+}
+
+.feedback-header h1 {
+	margin: 0;
+	font-size: clamp(4rem, 12vw, 7rem);
+	letter-spacing: 0.12em;
+	line-height: 0.95;
+}
+
+.feedback-access {
+	margin: 0.75rem auto 0;
+	width: fit-content;
+	max-width: 100%;
+	padding: 0.45rem 0.8rem;
+	border: 0.1rem solid rgba(255, 255, 255, 0.14);
+	color: rgba(255, 255, 255, 0.7);
+	background: rgba(255, 255, 255, 0.04);
+}
+
+.feedback-access.authorized {
+	border-color: rgba(110, 255, 167, 0.3);
+	color: rgba(170, 255, 205, 0.9);
+}
+
+.feedback-stack {
+	display: grid;
+	gap: 1rem;
+}
+
+.feedback-panel {
+	padding: 1.25rem;
+}
+
+.feedback-panel__header {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1rem;
+	margin-bottom: 1rem;
+}
+
+.feedback-panel__header h2 {
+	margin: 0;
+	font-size: 2rem;
+}
+
+.feedback-form {
+	display: grid;
+	gap: 0.8rem;
+}
+
+.feedback-form label {
+	color: rgba(255, 255, 255, 0.82);
+}
+
+.feedback-form textarea {
+	min-height: 14rem;
+	padding: 0.9rem 1rem;
+	border: 0.1rem solid rgba(255, 255, 255, 0.16);
+	background: rgba(5, 9, 18, 0.75);
+	color: var(--fg-1);
+	resize: vertical;
+	outline: none;
+	line-height: 1.35;
+}
+
+.feedback-form textarea:focus {
+	border-color: rgba(39, 219, 255, 0.45);
+	box-shadow: 0 0 0 0.25rem rgba(39, 219, 255, 0.11);
+}
+
+.feedback-form__footer,
+.feedback-item__meta,
+.feedback-item__footer {
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	gap: 1rem;
+	flex-wrap: wrap;
+}
+
+.feedback-status {
+	min-height: 1.25rem;
+	margin: 0.75rem 0 0;
+	color: rgba(255, 255, 255, 0.72);
+}
+
+.feedback-status.error {
+	color: #ff9d9d;
+}
+
+.feedback-status.success {
+	color: #8affc2;
+}
+
+.feedback-list {
+	display: flex;
+	flex-direction: column;
+	gap: 0.85rem;
+}
+
+.feedback-empty {
+	margin: 0;
+	padding: 1rem;
+	border: 0.1rem dashed rgba(255, 255, 255, 0.16);
+	color: rgba(255, 255, 255, 0.58);
+}
+
+.feedback-item {
+	padding: 1rem;
+	border: 0.1rem solid rgba(255, 255, 255, 0.1);
+	background: rgba(255, 255, 255, 0.04);
+}
+
+.feedback-item.done {
+	opacity: 0.76;
+}
+
+.feedback-item__author {
+	color: rgba(255, 255, 255, 0.86);
+}
+
+.feedback-item__time,
+.feedback-item__resolved {
+	color: rgba(255, 255, 255, 0.54);
+}
+
+.feedback-item__message {
+	margin: 0.85rem 0;
+	font-size: 1.15rem;
+	line-height: 1.4;
+	white-space: pre-wrap;
+	overflow-wrap: anywhere;
+}
+
+.feedback-chip {
+	padding: 0.22rem 0.55rem;
+	border: 0.1rem solid rgba(255, 255, 255, 0.15);
+	text-transform: uppercase;
+	letter-spacing: 0.08em;
+	font-size: 0.82rem;
+}
+
+.feedback-chip.open {
+	background: rgba(255, 187, 0, 0.12);
+	border-color: rgba(255, 187, 0, 0.28);
+}
+
+.feedback-chip.done {
+	background: rgba(110, 255, 167, 0.12);
+	border-color: rgba(110, 255, 167, 0.28);
+}
+
+.feedback-done-button {
+	min-width: 5.5rem;
+}
+
+.feedback-done-button:disabled {
+	cursor: not-allowed;
+	opacity: 0.5;
+}
+
+@media (max-width: 640px) {
+	body {
+		padding: 1.25rem;
+	}
+
+	.feedback-user {
+		align-items: flex-start;
+	}
+
+	.feedback-panel {
+		padding: 1rem;
+	}
+}
