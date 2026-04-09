@@ -320,6 +320,8 @@ export class AnimatedScene extends Scene {
 
 			const socket = this.getGameObject('socket').config.socket;
 
+			paddle.setSkinStyle(parseInt(player.selection.paddle_skin_key));
+
 			if (player.remote) {
 				continue;
 			}
